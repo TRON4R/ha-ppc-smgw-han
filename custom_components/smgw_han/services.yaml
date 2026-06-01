@@ -14,14 +14,17 @@ export_readings:
       selector:
         datetime:
     download_cms:
+      required: true
       default: false
       selector:
         boolean:
     write_csv:
+      required: true
       default: false
       selector:
         boolean:
     write_xlsx:
+      required: true
       default: false
       selector:
         boolean:

@@ -25,6 +25,7 @@ from homeassistant.core import (
 )
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.util import dt as dt_util
 
 from .aggregation import DailySummary, build_daily_summary
@@ -198,8 +199,15 @@ async def _async_handle_export(call: ServiceCall) -> ServiceResponse:
             export_dir, base, readings, daily_summary, meta,
             do_csv, do_xlsx, cms_bytes, cms_name,
         )
+        # Prefer an absolute URL so the link is directly usable (clickable in
+        # markdown/notifications, copy-pasteable from Developer Tools). Falls
+        # back to a relative /local path if no base URL is configured.
+        try:
+            base_url = get_url(hass).rstrip("/")
+        except NoURLAvailableError:
+            base_url = ""
         response["files"] = {
-            kind: f"/local/{EXPORT_WWW_SUBDIR}/{token}/{fname}"
+            kind: f"{base_url}/local/{EXPORT_WWW_SUBDIR}/{token}/{fname}"
             for kind, fname in written.items()
         }
         _LOGGER.info(
