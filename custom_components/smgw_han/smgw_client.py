@@ -475,12 +475,14 @@ class SmgwClient:
             return readings
 
         last_timestamp: datetime | None = None
+        last_quality = "valid"
 
         for row in rows:
             ts_td = row.find("td", id="table_metervalues_col_timestamp")
             value_td = row.find("td", id="table_metervalues_col_wert")
             unit_td = row.find("td", id="table_metervalues_col_einheit")
             obis_td = row.find("td", id="table_metervalues_col_obis")
+            valid_td = row.find("td", id="table_metervalues_col_istvalide")
 
             # Update running timestamp when a new one appears (line1 rows only)
             if ts_td:
@@ -492,6 +494,18 @@ class SmgwClient:
                         )
                     except ValueError:
                         _LOGGER.debug("Cannot parse timestamp: %s", ts_str)
+
+            # The SMGW "ist valide" flag (1/0) is the gateway's own validity
+            # status. It appears on the line1 row of each timestamp pair; the
+            # line2 (export) row inherits it, mirroring the timestamp handling.
+            # The textual "Status" cell holds the same info but has no stable
+            # HTML id, so the id-addressable flag is parsed instead.
+            if valid_td:
+                valid_str = valid_td.get_text(strip=True)
+                if valid_str:
+                    last_quality = {"1": "valid", "0": "invalid"}.get(
+                        valid_str, valid_str
+                    )
 
             if not all([value_td, obis_td, last_timestamp]):
                 continue
@@ -510,7 +524,7 @@ class SmgwClient:
                         obis_code=obis_str,
                         value=float(value_str),
                         unit=unit_str,
-                        quality="valid",
+                        quality=last_quality,
                     )
                 )
             except (ValueError, TypeError) as err:
