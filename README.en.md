@@ -117,6 +117,45 @@ When your metering point operator swaps the physical meter in your basement, you
 | Daily date | Date of the last fetched data | `date` | — |
 
 
+## Data export for arbitrary time ranges
+
+The service **`smgw_han.export_readings`** fetches meter readings for a **custom time range** straight from Home Assistant — no detour via the SMGW web interface.
+
+**Parameters:**
+
+| Field | Required | Description |
+|---|---|---|
+| `device_id` | ✅ | The SMGW device to query |
+| `from_datetime` | ✅ | Start (date + time) |
+| `to_datetime` | ✅ | End (date + time) |
+| `download_cms` | – | Also save the signed **CMS original** (tamper-evident, like the "Exportieren" button in the web interface) |
+| `write_csv` | – | Also save the raw readings as **CSV** (semicolon-separated, Excel-friendly) |
+| `write_xlsx` | – | Also save an **Excel workbook** (raw data, daily end values, tariff zones) |
+
+**Return value (response variable):** The service always returns the raw readings (`readings`) and a daily summary (`daily_summary`) — visible directly in **Developer Tools → Actions** or usable in scripts via `response_variable`. If one or more file switches are set, the response additionally contains `files` with download links.
+
+**Example call (script/automation):**
+
+```yaml
+action: smgw_han.export_readings
+data:
+  device_id: <your device id>
+  from_datetime: "2026-05-01 00:00:00"
+  to_datetime: "2026-05-08 00:00:00"
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
+
+> **Tip:** For a dashboard mini-UI, create two [`input_datetime`](https://www.home-assistant.io/integrations/input_datetime/) helpers (start/end) and wire a button to the `smgw_han.export_readings` action using those helpers as `from_datetime`/`to_datetime` — entirely with built-in HA features, no extra installs.
+
+**Important notes:**
+
+- **Be gentle with the SMGW:** Every call opens a real SMGW session. Do **not** call the service in loops — the SMGW allows only one active session and may briefly lock out on overload. The nightly fetch and a manual export block each other automatically (no conflict) but run sequentially.
+- **Download links are unauthenticated:** Files are written to `config/www/smgw_han_exports/<random>/` and are reachable as `/local/…` links **without login**. Anyone who knows the link can fetch the file. The random path component makes guessing hard; delete export folders you no longer need from time to time.
+- If the `/local/` links don't work on the very first export, create the `config/www/` folder once manually and restart HA (Home Assistant only mounts `www/` at startup).
+
 ## Dashboard card: Daily consumption history
 
 **Prerequisite:** [ApexCharts Card](https://github.com/RomRider/apexcharts-card) (installable via HACS)

@@ -106,5 +106,37 @@
         "name": "Tagesdatum"
       }
     }
+  },
+  "services": {
+    "export_readings": {
+      "name": "Zählerdaten exportieren",
+      "description": "Ruft SMGW-Zählerdaten für einen frei wählbaren Zeitraum ab. Gibt die Daten als Antwort-Variable zurück und kann zusätzlich eine CSV, eine Excel-Datei und das signierte CMS-Original als Download-Links erzeugen.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Das abzufragende SMGW-Zählergerät."
+        },
+        "from_datetime": {
+          "name": "Von",
+          "description": "Beginn des Zeitraums (Datum und Uhrzeit)."
+        },
+        "to_datetime": {
+          "name": "Bis",
+          "description": "Ende des Zeitraums (Datum und Uhrzeit)."
+        },
+        "download_cms": {
+          "name": "CMS-Original herunterladen",
+          "description": "Speichert zusätzlich die signierte CMS-Datei exakt so, wie sie das SMGW liefert (fälschungssicheres Original)."
+        },
+        "write_csv": {
+          "name": "CSV schreiben",
+          "description": "Schreibt zusätzlich die Rohdaten als semikolongetrennte CSV-Datei."
+        },
+        "write_xlsx": {
+          "name": "Excel (XLSX) schreiben",
+          "description": "Schreibt zusätzlich eine Excel-Mappe mit Rohdaten, Tagesendwerten und Tarifzonen."
+        }
+      }
+    }
   }
 }

@@ -106,5 +106,37 @@
         "name": "Daily date"
       }
     }
+  },
+  "services": {
+    "export_readings": {
+      "name": "Export readings",
+      "description": "Fetch SMGW meter readings for a custom time range. Returns the readings as a response variable and can optionally write a CSV, an Excel workbook and the signed CMS original as download links.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The SMGW meter device to query."
+        },
+        "from_datetime": {
+          "name": "From",
+          "description": "Start of the time range (date and time)."
+        },
+        "to_datetime": {
+          "name": "To",
+          "description": "End of the time range (date and time)."
+        },
+        "download_cms": {
+          "name": "Download CMS original",
+          "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
+        },
+        "write_csv": {
+          "name": "Write CSV",
+          "description": "Also write the raw readings as a semicolon-separated CSV file."
+        },
+        "write_xlsx": {
+          "name": "Write Excel (XLSX)",
+          "description": "Also write an Excel workbook with raw data, daily end values and tariff zones."
+        }
+      }
+    }
   }
 }

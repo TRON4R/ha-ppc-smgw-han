@@ -116,6 +116,45 @@ Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst d
 | Zählerstand Einspeisung Endstand Vortag | Absoluter Einspeise-Zählerstand zu Tagesbeginn (00:00) | `energy` | `total_increasing` |
 | Tagesdatum | Datum der zuletzt abgerufenen Daten | `date` | — |
 
+## Datenexport für beliebige Zeiträume
+
+Über den Dienst **`smgw_han.export_readings`** lassen sich die Zählerdaten für einen **frei wählbaren Zeitraum** direkt aus Home Assistant abrufen — ohne Umweg über das SMGW-Webinterface.
+
+**Parameter:**
+
+| Feld | Pflicht | Beschreibung |
+|---|---|---|
+| `device_id` | ✅ | Das abzufragende SMGW-Gerät |
+| `from_datetime` | ✅ | Beginn (Datum + Uhrzeit) |
+| `to_datetime` | ✅ | Ende (Datum + Uhrzeit) |
+| `download_cms` | – | Speichert zusätzlich das signierte **CMS-Original** (fälschungssicher, wie der „Exportieren"-Button im Webinterface) |
+| `write_csv` | – | Speichert zusätzlich die Rohdaten als **CSV** (semikolongetrennt, Excel-freundlich) |
+| `write_xlsx` | – | Speichert zusätzlich eine **Excel-Mappe** (Rohdaten, Tagesendwerte, Tarifzonen) |
+
+**Rückgabe (Response-Variable):** Der Dienst gibt immer die Roh-Readings (`readings`) und eine Tagessummen-Aufstellung (`daily_summary`) zurück — sichtbar direkt in **Entwicklerwerkzeuge → Aktionen** oder in Skripten via `response_variable`. Sind ein oder mehrere Datei-Schalter gesetzt, enthält die Antwort zusätzlich `files` mit Download-Links.
+
+**Aufruf-Beispiel (Skript/Automation):**
+
+```yaml
+action: smgw_han.export_readings
+data:
+  device_id: <deine Geräte-ID>
+  from_datetime: "2026-05-01 00:00:00"
+  to_datetime: "2026-05-08 00:00:00"
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
+
+> **Tipp:** Für eine Mini-UI im Dashboard zwei [`input_datetime`](https://www.home-assistant.io/integrations/input_datetime/)-Helfer (Start/Ende) anlegen und einen Button per Aktion `smgw_han.export_readings` mit diesen Helfern als `from_datetime`/`to_datetime` belegen — komplett mit HA-Bordmitteln, ohne Zusatz-Installationen.
+
+**Wichtige Hinweise:**
+
+- **SMGW schonen:** Jeder Aufruf öffnet eine echte SMGW-Sitzung. Den Dienst **nicht in Schleifen** aufrufen — das SMGW erlaubt nur eine aktive Sitzung und kann bei Überlastung kurzzeitig sperren. Der nächtliche Abruf und ein manueller Export blockieren sich gegenseitig automatisch (kein Konflikt), laufen aber nacheinander.
+- **Download-Links sind unauthentifiziert:** Die Dateien landen unter `config/www/smgw_han_exports/<zufallscode>/` und sind als `/local/…`-Link **ohne Anmeldung** erreichbar. Wer den Link kennt, kann die Datei laden. Der Zufallscode im Pfad erschwert das Erraten; lösche nicht mehr benötigte Export-Ordner gelegentlich.
+- Erscheinen die `/local/`-Links beim allerersten Export nicht, lege den Ordner `config/www/` einmal manuell an und starte HA neu (Home Assistant bindet `www/` nur beim Start ein).
+
 ## Dashboard-Kachel: Verbrauchshistorie (täglich)
 
 **Voraussetzung:** [ApexCharts Card](https://github.com/RomRider/apexcharts-card) (über HACS installierbar)

@@ -10,7 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.storage import Store
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -36,7 +36,13 @@ from .const import (
     SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
     STORE_VERSION,
 )
-from .smgw_client import DailyData, SmgwAuthError, SmgwClient, SmgwClientError
+from .smgw_client import (
+    DailyData,
+    MeterReading,
+    SmgwAuthError,
+    SmgwClient,
+    SmgwClientError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -267,6 +273,52 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Called for manual refreshes from the UI."""
         await self._async_do_daily_fetch()
         return self.data if self.data is not None else {}
+
+    @property
+    def target_meter_id(self) -> str | None:
+        """The configured meter id for this entry (one meter per entry)."""
+        return self.config_entry.data.get(CONF_METER_ID)
+
+    @property
+    def tariff_switch(self) -> tuple[int, int]:
+        """Configured tariff switch time as ``(hour, minute)``."""
+        return (
+            int(self.config_entry.data.get(
+                CONF_TARIFF_SWITCH_HOUR, DEFAULT_TARIFF_SWITCH_HOUR
+            )),
+            int(self.config_entry.data.get(
+                CONF_TARIFF_SWITCH_MINUTE, DEFAULT_TARIFF_SWITCH_MINUTE
+            )),
+        )
+
+    async def async_export_readings(
+        self, from_dt: datetime, to_dt: datetime
+    ) -> list[MeterReading]:
+        """Fetch raw readings for an arbitrary range (export service).
+
+        Read-only: does not touch coordinator.data, the Store or the sensors.
+        """
+        try:
+            return await self._client.async_fetch_readings(
+                from_dt, to_dt, target_meter_id=self.target_meter_id
+            )
+        except SmgwAuthError as err:
+            raise HomeAssistantError(f"SMGW authentication failed: {err}") from err
+        except SmgwClientError as err:
+            raise HomeAssistantError(f"SMGW export failed: {err}") from err
+
+    async def async_download_cms(
+        self, from_dt: datetime, to_dt: datetime
+    ) -> tuple[bytes, str | None]:
+        """Download the signed CMS export for an arbitrary range (read-only)."""
+        try:
+            return await self._client.async_download_cms(
+                from_dt, to_dt, target_meter_id=self.target_meter_id
+            )
+        except SmgwAuthError as err:
+            raise HomeAssistantError(f"SMGW authentication failed: {err}") from err
+        except SmgwClientError as err:
+            raise HomeAssistantError(f"SMGW CMS download failed: {err}") from err
 
     @staticmethod
     def _daily_data_to_dict(daily_data: DailyData) -> dict[str, Any]:

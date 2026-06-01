@@ -1,0 +1,27 @@
+export_readings:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: smgw_han
+    from_datetime:
+      required: true
+      selector:
+        datetime:
+    to_datetime:
+      required: true
+      selector:
+        datetime:
+    download_cms:
+      default: false
+      selector:
+        boolean:
+    write_csv:
+      default: false
+      selector:
+        boolean:
+    write_xlsx:
+      default: false
+      selector:
+        boolean:
