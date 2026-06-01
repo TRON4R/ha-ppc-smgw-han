@@ -19,22 +19,66 @@ from pathlib import Path
 from typing import Any
 
 from .aggregation import DailySummary
+from .const import OBIS_EXPORT, OBIS_IMPORT
 from .smgw_client import MeterReading
+
+# Wide-format column headers shared by the CSV and the XLSX "Rohdaten" sheet.
+RAW_HEADERS = [
+    "Zeitstempel",
+    "1.8.0 Bezug (kWh)",
+    "2.8.0 Einspeisung (kWh)",
+    "Qualität",
+]
 
 
 def _fmt_dt(dt: datetime | None) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S") if dt else ""
 
 
+def _pivot_by_timestamp(
+    readings: list[MeterReading],
+) -> list[tuple[datetime, float | None, float | None, str]]:
+    """Pivot long readings into one row per timestamp.
+
+    Returns ``(timestamp, import_value, export_value, quality)`` tuples sorted
+    by timestamp. A missing OBIS code for a timestamp yields ``None`` (an empty
+    cell) instead of a fabricated zero — so meters without feed-in simply leave
+    the 2.8.0 column blank.
+    """
+    rows: dict[datetime, dict[str, object]] = {}
+    for r in readings:
+        row = rows.setdefault(
+            r.timestamp, {"import": None, "export": None, "quality": None}
+        )
+        if r.obis_code == OBIS_IMPORT:
+            row["import"] = r.value
+            row["quality"] = r.quality
+        elif r.obis_code == OBIS_EXPORT:
+            row["export"] = r.value
+            if row["quality"] is None:
+                row["quality"] = r.quality
+    return [
+        (ts, rows[ts]["import"], rows[ts]["export"], rows[ts]["quality"] or "")
+        for ts in sorted(rows)
+    ]
+
+
 def write_readings_csv(path: Path, readings: list[MeterReading]) -> None:
-    """Write the raw reading dump as a semicolon CSV (Excel-friendly)."""
+    """Write the raw reading dump as a semicolon CSV (Excel-friendly).
+
+    Wide format: one row per timestamp with separate 1.8.0 / 2.8.0 columns.
+    """
     with path.open("w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f, delimiter=";")
-        writer.writerow(["Zeitstempel", "OBIS", "Wert", "Einheit", "Qualitaet"])
-        for r in readings:
+        writer.writerow(RAW_HEADERS)
+        for ts, imp, exp, quality in _pivot_by_timestamp(readings):
             writer.writerow(
-                [_fmt_dt(r.timestamp), r.obis_code, f"{r.value:.4f}",
-                 r.unit, r.quality]
+                [
+                    _fmt_dt(ts),
+                    f"{imp:.4f}" if imp is not None else "",
+                    f"{exp:.4f}" if exp is not None else "",
+                    quality,
+                ]
             )
 
 
@@ -53,14 +97,13 @@ def write_xlsx(
 
     wb = Workbook()
 
-    # --- Sheet 1: raw readings ------------------------------------------
+    # --- Sheet 1: raw readings (wide: one row per timestamp) ------------
     raw = wb.active
     raw.title = "Rohdaten"
-    raw.append(["Zeitstempel", "OBIS", "Wert (kWh)", "Einheit", "Qualitaet"])
-    for r in readings:
-        raw.append([_fmt_dt(r.timestamp), r.obis_code, r.value, r.unit,
-                    r.quality])
-    for row in raw.iter_rows(min_row=2, min_col=3, max_col=3):
+    raw.append(RAW_HEADERS)
+    for ts, imp, exp, quality in _pivot_by_timestamp(readings):
+        raw.append([_fmt_dt(ts), imp, exp, quality])
+    for row in raw.iter_rows(min_row=2, min_col=2, max_col=3):
         for cell in row:
             cell.number_format = "0.0000"
 
