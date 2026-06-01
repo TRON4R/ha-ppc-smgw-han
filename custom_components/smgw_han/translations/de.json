@@ -51,6 +51,13 @@
   "options": {
     "step": {
       "init": {
+        "title": "SMGW HAN",
+        "menu_options": {
+          "settings": "Einstellungen ändern",
+          "export": "Daten exportieren"
+        }
+      },
+      "settings": {
         "title": "SMGW-Einstellungen ändern",
         "description": "Zugangsdaten, Tarifzeit und Abrufzeit anpassen.",
         "data": {
@@ -69,6 +76,27 @@
           "update_time": "Tageszeit für den automatischen Abruf der Vortageswerte",
           "device_name": "Sprechender Name (z.B. „SMGW Verbrauch\" / „SMGW Einspeisung\") für den Fall, dass du mehrere Logins zum selben SMGW als separate Einträge betreibst. Sonst leer lassen."
         }
+      },
+      "export": {
+        "title": "Daten exportieren",
+        "description": "Wähle einen Zeitraum und welche Dateien erzeugt werden sollen. Im nächsten Schritt kannst du den genauen Zeitraum noch anpassen.",
+        "data": {
+          "period": "Zeitraum",
+          "download_cms": "CMS-Original erzeugen",
+          "write_csv": "CSV erzeugen",
+          "write_xlsx": "Excel (XLSX) erzeugen"
+        },
+        "data_description": {
+          "period": "Der nächste Schritt füllt den Zeitraum anhand dieser Auswahl vor; du kannst ihn dort weiterhin ändern."
+        }
+      },
+      "export_dates": {
+        "title": "Zeitraum bestätigen",
+        "description": "Passe den Zeitraum bei Bedarf an und sende ab, um den Export zu starten. Tipp: Um den Tagesabschluss des letzten Tages einzuschließen, „Bis\" auf 00:15 des Folgetags setzen.",
+        "data": {
+          "from_datetime": "Von",
+          "to_datetime": "Bis"
+        }
       }
     },
     "error": {
@@ -76,7 +104,12 @@
       "configured_meter_missing": "Der bisher konfigurierte Zähler ist im SMGW-Dropdown nicht mehr vorhanden, der SMGW liefert aber mehrere andere Zähler. Bitte entferne diesen Eintrag in Home Assistant und lege ihn neu an, um aus den verfügbaren Zählern auszuwählen.",
       "invalid_auth": "Ungültiger Benutzername oder Passwort.",
       "parse_error": "Antwort des SMGW konnte nicht ausgewertet werden. Bitte Benutzername und Passwort prüfen. Falls die Zugangsdaten korrekt sind, bis zu 15 Minuten warten und erneut versuchen.",
-      "unknown": "Ein unerwarteter Fehler ist aufgetreten."
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten.",
+      "invalid_range": "„Von\" muss vor „Bis\" liegen.",
+      "export_failed": "Der Export ist fehlgeschlagen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen."
+    },
+    "abort": {
+      "export_done": "Export erstellt. Die Download-Links findest du in der Benachrichtigung (Glockensymbol)."
     }
   },
   "entity": {

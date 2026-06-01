@@ -51,6 +51,13 @@
   "options": {
     "step": {
       "init": {
+        "title": "SMGW HAN",
+        "menu_options": {
+          "settings": "Change settings",
+          "export": "Export data"
+        }
+      },
+      "settings": {
         "title": "SMGW Settings",
         "description": "Update credentials, tariff time and fetch time.",
         "data": {
@@ -69,6 +76,27 @@
           "update_time": "Time of day for the automatic daily data fetch",
           "device_name": "Custom name (e.g. \"SMGW Import\" / \"SMGW Export\") for the case where you run multiple logins against the same SMGW as separate entries. Otherwise leave empty."
         }
+      },
+      "export": {
+        "title": "Export data",
+        "description": "Choose a period and which files to create. The next step lets you fine-tune the exact date range.",
+        "data": {
+          "period": "Period",
+          "download_cms": "Create CMS original",
+          "write_csv": "Create CSV",
+          "write_xlsx": "Create Excel (XLSX)"
+        },
+        "data_description": {
+          "period": "The next step pre-fills the date range from this choice; you can still edit it there."
+        }
+      },
+      "export_dates": {
+        "title": "Confirm time range",
+        "description": "Adjust the range if needed, then submit to start the export. Tip: to include the last day's closing reading, set 'To' to 00:15 of the following day.",
+        "data": {
+          "from_datetime": "From",
+          "to_datetime": "To"
+        }
       }
     },
     "error": {
@@ -76,7 +104,12 @@
       "configured_meter_missing": "The previously configured meter is no longer present in the SMGW dropdown, but several other meters are listed. Please remove this entry in Home Assistant and add it again to pick from the available meters.",
       "invalid_auth": "Invalid username or password.",
       "parse_error": "Could not parse the SMGW response. Please double-check the username and password. If the credentials are correct, wait up to 15 minutes and try again.",
-      "unknown": "An unexpected error occurred."
+      "unknown": "An unexpected error occurred.",
+      "invalid_range": "'From' must be before 'To'.",
+      "export_failed": "The export failed. Check the SMGW connection and the Home Assistant log."
+    },
+    "abort": {
+      "export_done": "Export created. The download links are in the notification (bell icon)."
     }
   },
   "entity": {

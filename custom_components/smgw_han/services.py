@@ -221,19 +221,21 @@ def _write_export_files(
     return written
 
 
-async def _run_export(
+async def run_export(
     hass: HomeAssistant,
-    call: ServiceCall,
+    coordinator,
     from_dt: datetime,
     to_dt: datetime,
-) -> ServiceResponse:
-    """Shared export core for both services."""
-    download_cms: bool = call.data[ATTR_DOWNLOAD_CMS]
-    do_csv: bool = call.data[ATTR_WRITE_CSV]
-    do_xlsx: bool = call.data[ATTR_WRITE_XLSX]
+    *,
+    download_cms: bool,
+    do_csv: bool,
+    do_xlsx: bool,
+) -> dict[str, Any]:
+    """Shared export core, reused by the services and the options flow.
 
-    coordinator = _resolve_coordinator(hass, call.data.get(ATTR_DEVICE_ID))
-
+    ``coordinator`` is a loaded :class:`SmgwTafCoordinator`. Returns the
+    response dict (download links first, then meter data).
+    """
     readings = await coordinator.async_export_readings(from_dt, to_dt)
     tariff_hour, tariff_minute = coordinator.tariff_switch
     daily_summary = build_daily_summary(readings, tariff_hour, tariff_minute)
@@ -304,13 +306,25 @@ async def _async_handle_export_readings(call: ServiceCall) -> ServiceResponse:
     from_dt: datetime = call.data[ATTR_FROM_DATETIME]
     to_dt: datetime = call.data[ATTR_TO_DATETIME]
     _validate_range(from_dt, to_dt)
-    return await _run_export(call.hass, call, from_dt, to_dt)
+    coordinator = _resolve_coordinator(call.hass, call.data.get(ATTR_DEVICE_ID))
+    return await run_export(
+        call.hass, coordinator, from_dt, to_dt,
+        download_cms=call.data[ATTR_DOWNLOAD_CMS],
+        do_csv=call.data[ATTR_WRITE_CSV],
+        do_xlsx=call.data[ATTR_WRITE_XLSX],
+    )
 
 
 async def _async_handle_export_period(call: ServiceCall) -> ServiceResponse:
     """Handle ``smgw_han.export_period`` (preset range)."""
     from_dt, to_dt = _period_range(call.data[ATTR_PERIOD])
-    return await _run_export(call.hass, call, from_dt, to_dt)
+    coordinator = _resolve_coordinator(call.hass, call.data.get(ATTR_DEVICE_ID))
+    return await run_export(
+        call.hass, coordinator, from_dt, to_dt,
+        download_cms=call.data[ATTR_DOWNLOAD_CMS],
+        do_csv=call.data[ATTR_WRITE_CSV],
+        do_xlsx=call.data[ATTR_WRITE_XLSX],
+    )
 
 
 def async_setup_services(hass: HomeAssistant) -> None:
