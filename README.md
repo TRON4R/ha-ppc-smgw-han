@@ -118,32 +118,47 @@ Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst d
 
 ## Datenexport für beliebige Zeiträume
 
-Über den Dienst **`smgw_han.export_readings`** lassen sich die Zählerdaten für einen **frei wählbaren Zeitraum** direkt aus Home Assistant abrufen — ohne Umweg über das SMGW-Webinterface.
+Die Zählerdaten lassen sich für einen **frei wählbaren Zeitraum** direkt aus Home Assistant abrufen — ohne Umweg über das SMGW-Webinterface. Dafür gibt es **zwei Aktionen** (in Entwicklerwerkzeuge → Aktionen je separat auswählbar):
 
-**Parameter:**
+- **`smgw_han.export_readings`** — eigener Zeitraum über `from_datetime` / `to_datetime`.
+- **`smgw_han.export_period`** — fertige **Zeitraum-Vorgabe** (`Gestern`, `Letzte 7 Tage`, `Letzte 30 Tage`, `Aktueller Monat`, `Letzter Monat`); `from`/`to` werden **automatisch** berechnet — inkl. korrektem Tagesabschluss. So musst Du das End-Datum nicht selbst ausrechnen.
 
-| Feld | Pflicht | Beschreibung |
+Beide liefern dasselbe Ergebnis und teilen sich diese Parameter:
+
+| Feld | Aktion | Beschreibung |
 |---|---|---|
-| `device_id` | ✅ | Das abzufragende SMGW-Gerät |
-| `period` | – | **Zeitraum-Vorgabe** als Dropdown: `Gestern`, `Letzte 7 Tage`, `Letzte 30 Tage`, `Aktueller Monat`, `Letzter Monat`. Berechnet `from`/`to` automatisch (inkl. korrektem Tagesabschluss). Bei `Eigener Zeitraum` werden stattdessen die beiden Felder unten genutzt. |
-| `from_datetime` | (✅) | Beginn (Datum + Uhrzeit) — **nur bei `Eigener Zeitraum`** |
-| `to_datetime` | (✅) | Ende (Datum + Uhrzeit) — **nur bei `Eigener Zeitraum`** |
-| `download_cms` | – | Speichert zusätzlich das signierte **CMS-Original** (fälschungssicher, wie der „Exportieren"-Button im Webinterface) |
-| `write_csv` | – | Speichert zusätzlich die Rohdaten als **CSV** (semikolongetrennt, Excel-freundlich) |
-| `write_xlsx` | – | Speichert zusätzlich eine **Excel-Mappe** (Rohdaten, Tagesendwerte, Tarifzonen) |
+| `device_id` | beide | Das abzufragende SMGW-Gerät |
+| `from_datetime` / `to_datetime` | `export_readings` | Beginn/Ende des Zeitraums (Datum + Uhrzeit) |
+| `period` | `export_period` | Fertiger Zeitraum (Dropdown) |
+| `download_cms` | beide | Speichert zusätzlich das signierte **CMS-Original** (fälschungssicher, wie der „Exportieren"-Button im Webinterface) |
+| `write_csv` | beide | Speichert zusätzlich die Rohdaten als **CSV** (semikolongetrennt, Excel-freundlich) |
+| `write_xlsx` | beide | Speichert zusätzlich eine **Excel-Mappe** (Rohdaten, Tagesendwerte, Tarifzonen) |
 
-> **Tipp Zeitraum-Vorgabe:** Mit `period` musst Du das End-Datum nicht selbst ausrechnen. „Letzter Monat" liefert z.B. automatisch den **vollständigen** Vormonat inklusive des Abschluss-Zählerstands am Monatsersten 00:00 — das ist der Wert, den man von Hand leicht vergisst.
+> **Tipp:** „Letzter Monat" (in `export_period`) liefert automatisch den **vollständigen** Vormonat inklusive des Abschluss-Zählerstands am Monatsersten 00:00 — der Wert, den man bei manueller Eingabe leicht vergisst. Bei `export_readings` denke selbst daran: für den Tagesabschluss des letzten Tages das `to` auf **00:15 des Folgetags** setzen.
 
-**Rückgabe (Response-Variable):** Der Dienst gibt immer die Roh-Readings (`readings`) und eine Tagessummen-Aufstellung (`daily_summary`) zurück — sichtbar direkt in **Entwicklerwerkzeuge → Aktionen** oder in Skripten via `response_variable`. Sind ein oder mehrere Datei-Schalter gesetzt, enthält die Antwort zusätzlich `files` mit Download-Links.
+**Rückgabe (Response-Variable):** Beide Aktionen geben immer die Roh-Readings (`readings`) und eine Tagessummen-Aufstellung (`daily_summary`) zurück — sichtbar direkt in **Entwicklerwerkzeuge → Aktionen** oder in Skripten via `response_variable`. Sind ein oder mehrere Datei-Schalter gesetzt, enthält die Antwort zusätzlich `files` mit Download-Links.
 
-**Aufruf-Beispiel (Skript/Automation):**
+**Aufruf-Beispiele (Skript/Automation):**
 
 ```yaml
+# Eigener Zeitraum
 action: smgw_han.export_readings
 data:
   device_id: <deine Geräte-ID>
   from_datetime: "2026-05-01 00:00:00"
-  to_datetime: "2026-05-08 00:00:00"
+  to_datetime: "2026-06-01 00:15:00"
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
+
+```yaml
+# Fertige Vorgabe (kein Datums-Raten)
+action: smgw_han.export_period
+data:
+  device_id: <deine Geräte-ID>
+  period: last_month
   write_csv: true
   write_xlsx: true
   download_cms: true
@@ -164,9 +179,9 @@ fields:
   period:
     selector:
       select:
-        options: [custom, yesterday, last_7_days, last_30_days, current_month, last_month]
+        options: [yesterday, last_7_days, last_30_days, current_month, last_month]
 sequence:
-  - action: smgw_han.export_readings
+  - action: smgw_han.export_period
     data:
       device_id: "{{ device_id }}"
       period: "{{ period | default('last_month') }}"

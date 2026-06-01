@@ -5,25 +5,50 @@ export_readings:
       selector:
         device:
           integration: smgw_han
+    from_datetime:
+      required: true
+      selector:
+        datetime:
+    to_datetime:
+      required: true
+      selector:
+        datetime:
+    download_cms:
+      required: true
+      default: false
+      selector:
+        boolean:
+    write_csv:
+      required: true
+      default: false
+      selector:
+        boolean:
+    write_xlsx:
+      required: true
+      default: false
+      selector:
+        boolean:
+
+export_period:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: smgw_han
     period:
-      default: custom
+      required: true
+      default: last_month
       selector:
         select:
           mode: dropdown
           translation_key: export_period
           options:
-            - custom
             - yesterday
             - last_7_days
             - last_30_days
             - current_month
             - last_month
-    from_datetime:
-      selector:
-        datetime:
-    to_datetime:
-      selector:
-        datetime:
     download_cms:
       required: true
       default: false

@@ -109,24 +109,46 @@
   },
   "services": {
     "export_readings": {
-      "name": "Export readings",
-      "description": "Fetch SMGW meter readings for a custom time range. Returns the readings as a response variable and can optionally write a CSV, an Excel workbook and the signed CMS original as download links.",
+      "name": "Export readings (custom range)",
+      "description": "Fetch SMGW meter readings for a custom From/To range. Returns the readings as a response variable and can optionally write a CSV, an Excel workbook and the signed CMS original as download links.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The SMGW meter device to query."
+        },
+        "from_datetime": {
+          "name": "From",
+          "description": "Start of the time range (date and time)."
+        },
+        "to_datetime": {
+          "name": "To",
+          "description": "End of the time range. Tip: to include the closing reading of the last day, set this to 00:15 of the following day."
+        },
+        "download_cms": {
+          "name": "Download CMS original",
+          "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
+        },
+        "write_csv": {
+          "name": "Write CSV",
+          "description": "Also write the raw readings as a semicolon-separated CSV file."
+        },
+        "write_xlsx": {
+          "name": "Write Excel (XLSX)",
+          "description": "Also write an Excel workbook with raw data, daily end values and tariff zones."
+        }
+      }
+    },
+    "export_period": {
+      "name": "Export readings (period preset)",
+      "description": "Fetch SMGW meter readings for a ready-made period. The range, including the closing reading of the last day, is computed automatically. Same outputs as the custom-range export.",
       "fields": {
         "device_id": {
           "name": "Device",
           "description": "The SMGW meter device to query."
         },
         "period": {
-          "name": "Period preset",
-          "description": "Pick a ready-made range (the end is set automatically to capture the closing reading). Leave on 'Custom range' to use From / To below."
-        },
-        "from_datetime": {
-          "name": "From",
-          "description": "Start of the time range (only used with the 'Custom range' preset)."
-        },
-        "to_datetime": {
-          "name": "To",
-          "description": "End of the time range (only used with the 'Custom range' preset)."
+          "name": "Period",
+          "description": "The time range to export. The end is set automatically to capture the closing reading of the last day."
         },
         "download_cms": {
           "name": "Download CMS original",
@@ -146,7 +168,6 @@
   "selector": {
     "export_period": {
       "options": {
-        "custom": "Custom range (use From / To)",
         "yesterday": "Yesterday",
         "last_7_days": "Last 7 days",
         "last_30_days": "Last 30 days",

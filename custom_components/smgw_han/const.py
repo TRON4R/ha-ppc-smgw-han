@@ -23,8 +23,9 @@ DEFAULT_TARIFF_SWITCH_MINUTE = 0
 OBIS_IMPORT = "1-0:1.8.0"  # Verbrauch / Grid import
 OBIS_EXPORT = "1-0:2.8.0"  # Einspeisung / Grid export
 
-# Export service
+# Export services
 SERVICE_EXPORT_READINGS = "export_readings"
+SERVICE_EXPORT_PERIOD = "export_period"
 ATTR_DEVICE_ID = "device_id"
 ATTR_PERIOD = "period"
 ATTR_FROM_DATETIME = "from_datetime"

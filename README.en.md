@@ -119,32 +119,47 @@ When your metering point operator swaps the physical meter in your basement, you
 
 ## Data export for arbitrary time ranges
 
-The service **`smgw_han.export_readings`** fetches meter readings for a **custom time range** straight from Home Assistant — no detour via the SMGW web interface.
+Meter readings can be fetched for an **arbitrary time range** straight from Home Assistant — no detour via the SMGW web interface. There are **two actions** (selectable separately under Developer Tools → Actions):
 
-**Parameters:**
+- **`smgw_han.export_readings`** — custom range via `from_datetime` / `to_datetime`.
+- **`smgw_han.export_period`** — a ready-made **period preset** (`Yesterday`, `Last 7 days`, `Last 30 days`, `Current month`, `Last month`); `from`/`to` are computed **automatically**, including the correct day-closing reading, so you don't have to work out the end date yourself.
 
-| Field | Required | Description |
+Both return the same result and share these parameters:
+
+| Field | Action | Description |
 |---|---|---|
-| `device_id` | ✅ | The SMGW device to query |
-| `period` | – | **Period preset** dropdown: `Yesterday`, `Last 7 days`, `Last 30 days`, `Current month`, `Last month`. Computes `from`/`to` automatically (with the correct day-closing reading). With `Custom range` the two fields below are used instead. |
-| `from_datetime` | (✅) | Start (date + time) — **only with `Custom range`** |
-| `to_datetime` | (✅) | End (date + time) — **only with `Custom range`** |
-| `download_cms` | – | Also save the signed **CMS original** (tamper-evident, like the "Exportieren" button in the web interface) |
-| `write_csv` | – | Also save the raw readings as **CSV** (semicolon-separated, Excel-friendly) |
-| `write_xlsx` | – | Also save an **Excel workbook** (raw data, daily end values, tariff zones) |
+| `device_id` | both | The SMGW device to query |
+| `from_datetime` / `to_datetime` | `export_readings` | Start/end of the range (date + time) |
+| `period` | `export_period` | Ready-made range (dropdown) |
+| `download_cms` | both | Also save the signed **CMS original** (tamper-evident, like the "Exportieren" button in the web interface) |
+| `write_csv` | both | Also save the raw readings as **CSV** (semicolon-separated, Excel-friendly) |
+| `write_xlsx` | both | Also save an **Excel workbook** (raw data, daily end values, tariff zones) |
 
-> **Period preset tip:** With `period` you don't have to work out the end date yourself. "Last month", for example, automatically returns the **complete** previous month including the closing meter reading at midnight on the 1st — the value that's easy to miss by hand.
+> **Tip:** "Last month" (in `export_period`) automatically returns the **complete** previous month including the closing meter reading at midnight on the 1st — the value that's easy to miss by hand. With `export_readings`, remember to set `to` to **00:15 of the following day** to include the last day's closing reading.
 
-**Return value (response variable):** The service always returns the raw readings (`readings`) and a daily summary (`daily_summary`) — visible directly in **Developer Tools → Actions** or usable in scripts via `response_variable`. If one or more file switches are set, the response additionally contains `files` with download links.
+**Return value (response variable):** Both actions always return the raw readings (`readings`) and a daily summary (`daily_summary`) — visible directly in **Developer Tools → Actions** or usable in scripts via `response_variable`. If one or more file switches are set, the response additionally contains `files` with download links.
 
-**Example call (script/automation):**
+**Example calls (script/automation):**
 
 ```yaml
+# Custom range
 action: smgw_han.export_readings
 data:
   device_id: <your device id>
   from_datetime: "2026-05-01 00:00:00"
-  to_datetime: "2026-05-08 00:00:00"
+  to_datetime: "2026-06-01 00:15:00"
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
+
+```yaml
+# Ready-made preset (no date guessing)
+action: smgw_han.export_period
+data:
+  device_id: <your device id>
+  period: last_month
   write_csv: true
   write_xlsx: true
   download_cms: true
@@ -165,9 +180,9 @@ fields:
   period:
     selector:
       select:
-        options: [custom, yesterday, last_7_days, last_30_days, current_month, last_month]
+        options: [yesterday, last_7_days, last_30_days, current_month, last_month]
 sequence:
-  - action: smgw_han.export_readings
+  - action: smgw_han.export_period
     data:
       device_id: "{{ device_id }}"
       period: "{{ period | default('last_month') }}"

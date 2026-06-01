@@ -1,9 +1,15 @@
-"""Export service for the SMGW HAN integration.
+"""Export services for the SMGW HAN integration.
 
-Registers a single integration-wide service ``smgw_han.export_readings`` that
-fetches meter readings for an arbitrary time range from one SMGW device and
-returns them as a response variable, optionally also writing CSV / XLSX / the
-signed CMS original as downloadable files under ``<config>/www/``.
+Two integration-wide services fetch meter readings for one SMGW device and
+return them as a response variable, optionally also writing CSV / XLSX / the
+signed CMS original as downloadable files under ``<config>/www/``:
+
+- ``smgw_han.export_readings`` — explicit ``from_datetime`` / ``to_datetime``.
+- ``smgw_han.export_period``   — a ready-made period preset (yesterday, last
+  7/30 days, current/last month) whose range is computed automatically.
+
+They are kept separate so each action form is unambiguous (no "which input
+wins" between a preset and a custom range).
 """
 
 from __future__ import annotations
@@ -39,6 +45,7 @@ from .const import (
     ATTR_WRITE_XLSX,
     DOMAIN,
     EXPORT_WWW_SUBDIR,
+    SERVICE_EXPORT_PERIOD,
     SERVICE_EXPORT_READINGS,
     SMGW_HISTORY_DAYS,
 )
@@ -47,7 +54,6 @@ from .smgw_client import MeterReading
 
 _LOGGER = logging.getLogger(__name__)
 
-PERIOD_CUSTOM = "custom"
 PERIOD_PRESETS = (
     "yesterday",
     "last_7_days",
@@ -56,15 +62,26 @@ PERIOD_PRESETS = (
     "last_month",
 )
 
-SERVICE_SCHEMA = vol.Schema(
+_FILE_FIELDS = {
+    vol.Optional(ATTR_DOWNLOAD_CMS, default=False): cv.boolean,
+    vol.Optional(ATTR_WRITE_CSV, default=False): cv.boolean,
+    vol.Optional(ATTR_WRITE_XLSX, default=False): cv.boolean,
+}
+
+READINGS_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_DEVICE_ID): cv.string,
-        vol.Optional(ATTR_PERIOD, default=PERIOD_CUSTOM): cv.string,
-        vol.Optional(ATTR_FROM_DATETIME): cv.datetime,
-        vol.Optional(ATTR_TO_DATETIME): cv.datetime,
-        vol.Optional(ATTR_DOWNLOAD_CMS, default=False): cv.boolean,
-        vol.Optional(ATTR_WRITE_CSV, default=False): cv.boolean,
-        vol.Optional(ATTR_WRITE_XLSX, default=False): cv.boolean,
+        vol.Required(ATTR_FROM_DATETIME): cv.datetime,
+        vol.Required(ATTR_TO_DATETIME): cv.datetime,
+        **_FILE_FIELDS,
+    }
+)
+
+PERIOD_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_DEVICE_ID): cv.string,
+        vol.Optional(ATTR_PERIOD, default="last_month"): vol.In(PERIOD_PRESETS),
+        **_FILE_FIELDS,
     }
 )
 
@@ -180,28 +197,16 @@ def _write_export_files(
     return written
 
 
-async def _async_handle_export(call: ServiceCall) -> ServiceResponse:
-    """Handle ``smgw_han.export_readings``."""
-    hass = call.hass
-    period: str = call.data[ATTR_PERIOD]
+async def _run_export(
+    hass: HomeAssistant,
+    call: ServiceCall,
+    from_dt: datetime,
+    to_dt: datetime,
+) -> ServiceResponse:
+    """Shared export core for both services."""
     download_cms: bool = call.data[ATTR_DOWNLOAD_CMS]
     do_csv: bool = call.data[ATTR_WRITE_CSV]
     do_xlsx: bool = call.data[ATTR_WRITE_XLSX]
-
-    if period and period != PERIOD_CUSTOM:
-        # Preset ranges are computed to be valid by construction (the
-        # closing-reading margin can put `to` a few minutes ahead of "now"
-        # only between 00:00 and 00:15), so the custom-range checks are skipped.
-        from_dt, to_dt = _period_range(period)
-    else:
-        from_dt = call.data.get(ATTR_FROM_DATETIME)
-        to_dt = call.data.get(ATTR_TO_DATETIME)
-        if from_dt is None or to_dt is None:
-            raise ServiceValidationError(
-                "Choose a period preset, or provide both 'from_datetime' "
-                "and 'to_datetime'."
-            )
-        _validate_range(from_dt, to_dt)
 
     coordinator = _resolve_coordinator(hass, call.data[ATTR_DEVICE_ID])
 
@@ -267,14 +272,35 @@ async def _async_handle_export(call: ServiceCall) -> ServiceResponse:
     return response
 
 
+async def _async_handle_export_readings(call: ServiceCall) -> ServiceResponse:
+    """Handle ``smgw_han.export_readings`` (explicit from/to)."""
+    from_dt: datetime = call.data[ATTR_FROM_DATETIME]
+    to_dt: datetime = call.data[ATTR_TO_DATETIME]
+    _validate_range(from_dt, to_dt)
+    return await _run_export(call.hass, call, from_dt, to_dt)
+
+
+async def _async_handle_export_period(call: ServiceCall) -> ServiceResponse:
+    """Handle ``smgw_han.export_period`` (preset range)."""
+    from_dt, to_dt = _period_range(call.data[ATTR_PERIOD])
+    return await _run_export(call.hass, call, from_dt, to_dt)
+
+
 def async_setup_services(hass: HomeAssistant) -> None:
-    """Register the export service once for the whole integration."""
-    if hass.services.has_service(DOMAIN, SERVICE_EXPORT_READINGS):
-        return
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_EXPORT_READINGS,
-        _async_handle_export,
-        schema=SERVICE_SCHEMA,
-        supports_response=SupportsResponse.OPTIONAL,
-    )
+    """Register the export services once for the whole integration."""
+    if not hass.services.has_service(DOMAIN, SERVICE_EXPORT_READINGS):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_EXPORT_READINGS,
+            _async_handle_export_readings,
+            schema=READINGS_SCHEMA,
+            supports_response=SupportsResponse.OPTIONAL,
+        )
+    if not hass.services.has_service(DOMAIN, SERVICE_EXPORT_PERIOD):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_EXPORT_PERIOD,
+            _async_handle_export_period,
+            schema=PERIOD_SCHEMA,
+            supports_response=SupportsResponse.OPTIONAL,
+        )
