@@ -123,15 +123,11 @@ def build_daily_summary(
             feedin_total=_diff(export_start_val, export_end_val),
         )
 
-        if any(
-            v is not None
-            for v in (
-                summary.import_end,
-                summary.export_end,
-                summary.import_start,
-                summary.import_switch,
-            )
-        ):
+        # Only include days that actually have a closing (end) value. The last
+        # day of a range typically has just a start reading and no end value
+        # yet; such an incomplete boundary day would otherwise show up as a
+        # confusing date-only row.
+        if summary.import_end is not None or summary.export_end is not None:
             summaries.append(summary)
 
         day = next_day

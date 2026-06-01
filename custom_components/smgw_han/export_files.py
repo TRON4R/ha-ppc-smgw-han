@@ -101,26 +101,52 @@ def write_xlsx(
         for cell in row:
             cell.number_format = "0.0000"
 
-    # --- Sheet 4: definitions -------------------------------------------
+    # --- Sheet 4: definitions (layout mirrors the standalone v6 script) --
     info = wb.create_sheet("Definition")
-    info["A1"] = (
-        f"Export aus Smart Meter Gateway. Zaehler: {meta.get('meter_id', '')}. "
-        f"Zeitraum: {meta.get('from', '')} bis {meta.get('to', '')}."
-    )
-    info["A3"] = (
-        "Tagesendwert eines Tages D = erster kumulativer Zaehlerstand am "
-        "Folgetag D+1 um 00:00 lokaler Zeit."
-    )
+    bold = Font(bold=True)
+    info["A1"] = "Definitionen"
+    info["A1"].font = bold
+    info["A3"] = "Export"
+    info["A3"].font = bold
     info["A4"] = (
-        f"Go-Verbrauch = Bezug({tariff_label}) - Bezug(00:00); "
-        f"Standard-Verbrauch = Bezug(Folgetag 00:00) - Bezug({tariff_label}); "
-        "Gesamtverbrauch = Bezug(Folgetag 00:00) - Bezug(00:00)."
+        f"Zähler: {meta.get('meter_id', '')}    "
+        f"Zeitraum: {meta.get('from', '')} bis {meta.get('to', '')}"
     )
-    info["A5"] = (
-        "Leere Zellen bedeuten, dass fuer diesen Tag ein benoetigter "
-        "Messpunkt im abgefragten Zeitraum fehlte."
+    info["A6"] = "Tagesendwert"
+    info["A6"].font = bold
+    info["A7"] = (
+        "Der Tagesendwert eines Tages D ist der erste vorhandene kumulative "
+        "Zählerstand am Folgetag D+1 um 00:00 Uhr lokaler Zeit "
+        "(Europe/Berlin)."
     )
-    info.column_dimensions["A"].width = 120
+    info["A9"] = "Tarifzonen für Intelligent Octopus Go"
+    info["A9"].font = bold
+    info["A10"] = (
+        f"Go-Zeit = 00:00 bis {tariff_label} lokaler Zeit des Kalendertags D."
+    )
+    info["A11"] = (
+        f"Standardzeit = {tariff_label} bis 00:00 lokaler Zeit des "
+        "Folgetags D+1."
+    )
+    info["A13"] = "Berechnung Bezug"
+    info["A13"].font = bold
+    info["A14"] = f"Go-Verbrauch = Bezug({tariff_label}) - Bezug(00:00)"
+    info["A15"] = (
+        f"Standard-Verbrauch = Bezug(Folgetag 00:00) - Bezug({tariff_label})"
+    )
+    info["A16"] = "Gesamtverbrauch = Bezug(Folgetag 00:00) - Bezug(00:00)"
+    info["A18"] = "Wichtiger Hinweis"
+    info["A18"].font = bold
+    info["A19"] = (
+        "Gesamtverbrauch wird direkt aus den beiden Tagesrand-Zählerständen "
+        "berechnet. Er ist damit rechnerisch identisch zu Go-Verbrauch + "
+        "Standard-Verbrauch, sofern alle drei Messpunkte vorhanden sind."
+    )
+    info["A20"] = (
+        "Falls für einen Tag ein benötigter Messpunkt fehlt (00:00 oder "
+        "Tarifwechsel), bleibt die berechnete Spalte leer."
+    )
+    info.column_dimensions["A"].width = 140
 
     # --- header styling + autosize for all data sheets ------------------
     for ws in (raw, ende, tarif):
