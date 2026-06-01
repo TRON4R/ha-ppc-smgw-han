@@ -110,7 +110,7 @@
   "services": {
     "export_readings": {
       "name": "Export readings (custom range)",
-      "description": "Fetch the SMGW meter readings for a custom From/To range. Returns the data as a response variable and can additionally create the signed CMS original file, a CSV and/or an Excel file, downloadable via the links at the top of the response variable.",
+      "description": "Fetch the SMGW meter readings for a custom From/To range. Returns the data as a response variable and can additionally create the signed CMS original file, a CSV and/or an Excel file, downloadable via the links (shown at the top of the response variable).",
       "fields": {
         "device_id": {
           "name": "Device",
@@ -140,7 +140,7 @@
     },
     "export_period": {
       "name": "Export readings (period preset)",
-      "description": "Fetch SMGW meter readings for a ready-made period. The range, including the closing reading of the last day, is computed automatically. Same outputs as the custom-range export.",
+      "description": "Fetch the SMGW meter readings for a ready-made period. The range, including the closing reading of the last day, is computed automatically. Identical outputs and download options as the custom-range export.",
       "fields": {
         "device_id": {
           "name": "Device",

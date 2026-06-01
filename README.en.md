@@ -203,6 +203,16 @@ sequence:
 
 The notification then appears under the bell icon with clickable links to CSV/Excel/CMS.
 
+### Dashboard tile (quick select)
+
+A ready-made tile with buttons for the period presets is available at [`dashboard/datenexport.yaml`](dashboard/datenexport.yaml). It calls the notification script above. Steps:
+
+1. Create the "SMGW export with notification" script (above) and note its entity id.
+2. In the tile, replace `REPLACE_WITH_DEVICE_ID` with your `device_id` (5×) and adjust `perform_action` to your script's entity id.
+3. Dashboard → Add card → Manual card → paste the YAML from the file.
+
+Clicking e.g. "Letzter Monat" creates the export and shows the download links as a notification.
+
 **Important notes:**
 
 - **Be gentle with the SMGW:** Every call opens a real SMGW session. Do **not** call the service in loops — the SMGW allows only one active session and may briefly lock out on overload. The nightly fetch and a manual export block each other automatically (no conflict) but run sequentially.

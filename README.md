@@ -202,6 +202,16 @@ sequence:
 
 Die Benachrichtigung erscheint dann unter dem Glocken-Symbol mit klickbaren Links zu CSV/Excel/CMS.
 
+### Dashboard-Kachel (Schnellwahl)
+
+Eine fertige Kachel mit Buttons für die Zeitraum-Vorgaben liegt unter [`dashboard/datenexport.yaml`](dashboard/datenexport.yaml). Sie ruft das obige Benachrichtigungs-Skript auf. Vorgehen:
+
+1. Das Skript „SMGW Export mit Benachrichtigung" (oben) anlegen — Entity-ID `script.smgw_export_mit_benachrichtigung`.
+2. In der Kachel `REPLACE_WITH_DEVICE_ID` durch deine `device_id` ersetzen (5×).
+3. Dashboard → Kachel hinzufügen → Manuelle Karte → YAML aus der Datei einfügen.
+
+Ein Klick auf z.B. „Letzter Monat" erzeugt den Export und zeigt die Download-Links als Benachrichtigung.
+
 **Wichtige Hinweise:**
 
 - **SMGW schonen:** Jeder Aufruf öffnet eine echte SMGW-Sitzung. Den Dienst **nicht in Schleifen** aufrufen — das SMGW erlaubt nur eine aktive Sitzung und kann bei Überlastung kurzzeitig sperren. Der nächtliche Abruf und ein manueller Export blockieren sich gegenseitig automatisch (kein Konflikt), laufen aber nacheinander.

@@ -110,7 +110,7 @@
   "services": {
     "export_readings": {
       "name": "Zählerdaten exportieren (eigener Zeitraum)",
-      "description": "Ruft die SMGW-Zählerdaten für einen frei wählbaren Von/Bis-Zeitraum ab. Gibt die Daten als Antwort-Variable zurück und kann zusätzlich die signierte CMS-Original-Datei, eine CSV und/oder eine Excel-Datei erzeugen, welche über Download-Links am Anfang der Antwort-Variable heruntergeladen werden können.",
+      "description": "Ruft die SMGW-Zählerdaten für einen frei wählbaren Von/Bis-Zeitraum ab. Gibt die Daten als Antwort-Variable zurück und kann zusätzlich die signierte CMS-Original-Datei, eine CSV und/oder eine Excel-Datei erzeugen, welche über Download-Links (sichtbar am Anfang der Antwort-Variable) heruntergeladen werden können.",
       "fields": {
         "device_id": {
           "name": "Gerät",
@@ -140,7 +140,7 @@
     },
     "export_period": {
       "name": "Zählerdaten exportieren (Zeitraum-Vorgabe)",
-      "description": "Ruft SMGW-Zählerdaten für einen fertigen Zeitraum ab. Der Bereich inklusive des Tagesabschlusses am letzten Tag wird automatisch berechnet. Gleiche Ausgaben wie beim Export mit eigenem Zeitraum.",
+      "description": "Ruft die SMGW-Zählerdaten für einen fertigen Zeitraum ab. Der Bereich inklusive des Tagesabschlusses am letzten Tag wird automatisch berechnet. Identische Ausgaben und Download-Optionen wie beim Export mit eigenem Zeitraum.",
       "fields": {
         "device_id": {
           "name": "Gerät",

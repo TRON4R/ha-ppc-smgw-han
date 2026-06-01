@@ -1,0 +1,85 @@
+# SMGW Datenexport – Dashboard-Kachel
+# =====================================================================
+# Eine Kachel mit Schnellwahl-Buttons fuer den Datenexport. Jeder Button
+# startet den Export fuer einen fertigen Zeitraum und zeigt anschliessend
+# eine Benachrichtigung mit anklickbaren Download-Links (CMS / CSV / Excel).
+#
+# VORAUSSETZUNGEN (einmalig):
+#   1) Lege das Skript "SMGW Export mit Benachrichtigung" aus dem README an
+#      (Einstellungen -> Automationen & Szenen -> Skripte -> "In YAML
+#      bearbeiten"). Daraus ergibt sich die Entity-ID
+#      script.smgw_export_mit_benachrichtigung
+#      -> Falls deine abweicht, unten bei jedem "perform_action" anpassen.
+#   2) Ersetze REPLACE_WITH_DEVICE_ID (5x) durch die device_id deines
+#      SMGW-Geraets (Einstellungen -> Geraete & Dienste -> dein SMGW -> die
+#      ID steht in der Browser-URL: .../config/devices/device/<DEVICE_ID>).
+#
+# EINBINDUNG: Dashboard -> Kachel hinzufuegen -> Manuelle Karte -> dieses
+# YAML einfuegen.
+# =====================================================================
+
+type: vertical-stack
+cards:
+  - type: markdown
+    content: >
+      ## 📊 SMGW Datenexport
+
+      Schnellauswahl eines Zeitraums. Nach dem Klick wird der Export
+      erzeugt (CMS-Original + CSV + Excel); die Download-Links erscheinen
+      als Benachrichtigung 🔔.
+
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Gestern
+        icon: mdi:calendar-arrow-left
+        show_state: false
+        tap_action:
+          action: perform-action
+          perform_action: script.smgw_export_mit_benachrichtigung
+          data:
+            device_id: REPLACE_WITH_DEVICE_ID
+            period: yesterday
+      - type: button
+        name: Letzte 7 Tage
+        icon: mdi:calendar-week
+        show_state: false
+        tap_action:
+          action: perform-action
+          perform_action: script.smgw_export_mit_benachrichtigung
+          data:
+            device_id: REPLACE_WITH_DEVICE_ID
+            period: last_7_days
+      - type: button
+        name: Letzte 30 Tage
+        icon: mdi:calendar-month
+        show_state: false
+        tap_action:
+          action: perform-action
+          perform_action: script.smgw_export_mit_benachrichtigung
+          data:
+            device_id: REPLACE_WITH_DEVICE_ID
+            period: last_30_days
+
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Aktueller Monat
+        icon: mdi:calendar-today
+        show_state: false
+        tap_action:
+          action: perform-action
+          perform_action: script.smgw_export_mit_benachrichtigung
+          data:
+            device_id: REPLACE_WITH_DEVICE_ID
+            period: current_month
+      - type: button
+        name: Letzter Monat
+        icon: mdi:calendar-check
+        show_state: false
+        tap_action:
+          action: perform-action
+          perform_action: script.smgw_export_mit_benachrichtigung
+          data:
+            device_id: REPLACE_WITH_DEVICE_ID
+            period: last_month
