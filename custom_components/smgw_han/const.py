@@ -26,6 +26,7 @@ OBIS_EXPORT = "1-0:2.8.0"  # Einspeisung / Grid export
 # Export service
 SERVICE_EXPORT_READINGS = "export_readings"
 ATTR_DEVICE_ID = "device_id"
+ATTR_PERIOD = "period"
 ATTR_FROM_DATETIME = "from_datetime"
 ATTR_TO_DATETIME = "to_datetime"
 ATTR_DOWNLOAD_CMS = "download_cms"

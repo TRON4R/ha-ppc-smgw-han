@@ -5,12 +5,23 @@ export_readings:
       selector:
         device:
           integration: smgw_han
+    period:
+      default: custom
+      selector:
+        select:
+          mode: dropdown
+          translation_key: export_period
+          options:
+            - custom
+            - yesterday
+            - last_7_days
+            - last_30_days
+            - current_month
+            - last_month
     from_datetime:
-      required: true
       selector:
         datetime:
     to_datetime:
-      required: true
       selector:
         datetime:
     download_cms:

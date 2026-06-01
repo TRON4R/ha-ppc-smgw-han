@@ -126,11 +126,14 @@ The service **`smgw_han.export_readings`** fetches meter readings for a **custom
 | Field | Required | Description |
 |---|---|---|
 | `device_id` | ✅ | The SMGW device to query |
-| `from_datetime` | ✅ | Start (date + time) |
-| `to_datetime` | ✅ | End (date + time) |
+| `period` | – | **Period preset** dropdown: `Yesterday`, `Last 7 days`, `Last 30 days`, `Current month`, `Last month`. Computes `from`/`to` automatically (with the correct day-closing reading). With `Custom range` the two fields below are used instead. |
+| `from_datetime` | (✅) | Start (date + time) — **only with `Custom range`** |
+| `to_datetime` | (✅) | End (date + time) — **only with `Custom range`** |
 | `download_cms` | – | Also save the signed **CMS original** (tamper-evident, like the "Exportieren" button in the web interface) |
 | `write_csv` | – | Also save the raw readings as **CSV** (semicolon-separated, Excel-friendly) |
 | `write_xlsx` | – | Also save an **Excel workbook** (raw data, daily end values, tariff zones) |
+
+> **Period preset tip:** With `period` you don't have to work out the end date yourself. "Last month", for example, automatically returns the **complete** previous month including the closing meter reading at midnight on the 1st — the value that's easy to miss by hand.
 
 **Return value (response variable):** The service always returns the raw readings (`readings`) and a daily summary (`daily_summary`) — visible directly in **Developer Tools → Actions** or usable in scripts via `response_variable`. If one or more file switches are set, the response additionally contains `files` with download links.
 
@@ -148,7 +151,42 @@ data:
 response_variable: smgw_export
 ```
 
-> **Tip:** For a dashboard mini-UI, create two [`input_datetime`](https://www.home-assistant.io/integrations/input_datetime/) helpers (start/end) and wire a button to the `smgw_han.export_readings` action using those helpers as `from_datetime`/`to_datetime` — entirely with built-in HA features, no extra installs.
+### Clickable download links via notification
+
+In Developer Tools the response is shown as YAML — the links are **not clickable** there. The following script (Settings → Automations & Scenes → Scripts → "Edit in YAML") gives you a **notification with clickable links** after the export. Trigger it from a button, voice assistant or an automation:
+
+```yaml
+alias: SMGW export with notification
+fields:
+  device_id:
+    selector:
+      device:
+        integration: smgw_han
+  period:
+    selector:
+      select:
+        options: [custom, yesterday, last_7_days, last_30_days, current_month, last_month]
+sequence:
+  - action: smgw_han.export_readings
+    data:
+      device_id: "{{ device_id }}"
+      period: "{{ period | default('last_month') }}"
+      download_cms: true
+      write_csv: true
+      write_xlsx: true
+    response_variable: result
+  - action: persistent_notification.create
+    data:
+      title: SMGW export
+      message: >-
+        {{ result.reading_count }} values, {{ result.daily_summary | count }} days.
+        {% set f = result.files | default({}) %}
+        {% if f.csv %}[CSV]({{ f.csv }}) · {% endif %}
+        {% if f.xlsx %}[Excel]({{ f.xlsx }}) · {% endif %}
+        {% if f.cms %}[CMS]({{ f.cms }}){% endif %}
+```
+
+The notification then appears under the bell icon with clickable links to CSV/Excel/CMS.
 
 **Important notes:**
 

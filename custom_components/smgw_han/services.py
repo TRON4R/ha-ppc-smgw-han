@@ -33,6 +33,7 @@ from .const import (
     ATTR_DEVICE_ID,
     ATTR_DOWNLOAD_CMS,
     ATTR_FROM_DATETIME,
+    ATTR_PERIOD,
     ATTR_TO_DATETIME,
     ATTR_WRITE_CSV,
     ATTR_WRITE_XLSX,
@@ -46,16 +47,51 @@ from .smgw_client import MeterReading
 
 _LOGGER = logging.getLogger(__name__)
 
+PERIOD_CUSTOM = "custom"
+PERIOD_PRESETS = (
+    "yesterday",
+    "last_7_days",
+    "last_30_days",
+    "current_month",
+    "last_month",
+)
+
 SERVICE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_DEVICE_ID): cv.string,
-        vol.Required(ATTR_FROM_DATETIME): cv.datetime,
-        vol.Required(ATTR_TO_DATETIME): cv.datetime,
+        vol.Optional(ATTR_PERIOD, default=PERIOD_CUSTOM): cv.string,
+        vol.Optional(ATTR_FROM_DATETIME): cv.datetime,
+        vol.Optional(ATTR_TO_DATETIME): cv.datetime,
         vol.Optional(ATTR_DOWNLOAD_CMS, default=False): cv.boolean,
         vol.Optional(ATTR_WRITE_CSV, default=False): cv.boolean,
         vol.Optional(ATTR_WRITE_XLSX, default=False): cv.boolean,
     }
 )
+
+
+def _period_range(period: str) -> tuple[datetime, datetime]:
+    """Translate a preset into a (from, to) range in local naive time.
+
+    The end is pushed 15 minutes past a midnight boundary so the closing
+    00:00:01 reading of the last day is captured (same margin the nightly
+    fetch uses), which is exactly what users tend to get wrong by hand.
+    """
+    now = dt_util.now().replace(tzinfo=None)
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    margin = timedelta(minutes=15)
+    if period == "yesterday":
+        return today - timedelta(days=1), today + margin
+    if period == "last_7_days":
+        return today - timedelta(days=7), today + margin
+    if period == "last_30_days":
+        return today - timedelta(days=30), today + margin
+    if period == "current_month":
+        return today.replace(day=1), today + margin
+    if period == "last_month":
+        first_this_month = today.replace(day=1)
+        first_prev_month = (first_this_month - timedelta(days=1)).replace(day=1)
+        return first_prev_month, first_this_month + margin
+    raise ServiceValidationError(f"Unknown period preset: {period}")
 
 
 def _sanitize(name: str) -> str:
@@ -147,13 +183,26 @@ def _write_export_files(
 async def _async_handle_export(call: ServiceCall) -> ServiceResponse:
     """Handle ``smgw_han.export_readings``."""
     hass = call.hass
-    from_dt: datetime = call.data[ATTR_FROM_DATETIME]
-    to_dt: datetime = call.data[ATTR_TO_DATETIME]
+    period: str = call.data[ATTR_PERIOD]
     download_cms: bool = call.data[ATTR_DOWNLOAD_CMS]
     do_csv: bool = call.data[ATTR_WRITE_CSV]
     do_xlsx: bool = call.data[ATTR_WRITE_XLSX]
 
-    _validate_range(from_dt, to_dt)
+    if period and period != PERIOD_CUSTOM:
+        # Preset ranges are computed to be valid by construction (the
+        # closing-reading margin can put `to` a few minutes ahead of "now"
+        # only between 00:00 and 00:15), so the custom-range checks are skipped.
+        from_dt, to_dt = _period_range(period)
+    else:
+        from_dt = call.data.get(ATTR_FROM_DATETIME)
+        to_dt = call.data.get(ATTR_TO_DATETIME)
+        if from_dt is None or to_dt is None:
+            raise ServiceValidationError(
+                "Choose a period preset, or provide both 'from_datetime' "
+                "and 'to_datetime'."
+            )
+        _validate_range(from_dt, to_dt)
+
     coordinator = _resolve_coordinator(hass, call.data[ATTR_DEVICE_ID])
 
     readings = await coordinator.async_export_readings(from_dt, to_dt)

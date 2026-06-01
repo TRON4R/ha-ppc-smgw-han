@@ -116,13 +116,17 @@
           "name": "Gerät",
           "description": "Das abzufragende SMGW-Zählergerät."
         },
+        "period": {
+          "name": "Zeitraum-Vorgabe",
+          "description": "Fertigen Zeitraum wählen (das Ende wird automatisch so gesetzt, dass der Tagesabschluss erfasst wird). Auf 'Eigener Zeitraum' lassen, um Von/Bis unten zu nutzen."
+        },
         "from_datetime": {
           "name": "Von",
-          "description": "Beginn des Zeitraums (Datum und Uhrzeit)."
+          "description": "Beginn des Zeitraums (nur bei Vorgabe 'Eigener Zeitraum' wirksam)."
         },
         "to_datetime": {
           "name": "Bis",
-          "description": "Ende des Zeitraums (Datum und Uhrzeit)."
+          "description": "Ende des Zeitraums (nur bei Vorgabe 'Eigener Zeitraum' wirksam)."
         },
         "download_cms": {
           "name": "CMS-Original herunterladen",
@@ -136,6 +140,18 @@
           "name": "Excel (XLSX) schreiben",
           "description": "Schreibt zusätzlich eine Excel-Mappe mit Rohdaten, Tagesendwerten und Tarifzonen."
         }
+      }
+    }
+  },
+  "selector": {
+    "export_period": {
+      "options": {
+        "custom": "Eigener Zeitraum (Von/Bis nutzen)",
+        "yesterday": "Gestern",
+        "last_7_days": "Letzte 7 Tage",
+        "last_30_days": "Letzte 30 Tage",
+        "current_month": "Aktueller Monat (bisher)",
+        "last_month": "Letzter Monat"
       }
     }
   }

@@ -125,11 +125,14 @@ Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst d
 | Feld | Pflicht | Beschreibung |
 |---|---|---|
 | `device_id` | ✅ | Das abzufragende SMGW-Gerät |
-| `from_datetime` | ✅ | Beginn (Datum + Uhrzeit) |
-| `to_datetime` | ✅ | Ende (Datum + Uhrzeit) |
+| `period` | – | **Zeitraum-Vorgabe** als Dropdown: `Gestern`, `Letzte 7 Tage`, `Letzte 30 Tage`, `Aktueller Monat`, `Letzter Monat`. Berechnet `from`/`to` automatisch (inkl. korrektem Tagesabschluss). Bei `Eigener Zeitraum` werden stattdessen die beiden Felder unten genutzt. |
+| `from_datetime` | (✅) | Beginn (Datum + Uhrzeit) — **nur bei `Eigener Zeitraum`** |
+| `to_datetime` | (✅) | Ende (Datum + Uhrzeit) — **nur bei `Eigener Zeitraum`** |
 | `download_cms` | – | Speichert zusätzlich das signierte **CMS-Original** (fälschungssicher, wie der „Exportieren"-Button im Webinterface) |
 | `write_csv` | – | Speichert zusätzlich die Rohdaten als **CSV** (semikolongetrennt, Excel-freundlich) |
 | `write_xlsx` | – | Speichert zusätzlich eine **Excel-Mappe** (Rohdaten, Tagesendwerte, Tarifzonen) |
+
+> **Tipp Zeitraum-Vorgabe:** Mit `period` musst Du das End-Datum nicht selbst ausrechnen. „Letzter Monat" liefert z.B. automatisch den **vollständigen** Vormonat inklusive des Abschluss-Zählerstands am Monatsersten 00:00 — das ist der Wert, den man von Hand leicht vergisst.
 
 **Rückgabe (Response-Variable):** Der Dienst gibt immer die Roh-Readings (`readings`) und eine Tagessummen-Aufstellung (`daily_summary`) zurück — sichtbar direkt in **Entwicklerwerkzeuge → Aktionen** oder in Skripten via `response_variable`. Sind ein oder mehrere Datei-Schalter gesetzt, enthält die Antwort zusätzlich `files` mit Download-Links.
 
@@ -147,7 +150,42 @@ data:
 response_variable: smgw_export
 ```
 
-> **Tipp:** Für eine Mini-UI im Dashboard zwei [`input_datetime`](https://www.home-assistant.io/integrations/input_datetime/)-Helfer (Start/Ende) anlegen und einen Button per Aktion `smgw_han.export_readings` mit diesen Helfern als `from_datetime`/`to_datetime` belegen — komplett mit HA-Bordmitteln, ohne Zusatz-Installationen.
+### Klickbare Download-Links per Benachrichtigung
+
+In den Entwicklerwerkzeugen wird die Antwort als YAML angezeigt — die Links sind dort **nicht anklickbar**. Mit folgendem Skript (Einstellungen → Automationen & Szenen → Skripte → „in YAML bearbeiten") bekommst Du nach dem Export eine **Benachrichtigung mit anklickbaren Links**. Das Skript lässt sich per Knopf, Sprachassistent oder aus einer Automation auslösen:
+
+```yaml
+alias: SMGW Export mit Benachrichtigung
+fields:
+  device_id:
+    selector:
+      device:
+        integration: smgw_han
+  period:
+    selector:
+      select:
+        options: [custom, yesterday, last_7_days, last_30_days, current_month, last_month]
+sequence:
+  - action: smgw_han.export_readings
+    data:
+      device_id: "{{ device_id }}"
+      period: "{{ period | default('last_month') }}"
+      download_cms: true
+      write_csv: true
+      write_xlsx: true
+    response_variable: result
+  - action: persistent_notification.create
+    data:
+      title: SMGW Export
+      message: >-
+        {{ result.reading_count }} Werte, {{ result.daily_summary | count }} Tage.
+        {% set f = result.files | default({}) %}
+        {% if f.csv %}[CSV]({{ f.csv }}) · {% endif %}
+        {% if f.xlsx %}[Excel]({{ f.xlsx }}) · {% endif %}
+        {% if f.cms %}[CMS]({{ f.cms }}){% endif %}
+```
+
+Die Benachrichtigung erscheint dann unter dem Glocken-Symbol mit klickbaren Links zu CSV/Excel/CMS.
 
 **Wichtige Hinweise:**
 

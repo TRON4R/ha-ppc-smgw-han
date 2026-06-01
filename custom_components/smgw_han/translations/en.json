@@ -116,13 +116,17 @@
           "name": "Device",
           "description": "The SMGW meter device to query."
         },
+        "period": {
+          "name": "Period preset",
+          "description": "Pick a ready-made range (the end is set automatically to capture the closing reading). Leave on 'Custom range' to use From / To below."
+        },
         "from_datetime": {
           "name": "From",
-          "description": "Start of the time range (date and time)."
+          "description": "Start of the time range (only used with the 'Custom range' preset)."
         },
         "to_datetime": {
           "name": "To",
-          "description": "End of the time range (date and time)."
+          "description": "End of the time range (only used with the 'Custom range' preset)."
         },
         "download_cms": {
           "name": "Download CMS original",
@@ -136,6 +140,18 @@
           "name": "Write Excel (XLSX)",
           "description": "Also write an Excel workbook with raw data, daily end values and tariff zones."
         }
+      }
+    }
+  },
+  "selector": {
+    "export_period": {
+      "options": {
+        "custom": "Custom range (use From / To)",
+        "yesterday": "Yesterday",
+        "last_7_days": "Last 7 days",
+        "last_30_days": "Last 30 days",
+        "current_month": "Current month (so far)",
+        "last_month": "Last month"
       }
     }
   }
