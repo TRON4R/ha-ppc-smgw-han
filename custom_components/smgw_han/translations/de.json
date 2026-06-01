@@ -110,7 +110,7 @@
   "services": {
     "export_readings": {
       "name": "Zählerdaten exportieren (eigener Zeitraum)",
-      "description": "Ruft SMGW-Zählerdaten für einen frei wählbaren Von/Bis-Zeitraum ab. Gibt die Daten als Antwort-Variable zurück und kann zusätzlich eine CSV, eine Excel-Datei und das signierte CMS-Original als Download-Links erzeugen.",
+      "description": "Ruft die SMGW-Zählerdaten für einen frei wählbaren Von/Bis-Zeitraum ab. Gibt die Daten als Antwort-Variable zurück und kann zusätzlich die signierte CMS-Original-Datei, eine CSV und/oder eine Excel-Datei erzeugen, welche über Download-Links am Anfang der Antwort-Variable heruntergeladen werden können.",
       "fields": {
         "device_id": {
           "name": "Gerät",
@@ -129,12 +129,12 @@
           "description": "Speichert zusätzlich die signierte CMS-Datei exakt so, wie sie das SMGW liefert (fälschungssicheres Original)."
         },
         "write_csv": {
-          "name": "CSV schreiben",
-          "description": "Schreibt zusätzlich die Rohdaten als semikolongetrennte CSV-Datei."
+          "name": "CSV erzeugen",
+          "description": "Erzeugt zusätzlich die Rohdaten als semikolongetrennte CSV-Datei."
         },
         "write_xlsx": {
-          "name": "Excel (XLSX) schreiben",
-          "description": "Schreibt zusätzlich eine Excel-Mappe mit Rohdaten, Tagesendwerten und Tarifzonen."
+          "name": "Excel (XLSX) erzeugen",
+          "description": "Erzeugt zusätzlich eine Excel-Mappe mit Rohdaten, Tagesendwerten und Tarifzonen."
         }
       }
     },
@@ -155,12 +155,12 @@
           "description": "Speichert zusätzlich die signierte CMS-Datei exakt so, wie sie das SMGW liefert (fälschungssicheres Original)."
         },
         "write_csv": {
-          "name": "CSV schreiben",
-          "description": "Schreibt zusätzlich die Rohdaten als semikolongetrennte CSV-Datei."
+          "name": "CSV erzeugen",
+          "description": "Erzeugt zusätzlich die Rohdaten als semikolongetrennte CSV-Datei."
         },
         "write_xlsx": {
-          "name": "Excel (XLSX) schreiben",
-          "description": "Schreibt zusätzlich eine Excel-Mappe mit Rohdaten, Tagesendwerten und Tarifzonen."
+          "name": "Excel (XLSX) erzeugen",
+          "description": "Erzeugt zusätzlich eine Excel-Mappe mit Rohdaten, Tagesendwerten und Tarifzonen."
         }
       }
     }

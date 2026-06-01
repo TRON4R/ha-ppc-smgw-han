@@ -110,7 +110,7 @@
   "services": {
     "export_readings": {
       "name": "Export readings (custom range)",
-      "description": "Fetch SMGW meter readings for a custom From/To range. Returns the readings as a response variable and can optionally write a CSV, an Excel workbook and the signed CMS original as download links.",
+      "description": "Fetch the SMGW meter readings for a custom From/To range. Returns the data as a response variable and can additionally create the signed CMS original file, a CSV and/or an Excel file, downloadable via the links at the top of the response variable.",
       "fields": {
         "device_id": {
           "name": "Device",
@@ -129,12 +129,12 @@
           "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
         },
         "write_csv": {
-          "name": "Write CSV",
-          "description": "Also write the raw readings as a semicolon-separated CSV file."
+          "name": "Create CSV",
+          "description": "Also create the raw readings as a semicolon-separated CSV file."
         },
         "write_xlsx": {
-          "name": "Write Excel (XLSX)",
-          "description": "Also write an Excel workbook with raw data, daily end values and tariff zones."
+          "name": "Create Excel (XLSX)",
+          "description": "Also create an Excel workbook with raw data, daily end values and tariff zones."
         }
       }
     },
@@ -155,12 +155,12 @@
           "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
         },
         "write_csv": {
-          "name": "Write CSV",
-          "description": "Also write the raw readings as a semicolon-separated CSV file."
+          "name": "Create CSV",
+          "description": "Also create the raw readings as a semicolon-separated CSV file."
         },
         "write_xlsx": {
-          "name": "Write Excel (XLSX)",
-          "description": "Also write an Excel workbook with raw data, daily end values and tariff zones."
+          "name": "Create Excel (XLSX)",
+          "description": "Also create an Excel workbook with raw data, daily end values and tariff zones."
         }
       }
     }

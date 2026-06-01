@@ -179,9 +179,17 @@ def _write_export_files(
     cms_bytes: bytes | None,
     cms_name: str | None,
 ) -> dict[str, str]:
-    """Write the requested files (blocking) and return ``kind -> filename``."""
+    """Write the requested files (blocking) and return ``kind -> filename``.
+
+    Order follows the selection order in the action form (CMS, CSV, XLSX) so
+    the response links come out in that same order.
+    """
     export_dir.mkdir(parents=True, exist_ok=True)
     written: dict[str, str] = {}
+    if cms_bytes is not None:
+        fname = _sanitize(cms_name) if cms_name else f"{base}.sm_data.xml.cms"
+        (export_dir / fname).write_bytes(cms_bytes)
+        written["cms"] = fname
     if do_csv:
         fname = f"{base}.csv"
         write_readings_csv(export_dir / fname, readings)
@@ -190,10 +198,6 @@ def _write_export_files(
         fname = f"{base}.xlsx"
         write_xlsx(export_dir / fname, readings, daily_summary, meta)
         written["xlsx"] = fname
-    if cms_bytes is not None:
-        fname = _sanitize(cms_name) if cms_name else f"{base}.sm_data.xml.cms"
-        (export_dir / fname).write_bytes(cms_bytes)
-        written["cms"] = fname
     return written
 
 
@@ -218,15 +222,7 @@ async def _run_export(
     from_str = from_dt.strftime("%Y-%m-%d %H:%M:%S")
     to_str = to_dt.strftime("%Y-%m-%d %H:%M:%S")
 
-    response: dict[str, Any] = {
-        "meter_id": meter_id,
-        "from": from_str,
-        "to": to_str,
-        "reading_count": len(readings),
-        "readings": [_reading_to_dict(r) for r in readings],
-        "daily_summary": [s.to_dict() for s in daily_summary],
-    }
-
+    files: dict[str, str] = {}
     if download_cms or do_csv or do_xlsx:
         token = secrets.token_urlsafe(8)
         export_dir = Path(hass.config.path("www", EXPORT_WWW_SUBDIR, token))
@@ -260,7 +256,7 @@ async def _run_export(
             base_url = get_url(hass).rstrip("/")
         except NoURLAvailableError:
             base_url = ""
-        response["files"] = {
+        files = {
             kind: f"{base_url}/local/{EXPORT_WWW_SUBDIR}/{token}/{fname}"
             for kind, fname in written.items()
         }
@@ -269,6 +265,17 @@ async def _run_export(
             len(written), meter_id, export_dir,
         )
 
+    # Build the response with the download links first (followed by the
+    # potentially very long readings list), in CMS -> CSV -> XLSX order.
+    response: dict[str, Any] = {}
+    if files:
+        response["files"] = files
+    response["meter_id"] = meter_id
+    response["from"] = from_str
+    response["to"] = to_str
+    response["reading_count"] = len(readings)
+    response["readings"] = [_reading_to_dict(r) for r in readings]
+    response["daily_summary"] = [s.to_dict() for s in daily_summary]
     return response
 
 
