@@ -22,7 +22,7 @@ from .aggregation import DailySummary
 from .const import OBIS_EXPORT, OBIS_IMPORT
 from .smgw_client import MeterReading
 
-# Wide-format column headers shared by the CSV and the XLSX "Rohdaten" sheet.
+# Wide-format column headers for the raw-dump CSV.
 RAW_HEADERS = [
     "Zeitstempel",
     "1.8.0 Bezug (kWh)",
@@ -97,13 +97,14 @@ def write_xlsx(
 
     wb = Workbook()
 
-    # --- Sheet 1: raw readings (wide: one row per timestamp) ------------
+    # --- Sheet 1: raw readings (long: one row per reading) --------------
     raw = wb.active
     raw.title = "Rohdaten"
-    raw.append(RAW_HEADERS)
-    for ts, imp, exp, quality in _pivot_by_timestamp(readings):
-        raw.append([_fmt_dt(ts), imp, exp, quality])
-    for row in raw.iter_rows(min_row=2, min_col=2, max_col=3):
+    raw.append(["Zeitstempel", "OBIS", "Wert (kWh)", "Einheit", "Qualitaet"])
+    for r in readings:
+        raw.append([_fmt_dt(r.timestamp), r.obis_code, r.value, r.unit,
+                    r.quality])
+    for row in raw.iter_rows(min_row=2, min_col=3, max_col=3):
         for cell in row:
             cell.number_format = "0.0000"
 
