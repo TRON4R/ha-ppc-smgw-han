@@ -104,6 +104,9 @@
       },
       "date": {
         "name": "Tagesdatum"
+      },
+      "device_id": {
+        "name": "Geräte-ID"
       }
     }
   },
@@ -114,7 +117,7 @@
       "fields": {
         "device_id": {
           "name": "Gerät",
-          "description": "Das abzufragende SMGW-Zählergerät."
+          "description": "Das abzufragende SMGW-Zählergerät. In Skripten und Dashboards kann dies leer bleiben, wenn nur ein SMGW vorhanden ist."
         },
         "from_datetime": {
           "name": "Von",
@@ -144,7 +147,7 @@
       "fields": {
         "device_id": {
           "name": "Gerät",
-          "description": "Das abzufragende SMGW-Zählergerät."
+          "description": "Das abzufragende SMGW-Zählergerät. In Skripten und Dashboards kann dies leer bleiben, wenn nur ein SMGW vorhanden ist."
         },
         "period": {
           "name": "Zeitraum",

@@ -173,10 +173,6 @@ In Developer Tools the response is shown as YAML — the links are **not clickab
 ```yaml
 alias: SMGW export with notification
 fields:
-  device_id:
-    selector:
-      device:
-        integration: smgw_han
   period:
     selector:
       select:
@@ -184,7 +180,8 @@ fields:
 sequence:
   - action: smgw_han.export_period
     data:
-      device_id: "{{ device_id }}"
+      # device_id is omitted with a single SMGW (auto-detected).
+      # Multiple SMGWs? Add device_id: <your-device-id> here.
       period: "{{ period | default('last_month') }}"
       download_cms: true
       write_csv: true
@@ -196,22 +193,23 @@ sequence:
       message: >-
         {{ result.reading_count }} values, {{ result.daily_summary | count }} days.
         {% set f = result.files | default({}) %}
+        {% if f.cms %}[CMS]({{ f.cms }}) · {% endif %}
         {% if f.csv %}[CSV]({{ f.csv }}) · {% endif %}
-        {% if f.xlsx %}[Excel]({{ f.xlsx }}) · {% endif %}
-        {% if f.cms %}[CMS]({{ f.cms }}){% endif %}
+        {% if f.xlsx %}[Excel]({{ f.xlsx }}){% endif %}
 ```
 
-The notification then appears under the bell icon with clickable links to CSV/Excel/CMS.
+The notification then appears under the bell icon with clickable links to CMS/CSV/Excel.
 
 ### Dashboard tile (quick select)
 
 A ready-made tile with buttons for the period presets is available at [`dashboard/datenexport.yaml`](dashboard/datenexport.yaml). It calls the notification script above. Steps:
 
-1. Create the "SMGW export with notification" script (above) and note its entity id.
-2. In the tile, replace `REPLACE_WITH_DEVICE_ID` with your `device_id` (5×) and adjust `perform_action` to your script's entity id.
-3. Dashboard → Add card → Manual card → paste the YAML from the file.
+1. Create the "SMGW export with notification" script (above); adjust `perform_action` in the tile to its entity id if needed.
+2. Dashboard → Add card → Manual card → paste the YAML from the file. **With a single SMGW there's nothing else to do** — the device is auto-detected.
 
 Clicking e.g. "Letzter Monat" creates the export and shows the download links as a notification.
+
+> **Multiple SMGWs?** Add a `device_id: <your-device-id>` line under `data:` to each button. To read the `device_id`, enable the (disabled-by-default) **"Device ID"** diagnostic entity on the SMGW device — its state is the device id to copy.
 
 **Important notes:**
 

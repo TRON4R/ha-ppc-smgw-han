@@ -104,6 +104,9 @@
       },
       "date": {
         "name": "Daily date"
+      },
+      "device_id": {
+        "name": "Device ID"
       }
     }
   },
@@ -114,7 +117,7 @@
       "fields": {
         "device_id": {
           "name": "Device",
-          "description": "The SMGW meter device to query."
+          "description": "The SMGW meter device to query. In scripts and dashboards you can leave this empty if you have only one SMGW."
         },
         "from_datetime": {
           "name": "From",
@@ -144,7 +147,7 @@
       "fields": {
         "device_id": {
           "name": "Device",
-          "description": "The SMGW meter device to query."
+          "description": "The SMGW meter device to query. In scripts and dashboards you can leave this empty if you have only one SMGW."
         },
         "period": {
           "name": "Period",

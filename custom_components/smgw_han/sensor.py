@@ -144,10 +144,11 @@ async def async_setup_entry(
     """Set up SMGW HAN sensors from a config entry."""
     coordinator: SmgwTafCoordinator = config_entry.runtime_data
 
-    entities = [
+    entities: list[SensorEntity] = [
         SmgwTafSensor(coordinator, description, config_entry)
         for description in SENSOR_DESCRIPTIONS
     ]
+    entities.append(SmgwDeviceIdSensor(config_entry))
 
     async_add_entities(entities)
 
@@ -219,3 +220,41 @@ class SmgwTafSensor(CoordinatorEntity[SmgwTafCoordinator], SensorEntity):
                 naive.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
             )
         return None
+
+
+class SmgwDeviceIdSensor(SensorEntity):
+    """Diagnostic sensor exposing this device's internal device_id.
+
+    Lets users copy the device id for the export services / dashboard tile
+    when more than one SMGW is configured. Disabled by default to avoid
+    clutter (single-SMGW setups don't need it — the services auto-detect the
+    only device).
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "device_id"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_icon = "mdi:identifier"
+
+    def __init__(self, config_entry: SmgwTafConfigEntry) -> None:
+        """Initialize the device-id sensor."""
+        instance_id = config_entry.data.get(CONF_INSTANCE_ID, 1)
+        device_slug = f"smgw_meter{instance_id}"
+        self._attr_unique_id = f"{device_slug}_device_id"
+        meter_id = config_entry.data.get(CONF_METER_ID)
+        custom_name = (config_entry.data.get(CONF_DEVICE_NAME) or "").strip()
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, device_slug)},
+            name=custom_name or DEFAULT_DEVICE_NAME,
+            manufacturer="PPC",
+            model="Smart Meter Gateway",
+            serial_number=meter_id,
+        )
+
+    async def async_added_to_hass(self) -> None:
+        """Publish the device registry id once the entity is registered."""
+        await super().async_added_to_hass()
+        if self.registry_entry and self.registry_entry.device_id:
+            self._attr_native_value = self.registry_entry.device_id
+            self.async_write_ha_state()

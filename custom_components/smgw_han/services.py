@@ -70,7 +70,7 @@ _FILE_FIELDS = {
 
 READINGS_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_DEVICE_ID): cv.string,
+        vol.Optional(ATTR_DEVICE_ID): cv.string,
         vol.Required(ATTR_FROM_DATETIME): cv.datetime,
         vol.Required(ATTR_TO_DATETIME): cv.datetime,
         **_FILE_FIELDS,
@@ -79,7 +79,7 @@ READINGS_SCHEMA = vol.Schema(
 
 PERIOD_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_DEVICE_ID): cv.string,
+        vol.Optional(ATTR_DEVICE_ID): cv.string,
         vol.Optional(ATTR_PERIOD, default="last_month"): vol.In(PERIOD_PRESETS),
         **_FILE_FIELDS,
     }
@@ -126,8 +126,28 @@ def _reading_to_dict(reading: MeterReading) -> dict[str, Any]:
     }
 
 
-def _resolve_coordinator(hass: HomeAssistant, device_id: str):
-    """Resolve a device_id to this integration's loaded coordinator."""
+def _resolve_coordinator(hass: HomeAssistant, device_id: str | None):
+    """Resolve a device_id to this integration's loaded coordinator.
+
+    If ``device_id`` is omitted, the single loaded SMGW HAN entry is used
+    automatically — so scripts and dashboards don't need a device id unless
+    more than one SMGW is configured.
+    """
+    if not device_id:
+        loaded = [
+            entry
+            for entry in hass.config_entries.async_entries(DOMAIN)
+            if entry.state is ConfigEntryState.LOADED
+        ]
+        if not loaded:
+            raise ServiceValidationError("No loaded SMGW HAN device found.")
+        if len(loaded) > 1:
+            raise ServiceValidationError(
+                "Multiple SMGW HAN devices are configured; please specify "
+                "'device_id'."
+            )
+        return loaded[0].runtime_data
+
     device = dr.async_get(hass).async_get(device_id)
     if device is None:
         raise ServiceValidationError(f"Unknown device id: {device_id}")
@@ -212,7 +232,7 @@ async def _run_export(
     do_csv: bool = call.data[ATTR_WRITE_CSV]
     do_xlsx: bool = call.data[ATTR_WRITE_XLSX]
 
-    coordinator = _resolve_coordinator(hass, call.data[ATTR_DEVICE_ID])
+    coordinator = _resolve_coordinator(hass, call.data.get(ATTR_DEVICE_ID))
 
     readings = await coordinator.async_export_readings(from_dt, to_dt)
     tariff_hour, tariff_minute = coordinator.tariff_switch

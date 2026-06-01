@@ -172,10 +172,6 @@ In den Entwicklerwerkzeugen wird die Antwort als YAML angezeigt — die Links si
 ```yaml
 alias: SMGW Export mit Benachrichtigung
 fields:
-  device_id:
-    selector:
-      device:
-        integration: smgw_han
   period:
     selector:
       select:
@@ -183,7 +179,8 @@ fields:
 sequence:
   - action: smgw_han.export_period
     data:
-      device_id: "{{ device_id }}"
+      # device_id entfällt bei nur einem SMGW (wird automatisch erkannt).
+      # Mehrere SMGWs? Hier device_id: <deine-device-id> ergänzen.
       period: "{{ period | default('last_month') }}"
       download_cms: true
       write_csv: true
@@ -195,22 +192,23 @@ sequence:
       message: >-
         {{ result.reading_count }} Werte, {{ result.daily_summary | count }} Tage.
         {% set f = result.files | default({}) %}
+        {% if f.cms %}[CMS]({{ f.cms }}) · {% endif %}
         {% if f.csv %}[CSV]({{ f.csv }}) · {% endif %}
-        {% if f.xlsx %}[Excel]({{ f.xlsx }}) · {% endif %}
-        {% if f.cms %}[CMS]({{ f.cms }}){% endif %}
+        {% if f.xlsx %}[Excel]({{ f.xlsx }}){% endif %}
 ```
 
-Die Benachrichtigung erscheint dann unter dem Glocken-Symbol mit klickbaren Links zu CSV/Excel/CMS.
+Die Benachrichtigung erscheint dann unter dem Glocken-Symbol mit klickbaren Links zu CMS/CSV/Excel.
 
 ### Dashboard-Kachel (Schnellwahl)
 
 Eine fertige Kachel mit Buttons für die Zeitraum-Vorgaben liegt unter [`dashboard/datenexport.yaml`](dashboard/datenexport.yaml). Sie ruft das obige Benachrichtigungs-Skript auf. Vorgehen:
 
 1. Das Skript „SMGW Export mit Benachrichtigung" (oben) anlegen — Entity-ID `script.smgw_export_mit_benachrichtigung`.
-2. In der Kachel `REPLACE_WITH_DEVICE_ID` durch deine `device_id` ersetzen (5×).
-3. Dashboard → Kachel hinzufügen → Manuelle Karte → YAML aus der Datei einfügen.
+2. Dashboard → Kachel hinzufügen → Manuelle Karte → YAML aus der Datei einfügen. **Bei nur einem SMGW ist nichts weiter zu tun** — das Gerät wird automatisch erkannt.
 
 Ein Klick auf z.B. „Letzter Monat" erzeugt den Export und zeigt die Download-Links als Benachrichtigung.
+
+> **Mehrere SMGWs?** Dann an jeden Button unter `data:` eine Zeile `device_id: <deine-device-id>` ergänzen. Die `device_id` kannst du bequem ablesen: aktiviere am SMGW-Gerät die (standardmäßig deaktivierte) Diagnose-Entität **„Geräte-ID"** — ihr Status ist die device_id zum Kopieren.
 
 **Wichtige Hinweise:**
 
