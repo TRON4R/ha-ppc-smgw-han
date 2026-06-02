@@ -54,7 +54,7 @@
         "title": "SMGW HAN",
         "menu_options": {
           "settings": "Change settings",
-          "export": "Export data"
+          "export": "Export SMGW data for a custom time range"
         }
       },
       "settings": {
@@ -78,7 +78,7 @@
         }
       },
       "export": {
-        "title": "Export data",
+        "title": "Export consumption and feed-in data",
         "description": "Choose a period and which files to create. The next step lets you fine-tune the exact date range.",
         "data": {
           "period": "Period",

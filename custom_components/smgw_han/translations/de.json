@@ -54,7 +54,7 @@
         "title": "SMGW HAN",
         "menu_options": {
           "settings": "Einstellungen ändern",
-          "export": "Daten exportieren"
+          "export": "SMGW-Daten für einen wählbaren Zeitraum exportieren"
         }
       },
       "settings": {
@@ -78,7 +78,7 @@
         }
       },
       "export": {
-        "title": "Daten exportieren",
+        "title": "Verbrauchs- und Einspeisedaten exportieren",
         "description": "Wähle einen Zeitraum und welche Dateien erzeugt werden sollen. Im nächsten Schritt kannst du den genauen Zeitraum noch anpassen.",
         "data": {
           "period": "Zeitraum",
