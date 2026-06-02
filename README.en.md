@@ -24,6 +24,8 @@ This integration connects to your PPC SMGW once per day and retrieves the offici
 
 All sensors are compatible with the **Home Assistant Energy Dashboard**.
 
+**Since v2.1.0** you can also **export meter data for arbitrary time ranges** – as CSV, Excel and the signed CMS original, straight from Home Assistant. See [Data export for arbitrary time ranges](#data-export-for-arbitrary-time-ranges).
+
 ## How does this differ from ha-ppc-smgw?
 
 The existing [ha-ppc-smgw](https://github.com/jannickfahlbusch/ha-ppc-smgw) integration polls current meter readings at fixed 10 minute intervals (ignoring the respective user setting during setup). Some users have reported being locked out of their SMGW, because the frequency of requests was deemed as too high by the SMGW. So this integration takes a different approach:
@@ -119,7 +121,15 @@ When your metering point operator swaps the physical meter in your basement, you
 
 ## Data export for arbitrary time ranges
 
-Meter readings can be fetched for an **arbitrary time range** straight from Home Assistant — no detour via the SMGW web interface. There are **two actions** (selectable separately under Developer Tools → Actions):
+Meter readings can be fetched for an **arbitrary time range** straight from Home Assistant — no detour via the SMGW web interface. Output as **CSV**, **Excel** and/or the **signed CMS original**.
+
+**Three ways, whatever you prefer:**
+
+- 🛠️ **Easiest – via the integration:** on the SMGW device click the **gear "Configure"** → **"Export SMGW data for a custom time range"**. A guided form with date pickers, no prior knowledge, no helpers. ([details](#directly-via-the-integration-no-helpers-no-dashboard))
+- ⚙️ **Full control – Developer Tools → Actions:** any parameters, the response (incl. download links) is shown right there.
+- 📊 **One click, presets only – dashboard tile:** buttons for "Yesterday", "Last month" etc. ([details](#dashboard-tile-quick-select))
+
+Under the hood there are **two actions/services** (selectable separately under Developer Tools → Actions):
 
 - **`smgw_han.export_readings`** — custom range via `from_datetime` / `to_datetime`.
 - **`smgw_han.export_period`** — a ready-made **period preset** (`Yesterday`, `Last 7 days`, `Last 30 days`, `Current month`, `Last month`); `from`/`to` are computed **automatically**, including the correct day-closing reading, so you don't have to work out the end date yourself.
@@ -211,7 +221,7 @@ Clicking e.g. "Letzter Monat" creates the export and shows the download links as
 
 ### Directly via the integration (no helpers, no dashboard)
 
-You can also start the export without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → "Configure"** → menu entry **"Export data"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear as a notification 🔔. The initial setup is unaffected by this.
+You can also start the export without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → gear "Configure"** → menu entry **"Export SMGW data for a custom time range"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear directly in the final step **and** as a notification 🔔. The initial setup is unaffected by this.
 
 > **Multiple SMGWs?** Add a `device_id: <your-device-id>` line under `data:` to each button. The **"Device ID"** diagnostic entity on each SMGW device shows its `device_id` (the entity state is the device id to copy).
 
