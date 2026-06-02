@@ -171,10 +171,10 @@ async def _open_settings(hass: HomeAssistant, entry: MockConfigEntry):
 
 
 async def test_meter_swap_keeps_identity(hass: HomeAssistant):
-    """⭐ A single-meter hardware swap updates the stored meter_id but must
-    leave instance_id / unique_id / entry_id untouched — history continuity
-    rides on instance_id, not on the config-entry unique_id. This is the
-    precondition for the later unique_id-sync work."""
+    """⭐ A single-meter hardware swap adopts the new meter id AND re-syncs the
+    config-entry unique_id (since v2.3.0), while instance_id / entry_id stay
+    put — history/entities ride on instance_id, not on the unique_id, so the
+    unique_id can safely follow the new meter id."""
     entry = _entry("OLDMETER", instance_id=1)
     entry.add_to_hass(hass)
     original_entry_id = entry.entry_id
@@ -193,8 +193,8 @@ async def test_meter_swap_keeps_identity(hass: HomeAssistant):
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert entry.data[CONF_METER_ID] == "NEWMETER"  # swap adopted
-    assert entry.data[CONF_INSTANCE_ID] == 1  # unchanged
-    assert entry.unique_id == "OLDMETER:user"  # unchanged (known gap)
+    assert entry.data[CONF_INSTANCE_ID] == 1  # unchanged -> history preserved
+    assert entry.unique_id == "NEWMETER:user"  # now re-synced to the new meter
     assert entry.entry_id == original_entry_id  # same device/entities
 
 
@@ -217,3 +217,128 @@ async def test_meter_swap_refused_on_multimeter_setup(hass: HomeAssistant):
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "configured_meter_missing"
     assert entry.data[CONF_METER_ID] == "OLDMETER"  # left untouched
+
+
+def _other_entry(meter_id: str, username: str, instance_id: int) -> MockConfigEntry:
+    """A second entry with an explicit username (so its unique_id can differ)."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=f"{meter_id}:{username}",
+        data={
+            CONF_URL: URL,
+            CONF_USERNAME: username,
+            CONF_PASSWORD: "pw",
+            CONF_METER_ID: meter_id,
+            CONF_INSTANCE_ID: instance_id,
+        },
+    )
+
+
+async def test_settings_username_change_syncs_unique_id(hass: HomeAssistant):
+    """Changing the username in settings re-syncs the unique_id (meter:user)
+    while instance_id stays put."""
+    entry = _entry("M", instance_id=1)  # unique_id "M:user"
+    entry.add_to_hass(hass)
+
+    result = await _open_settings(hass, entry)
+    with (
+        patch(VALIDATE, return_value=_info("M", ["M"])),  # meter unchanged
+        patch(CLOSE, return_value=None),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ),
+    ):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {**USER_INPUT, CONF_USERNAME: "user2"}
+        )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.data[CONF_USERNAME] == "user2"
+    assert entry.unique_id == "M:user2"  # re-synced
+    assert entry.data[CONF_INSTANCE_ID] == 1  # unchanged
+
+
+async def test_settings_unique_id_collision_refused(hass: HomeAssistant):
+    """If the new (meter, username) identity already belongs to another entry,
+    the settings step refuses with duplicate_login and changes nothing."""
+    entry_a = _entry("M", instance_id=1)  # "M:user"
+    entry_a.add_to_hass(hass)
+    _other_entry("M", "user2", instance_id=2).add_to_hass(hass)  # owns "M:user2"
+
+    result = await _open_settings(hass, entry_a)
+    with (
+        patch(VALIDATE, return_value=_info("M", ["M"])),
+        patch(CLOSE, return_value=None),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ),
+    ):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {**USER_INPUT, CONF_USERNAME: "user2"}
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"]["base"] == "duplicate_login"
+    assert entry_a.unique_id == "M:user"  # unchanged
+    assert entry_a.data[CONF_USERNAME] == "user"  # nothing saved
+
+
+async def test_reauth_syncs_unique_id(hass: HomeAssistant):
+    """Reauth with a new username re-syncs the unique_id."""
+    entry = _entry("M", instance_id=1)  # "M:user"
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_REAUTH,
+            "entry_id": entry.entry_id,
+        },
+        data=entry.data,
+    )
+    assert result["step_id"] == "reauth_confirm"
+    with (
+        patch(VALIDATE, return_value=_info("M", ["M"])),
+        patch(CLOSE, return_value=None),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {CONF_USERNAME: "user2", CONF_PASSWORD: "newpw"},
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert entry.unique_id == "M:user2"
+    assert entry.data[CONF_USERNAME] == "user2"
+
+
+async def test_reauth_collision_refused(hass: HomeAssistant):
+    """Reauth that would collide with another entry's identity is refused."""
+    entry_a = _entry("M", instance_id=1)  # "M:user"
+    entry_a.add_to_hass(hass)
+    _other_entry("M", "user2", instance_id=2).add_to_hass(hass)  # owns "M:user2"
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_REAUTH,
+            "entry_id": entry_a.entry_id,
+        },
+        data=entry_a.data,
+    )
+    with (
+        patch(VALIDATE, return_value=_info("M", ["M"])),
+        patch(CLOSE, return_value=None),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {CONF_USERNAME: "user2", CONF_PASSWORD: "newpw"},
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"]["base"] == "duplicate_login"
+    assert entry_a.unique_id == "M:user"  # unchanged

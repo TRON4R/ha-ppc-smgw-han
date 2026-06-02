@@ -40,6 +40,7 @@
     "error": {
       "cannot_connect": "Verbindung zum SMGW fehlgeschlagen. URL und Netzwerkverbindung prüfen.",
       "invalid_auth": "Ungültiger Benutzername oder Passwort.",
+      "duplicate_login": "Ein anderer Eintrag verwendet bereits diese Kombination aus Zähler und Benutzername.",
       "parse_error": "Antwort des SMGW konnte nicht ausgewertet werden. Bitte Benutzername und Passwort prüfen. Falls die Zugangsdaten korrekt sind, bis zu 15 Minuten warten und erneut versuchen.",
       "unknown": "Ein unerwarteter Fehler ist aufgetreten."
     },
@@ -103,6 +104,7 @@
       "cannot_connect": "Verbindung zum SMGW fehlgeschlagen. URL und Netzwerkverbindung prüfen.",
       "configured_meter_missing": "Der bisher konfigurierte Zähler ist im SMGW-Dropdown nicht mehr vorhanden, der SMGW liefert aber mehrere andere Zähler. Bitte entferne diesen Eintrag in Home Assistant und lege ihn neu an, um aus den verfügbaren Zählern auszuwählen.",
       "invalid_auth": "Ungültiger Benutzername oder Passwort.",
+      "duplicate_login": "Ein anderer Eintrag verwendet bereits diese Kombination aus Zähler und Benutzername.",
       "parse_error": "Antwort des SMGW konnte nicht ausgewertet werden. Bitte Benutzername und Passwort prüfen. Falls die Zugangsdaten korrekt sind, bis zu 15 Minuten warten und erneut versuchen.",
       "unknown": "Ein unerwarteter Fehler ist aufgetreten.",
       "invalid_range": "„Von\" muss vor „Bis\" liegen.",
