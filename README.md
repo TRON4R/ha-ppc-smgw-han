@@ -24,6 +24,8 @@ Die Integration verbindet sich einmal täglich mit dem PPC SMGW und ruft die off
 
 Alle Sensoren sind kompatibel mit dem **Home Assistant Energie-Dashboard**.
 
+**Seit v2.1.0** kannst du außerdem **Zählerdaten für beliebige Zeiträume exportieren** – als CSV, Excel und als signiertes CMS-Original, direkt aus Home Assistant. Siehe [Datenexport für beliebige Zeiträume](#datenexport-für-beliebige-zeiträume).
+
 ## Unterschied zu ha-ppc-smgw
 
 Die bestehende [ha-ppc-smgw](https://github.com/jannickfahlbusch/ha-ppc-smgw)-Integration fragt aktuelle Zählerstände in festen 10-Minuten-Intervallen ab (unabhängig von der Nutzereinstellung beim Setup). Einige Nutzer berichten, dass sie vom SMGW gesperrt wurden, weil die Abfragehäufigkeit als zu hoch eingestuft wurde. Diese Integration verfolgt einen anderen Ansatz:
@@ -118,7 +120,15 @@ Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst d
 
 ## Datenexport für beliebige Zeiträume
 
-Die Zählerdaten lassen sich für einen **frei wählbaren Zeitraum** direkt aus Home Assistant abrufen — ohne Umweg über das SMGW-Webinterface. Dafür gibt es **zwei Aktionen** (in Entwicklerwerkzeuge → Aktionen je separat auswählbar):
+Die Zählerdaten lassen sich für einen **frei wählbaren Zeitraum** direkt aus Home Assistant abrufen — ohne Umweg über das SMGW-Webinterface. Ausgabe als **CSV**, **Excel** und/oder als **signiertes CMS-Original**.
+
+**Drei Wege – je nach Geschmack:**
+
+- 🛠️ **Am einfachsten – über die Integration:** Beim SMGW-Gerät auf das **Zahnrad „Konfigurieren"** → **„SMGW-Daten für einen wählbaren Zeitraum exportieren"**. Geführtes Formular mit Datums-Picker, keine Vorkenntnisse, keine Helfer. ([Details](#direkt-über-die-integration-ohne-helfer-ohne-dashboard))
+- ⚙️ **Volle Kontrolle – Entwicklerwerkzeuge → Aktionen:** beliebige Parameter, die Antwort (inkl. Download-Links) wird direkt angezeigt.
+- 📊 **Ein-Klick, nur Vorgaben – Dashboard-Kachel:** Buttons für „Gestern", „Letzter Monat" usw. ([Details](#dashboard-kachel-schnellwahl))
+
+Technisch dahinter stehen **zwei Aktionen/Dienste** (in Entwicklerwerkzeuge → Aktionen je separat auswählbar):
 
 - **`smgw_han.export_readings`** — eigener Zeitraum über `from_datetime` / `to_datetime`.
 - **`smgw_han.export_period`** — fertige **Zeitraum-Vorgabe** (`Gestern`, `Letzte 7 Tage`, `Letzte 30 Tage`, `Aktueller Monat`, `Letzter Monat`); `from`/`to` werden **automatisch** berechnet — inkl. korrektem Tagesabschluss. So musst Du das End-Datum nicht selbst ausrechnen.
@@ -210,7 +220,7 @@ Ein Klick auf z.B. „Letzter Monat" erzeugt den Export und zeigt die Download-L
 
 ### Direkt über die Integration (ohne Helfer, ohne Dashboard)
 
-Den Export kannst du auch ganz ohne Entwicklerwerkzeuge, Helfer oder Dashboard starten: **Einstellungen → Geräte & Dienste → dein SMGW → „Konfigurieren"** → Menüpunkt **„Daten exportieren"**. Dort wählst du einen Zeitraum (Vorgabe), bestätigst bzw. änderst im nächsten Schritt die **vorausgefüllten** Von/Bis-Felder, und nach dem Export erscheinen die Download-Links als Benachrichtigung 🔔. Die normale Erst-Einrichtung bleibt davon unberührt.
+Den Export kannst du auch ganz ohne Entwicklerwerkzeuge, Helfer oder Dashboard starten: **Einstellungen → Geräte & Dienste → dein SMGW → Zahnrad „Konfigurieren"** → Menüpunkt **„SMGW-Daten für einen wählbaren Zeitraum exportieren"**. Dort wählst du einen Zeitraum (Vorgabe), bestätigst bzw. änderst im nächsten Schritt die **vorausgefüllten** Von/Bis-Felder, und nach dem Export erscheinen die Download-Links direkt im Abschluss-Schritt **und** als Benachrichtigung 🔔. Die normale Erst-Einrichtung bleibt davon unberührt.
 
 > **Mehrere SMGWs?** Dann an jeden Button unter `data:` eine Zeile `device_id: <deine-device-id>` ergänzen. Die `device_id` zeigt die Diagnose-Entität **„Geräte-ID"** am jeweiligen SMGW-Gerät (ihr Status ist die device_id zum Kopieren).
 
