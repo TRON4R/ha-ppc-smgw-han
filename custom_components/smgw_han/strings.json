@@ -82,7 +82,7 @@
         "description": "Choose a period and which files to create. The next step lets you fine-tune the exact date range.",
         "data": {
           "period": "Period",
-          "download_cms": "Create CMS original",
+          "download_cms": "Download certified CMS file",
           "write_csv": "Create CSV",
           "write_xlsx": "Create Excel (XLSX)"
         },
@@ -106,10 +106,11 @@
       "parse_error": "Could not parse the SMGW response. Please double-check the username and password. If the credentials are correct, wait up to 15 minutes and try again.",
       "unknown": "An unexpected error occurred.",
       "invalid_range": "'From' must be before 'To'.",
-      "export_failed": "The export failed. Check the SMGW connection and the Home Assistant log."
+      "export_failed": "The export failed. Check the SMGW connection and the Home Assistant log.",
+      "no_outputs": "Select at least one output (certified CMS file, CSV or Excel)."
     },
     "abort": {
-      "export_done": "Export created. The download links are in the notification (bell icon)."
+      "export_done": "Export created.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
     }
   },
   "entity": {
@@ -161,7 +162,7 @@
           "description": "End of the time range. Tip: to include the closing reading of the last day, set this to 00:15 of the following day."
         },
         "download_cms": {
-          "name": "Download CMS original",
+          "name": "Download certified CMS file",
           "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
         },
         "write_csv": {
@@ -187,7 +188,7 @@
           "description": "The time range to export. The end is set automatically to capture the closing reading of the last day."
         },
         "download_cms": {
-          "name": "Download CMS original",
+          "name": "Download certified CMS file",
           "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
         },
         "write_csv": {

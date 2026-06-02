@@ -381,28 +381,48 @@ class SmgwTafOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Step 1: pick a period preset and the file outputs."""
-        if user_input is not None:
-            self._export_input = user_input
-            self._export_from, self._export_to = _period_range(
-                user_input[ATTR_PERIOD]
-            )
-            return await self.async_step_export_dates()
+        errors: dict[str, str] = {}
 
+        if user_input is not None:
+            if not (
+                user_input[ATTR_DOWNLOAD_CMS]
+                or user_input[ATTR_WRITE_CSV]
+                or user_input[ATTR_WRITE_XLSX]
+            ):
+                errors["base"] = "no_outputs"
+            else:
+                self._export_input = user_input
+                self._export_from, self._export_to = _period_range(
+                    user_input[ATTR_PERIOD]
+                )
+                return await self.async_step_export_dates()
+
+        d = user_input or {}
         schema = vol.Schema(
             {
-                vol.Required(ATTR_PERIOD, default="last_month"): SelectSelector(
+                vol.Required(
+                    ATTR_PERIOD, default=d.get(ATTR_PERIOD, "last_month")
+                ): SelectSelector(
                     SelectSelectorConfig(
                         options=list(PERIOD_PRESETS),
                         mode=SelectSelectorMode.DROPDOWN,
                         translation_key="export_period",
                     )
                 ),
-                vol.Required(ATTR_DOWNLOAD_CMS, default=True): BooleanSelector(),
-                vol.Required(ATTR_WRITE_CSV, default=True): BooleanSelector(),
-                vol.Required(ATTR_WRITE_XLSX, default=True): BooleanSelector(),
+                vol.Required(
+                    ATTR_DOWNLOAD_CMS, default=d.get(ATTR_DOWNLOAD_CMS, True)
+                ): BooleanSelector(),
+                vol.Required(
+                    ATTR_WRITE_CSV, default=d.get(ATTR_WRITE_CSV, True)
+                ): BooleanSelector(),
+                vol.Required(
+                    ATTR_WRITE_XLSX, default=d.get(ATTR_WRITE_XLSX, True)
+                ): BooleanSelector(),
             }
         )
-        return self.async_show_form(step_id="export", data_schema=schema)
+        return self.async_show_form(
+            step_id="export", data_schema=schema, errors=errors
+        )
 
     async def async_step_export_dates(
         self, user_input: dict[str, Any] | None = None
@@ -430,8 +450,12 @@ class SmgwTafOptionsFlow(OptionsFlow):
                     _LOGGER.exception("Export via options flow failed")
                     errors["base"] = "export_failed"
                 else:
-                    self._notify_export(result)
-                    return self.async_abort(reason="export_done")
+                    links = self._links_markdown(result)
+                    self._notify_export(result, links)
+                    return self.async_abort(
+                        reason="export_done",
+                        description_placeholders={"links": links},
+                    )
 
         # Prefill with the submitted values (on error) or the preset range.
         submitted = user_input or {}
@@ -470,8 +494,9 @@ class SmgwTafOptionsFlow(OptionsFlow):
             dt = dt_util.as_local(dt).replace(tzinfo=None)
         return dt
 
-    def _notify_export(self, result: dict[str, Any]) -> None:
-        """Post a persistent notification with clickable download links."""
+    @staticmethod
+    def _links_markdown(result: dict[str, Any]) -> str:
+        """Build a markdown line of the download links (CMS, CSV, Excel)."""
         files = result.get("files", {})
         parts = []
         if files.get("cms"):
@@ -480,7 +505,10 @@ class SmgwTafOptionsFlow(OptionsFlow):
             parts.append(f"[CSV]({files['csv']})")
         if files.get("xlsx"):
             parts.append(f"[Excel]({files['xlsx']})")
-        links = " · ".join(parts) if parts else "_(keine Dateien ausgewählt)_"
+        return " · ".join(parts) if parts else "_(keine Dateien)_"
+
+    def _notify_export(self, result: dict[str, Any], links: str) -> None:
+        """Post a persistent notification as a lasting copy of the links."""
         message = (
             f"{result['reading_count']} Werte, "
             f"{len(result['daily_summary'])} Tage.\n\n{links}"

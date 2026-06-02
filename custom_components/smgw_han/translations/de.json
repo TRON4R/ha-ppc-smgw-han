@@ -82,7 +82,7 @@
         "description": "Wähle einen Zeitraum und welche Dateien erzeugt werden sollen. Im nächsten Schritt kannst du den genauen Zeitraum noch anpassen.",
         "data": {
           "period": "Zeitraum",
-          "download_cms": "CMS-Original erzeugen",
+          "download_cms": "Zertifizierte CMS-Datei downloaden",
           "write_csv": "CSV erzeugen",
           "write_xlsx": "Excel (XLSX) erzeugen"
         },
@@ -106,10 +106,11 @@
       "parse_error": "Antwort des SMGW konnte nicht ausgewertet werden. Bitte Benutzername und Passwort prüfen. Falls die Zugangsdaten korrekt sind, bis zu 15 Minuten warten und erneut versuchen.",
       "unknown": "Ein unerwarteter Fehler ist aufgetreten.",
       "invalid_range": "„Von\" muss vor „Bis\" liegen.",
-      "export_failed": "Der Export ist fehlgeschlagen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen."
+      "export_failed": "Der Export ist fehlgeschlagen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen.",
+      "no_outputs": "Bitte mindestens eine Ausgabe wählen (zertifizierte CMS-Datei, CSV oder Excel)."
     },
     "abort": {
-      "export_done": "Export erstellt. Die Download-Links findest du in der Benachrichtigung (Glockensymbol)."
+      "export_done": "Export erstellt.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
     }
   },
   "entity": {
@@ -161,7 +162,7 @@
           "description": "Ende des Zeitraums. Tipp: Um den Tagesabschluss des letzten Tages einzuschließen, auf 00:15 des Folgetags setzen."
         },
         "download_cms": {
-          "name": "CMS-Original herunterladen",
+          "name": "Zertifizierte CMS-Datei downloaden",
           "description": "Speichert zusätzlich die signierte CMS-Datei exakt so, wie sie das SMGW liefert (fälschungssicheres Original)."
         },
         "write_csv": {
@@ -187,7 +188,7 @@
           "description": "Der zu exportierende Zeitraum. Das Ende wird automatisch so gesetzt, dass der Tagesabschluss des letzten Tages erfasst wird."
         },
         "download_cms": {
-          "name": "CMS-Original herunterladen",
+          "name": "Zertifizierte CMS-Datei downloaden",
           "description": "Speichert zusätzlich die signierte CMS-Datei exakt so, wie sie das SMGW liefert (fälschungssicheres Original)."
         },
         "write_csv": {
