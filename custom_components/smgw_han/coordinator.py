@@ -10,7 +10,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.storage import Store
-from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    HomeAssistantError,
+    ServiceValidationError,
+)
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -41,6 +45,7 @@ from .smgw_client import (
     SmgwAuthError,
     SmgwClient,
     SmgwClientError,
+    SmgwServerError,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -298,10 +303,21 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return await self._client.async_download_cms(
                 from_dt, to_dt, target_meter_id=self.target_meter_id
             )
+        except SmgwServerError as err:
+            # The SMGW returns an HTTP error for a range it has no data for
+            # (e.g. before commissioning) -> surface as a clean localized
+            # "no data", not a raw connection/HTTP error.
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="no_data_in_range"
+            ) from err
         except SmgwAuthError as err:
-            raise HomeAssistantError(f"SMGW authentication failed: {err}") from err
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="cms_auth_failed"
+            ) from err
         except SmgwClientError as err:
-            raise HomeAssistantError(f"SMGW CMS download failed: {err}") from err
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="cms_download_failed"
+            ) from err
 
     @staticmethod
     def _daily_data_to_dict(daily_data: DailyData) -> dict[str, Any]:

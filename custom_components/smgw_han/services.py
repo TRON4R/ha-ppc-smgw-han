@@ -188,15 +188,16 @@ def _validate_range(from_dt: datetime, to_dt: datetime) -> None:
             translation_domain=DOMAIN, translation_key="from_after_to"
         )
     now_local = dt_util.now().replace(tzinfo=None)
-    if to_dt > now_local:
+    # Reject a genuinely future day (catches typos) but allow any time today —
+    # in particular the presets' "today + 00:15" closing margin, even just after
+    # midnight — so this check can also gate the options flow without false hits.
+    if to_dt.date() > now_local.date():
         raise ServiceValidationError(
             translation_domain=DOMAIN, translation_key="to_in_future"
         )
     if from_dt < now_local - timedelta(days=SMGW_HISTORY_DAYS):
         raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="from_too_old",
-            translation_placeholders={"days": str(SMGW_HISTORY_DAYS)},
+            translation_domain=DOMAIN, translation_key="from_too_old"
         )
 
 

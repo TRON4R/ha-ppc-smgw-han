@@ -69,9 +69,17 @@ def test_validate_range_rejects_from_after_to():
         _validate_range(datetime(2026, 5, 10), datetime(2026, 5, 1))
 
 
-def test_validate_range_rejects_future():
+def test_validate_range_rejects_future_day():
+    # A future calendar day is rejected.
     with freeze_time("2026-05-15 12:00:00"), pytest.raises(ServiceValidationError):
         _validate_range(datetime(2026, 5, 1), datetime(2026, 5, 16))
+
+
+def test_validate_range_allows_later_time_today():
+    # A time later *today* must be accepted — in particular the presets'
+    # "today + 00:15" closing margin, even when run just after midnight.
+    with freeze_time("2026-05-15 00:05:00"):
+        _validate_range(datetime(2026, 5, 1), datetime(2026, 5, 15, 0, 15))
 
 
 def test_validate_range_rejects_too_old():

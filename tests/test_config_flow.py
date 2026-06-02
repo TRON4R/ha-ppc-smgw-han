@@ -7,6 +7,7 @@ create path so creating an entry does not kick off a real coordinator setup.
 
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -342,3 +343,54 @@ async def test_reauth_collision_refused(hass: HomeAssistant):
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "duplicate_login"
     assert entry_a.unique_id == "M:user"  # unchanged
+
+
+async def _open_export_dates(hass: HomeAssistant, entry: MockConfigEntry):
+    """Drive the options export flow to the date-range step."""
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "export"}
+    )
+    assert result["step_id"] == "export"
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "period": "last_month",
+            "download_cms": True,
+            "write_csv": False,
+            "write_xlsx": False,
+        },
+    )
+    assert result["step_id"] == "export_dates"
+    return result
+
+
+async def test_options_export_rejects_future_day(hass: HomeAssistant):
+    # The options flow now runs the same _validate_range as the service path.
+    entry = _entry("M", instance_id=1)
+    entry.add_to_hass(hass)
+    result = await _open_export_dates(hass, entry)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "from_datetime": datetime(2026, 1, 1, 0, 0, 0),
+            "to_datetime": datetime(2099, 1, 1, 0, 0, 0),
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"]["base"] == "to_in_future"
+
+
+async def test_options_export_rejects_too_old(hass: HomeAssistant):
+    entry = _entry("M", instance_id=1)
+    entry.add_to_hass(hass)
+    result = await _open_export_dates(hass, entry)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "from_datetime": datetime(2000, 1, 1, 0, 0, 0),
+            "to_datetime": datetime(2026, 5, 1, 0, 0, 0),
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"]["base"] == "from_too_old"

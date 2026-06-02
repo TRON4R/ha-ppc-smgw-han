@@ -29,6 +29,12 @@ class SmgwConnectionError(SmgwClientError):
     """Connection error."""
 
 
+class SmgwServerError(SmgwClientError):
+    """HTTP 4xx/5xx from the SMGW. On the CMS export endpoint this typically
+    means the gateway has no data for the requested range (e.g. before the
+    meter was commissioned)."""
+
+
 class SmgwParseError(SmgwClientError):
     """HTML parsing error."""
 
@@ -249,7 +255,10 @@ class SmgwClient:
             )
             response.raise_for_status()
         except httpx.HTTPStatusError as err:
-            raise SmgwConnectionError(
+            # The CMS export endpoint answers with an HTTP error for a range it
+            # has no data for (e.g. before the meter was commissioned); surface
+            # that distinctly so the coordinator can map it to a clean "no data".
+            raise SmgwServerError(
                 f"HTTP error: {err.response.status_code}"
             ) from err
         except (httpx.ConnectError, httpx.RemoteProtocolError) as err:

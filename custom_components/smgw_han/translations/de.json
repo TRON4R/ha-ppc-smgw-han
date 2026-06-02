@@ -110,7 +110,10 @@
       "invalid_range": "„Von\" muss vor „Bis\" liegen.",
       "export_failed": "Der Export ist fehlgeschlagen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen.",
       "no_outputs": "Bitte mindestens eine Ausgabe wählen (zertifizierte CMS-Datei, CSV oder Excel).",
-      "no_data_in_range": "Für den gewählten Zeitraum sind keine Zählerdaten vorhanden (z. B. vor der Inbetriebnahme des Zählers)."
+      "no_data_in_range": "Für den gewählten Zeitraum sind keine Zählerdaten vorhanden (z. B. vor der Inbetriebnahme des Zählers).",
+      "from_after_to": "„Von\" muss vor „Bis\" liegen.",
+      "to_in_future": "Das Ende des Zeitraumes („Bis\") darf nicht in der Zukunft liegen.",
+      "from_too_old": "Der Beginn des Zeitraumes („Von\") liegt weiter zurück als die maximal mögliche 760-Tage-Historie des SMGW."
     },
     "abort": {
       "export_done": "Export erstellt.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
@@ -218,14 +221,16 @@
   },
   "exceptions": {
     "from_after_to": {"message": "„Von\" muss vor „Bis\" liegen."},
-    "to_in_future": {"message": "„Bis\" darf nicht in der Zukunft liegen."},
-    "from_too_old": {"message": "„Von\" liegt weiter zurück als die {days}-Tage-Historie des SMGW."},
+    "to_in_future": {"message": "Das Ende des Zeitraumes („Bis\") darf nicht in der Zukunft liegen."},
+    "from_too_old": {"message": "Der Beginn des Zeitraumes („Von\") liegt weiter zurück als die maximal mögliche 760-Tage-Historie des SMGW."},
     "no_device": {"message": "Kein geladenes SMGW-HAN-Gerät gefunden."},
     "multiple_devices": {"message": "Es sind mehrere SMGW-HAN-Geräte konfiguriert; bitte 'device_id' angeben."},
     "unknown_device": {"message": "Unbekannte Geräte-ID: {device_id}."},
     "wrong_device": {"message": "Das gewählte Gerät gehört nicht zur SMGW-HAN-Integration."},
     "device_not_loaded": {"message": "Der SMGW-HAN-Eintrag für dieses Gerät ist nicht geladen."},
     "unknown_period": {"message": "Unbekanntes Zeitraum-Preset: {period}."},
-    "no_data_in_range": {"message": "Für den gewählten Zeitraum sind keine Zählerdaten vorhanden (z. B. vor der Inbetriebnahme des Zählers)."}
+    "no_data_in_range": {"message": "Für den gewählten Zeitraum sind keine Zählerdaten vorhanden (z. B. vor der Inbetriebnahme des Zählers)."},
+    "cms_auth_failed": {"message": "Die Anmeldung am SMGW ist fehlgeschlagen. Bitte die Integration neu authentifizieren."},
+    "cms_download_failed": {"message": "Der SMGW-Export konnte nicht heruntergeladen werden. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen."}
   }
 }
