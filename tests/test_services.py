@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
@@ -13,7 +14,14 @@ from homeassistant.exceptions import ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smgw_han.const import DOMAIN
-from custom_components.smgw_han.services import _resolve_coordinator, run_export
+from custom_components.smgw_han.services import (
+    _resolve_coordinator,
+    async_setup_services,
+    build_links_markdown,
+    run_export,
+)
+
+NOTIFY = "custom_components.smgw_han.services.persistent_notification.async_create"
 
 FIXTURE = Path(__file__).parent / "fixtures" / "cms_sample.xml.cms"
 
@@ -109,3 +117,63 @@ async def test_run_export_without_files_omits_files_key(hass: HomeAssistant):
     assert "files" not in resp
     assert resp["reading_count"] == 5
     assert resp["readings"]
+
+
+async def test_build_links_markdown():
+    md = build_links_markdown(
+        {
+            "cms": "http://h/a.cms",
+            "csv": "http://h/a.csv",
+            "xlsx": "http://h/a.xlsx",
+        }
+    )
+    assert md == (
+        "[CMS](http://h/a.cms) · [CSV](http://h/a.csv) · [Excel](http://h/a.xlsx)"
+    )
+    assert build_links_markdown({}) == ""
+
+
+def _loaded_entry(hass) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, state=ConfigEntryState.LOADED)
+    entry.add_to_hass(hass)
+    entry.runtime_data = FakeCoordinator()
+
+
+async def test_service_posts_notification_with_links(hass: HomeAssistant):
+    _loaded_entry(hass)
+    async_setup_services(hass)
+    with patch(NOTIFY) as mock_notify:
+        await hass.services.async_call(
+            DOMAIN,
+            "export_period",
+            {
+                "period": "last_month",
+                "download_cms": True,
+                "write_csv": False,
+                "write_xlsx": False,
+            },
+            blocking=True,
+            return_response=True,
+        )
+    assert mock_notify.called
+    message = mock_notify.call_args.args[1]
+    assert "[CMS]" in message
+
+
+async def test_service_no_notification_without_files(hass: HomeAssistant):
+    _loaded_entry(hass)
+    async_setup_services(hass)
+    with patch(NOTIFY) as mock_notify:
+        await hass.services.async_call(
+            DOMAIN,
+            "export_period",
+            {
+                "period": "last_month",
+                "download_cms": False,
+                "write_csv": False,
+                "write_xlsx": False,
+            },
+            blocking=True,
+            return_response=True,
+        )
+    assert not mock_notify.called

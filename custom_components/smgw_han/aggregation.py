@@ -28,7 +28,8 @@ class DailySummary:
     """
 
     day: date
-    end_timestamp: datetime | None
+    start_timestamp: datetime | None  # actual time of the D 00:00 reading
+    end_timestamp: datetime | None  # actual time of the D+1 00:00 reading
     import_end: float | None  # 1.8.0 cumulative reading at D+1 00:00
     export_end: float | None  # 2.8.0 cumulative reading at D+1 00:00
     import_start: float | None  # 1.8.0 at D 00:00
@@ -41,7 +42,12 @@ class DailySummary:
     def to_dict(self) -> dict:
         """Serializable representation for the service response variable."""
         return {
-            "date": self.day.isoformat(),
+            "day_of_summary": self.day.isoformat(),
+            "start_timestamp": (
+                self.start_timestamp.isoformat()
+                if self.start_timestamp
+                else None
+            ),
             "end_timestamp": (
                 self.end_timestamp.isoformat() if self.end_timestamp else None
             ),
@@ -101,7 +107,8 @@ def build_daily_summary(
         export_start = find_closest_reading(export_readings, midnight_start)
         export_end = find_closest_reading(export_readings, midnight_end)
 
-        # Pick a representative timestamp of the closing reading.
+        # Representative timestamps of the day's boundary readings.
+        start_reading = import_start or export_start
         end_reading = import_end or export_end
 
         start_val = import_start.value if import_start else None
@@ -112,6 +119,7 @@ def build_daily_summary(
 
         summary = DailySummary(
             day=day,
+            start_timestamp=start_reading.timestamp if start_reading else None,
             end_timestamp=end_reading.timestamp if end_reading else None,
             import_end=end_val,
             export_end=export_end_val,

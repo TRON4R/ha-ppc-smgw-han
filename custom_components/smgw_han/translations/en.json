@@ -214,5 +214,16 @@
         "last_month": "Last month"
       }
     }
+  },
+  "exceptions": {
+    "from_after_to": {"message": "'from_datetime' must be before 'to_datetime'."},
+    "to_in_future": {"message": "'to_datetime' must not be in the future."},
+    "from_too_old": {"message": "'from_datetime' is older than the SMGW's {days}-day history limit."},
+    "no_device": {"message": "No loaded SMGW HAN device found."},
+    "multiple_devices": {"message": "Multiple SMGW HAN devices are configured; please specify 'device_id'."},
+    "unknown_device": {"message": "Unknown device id: {device_id}."},
+    "wrong_device": {"message": "Selected device does not belong to the SMGW HAN integration."},
+    "device_not_loaded": {"message": "The SMGW HAN entry for this device is not loaded."},
+    "unknown_period": {"message": "Unknown period preset: {period}."}
   }
 }

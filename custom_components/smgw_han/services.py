@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import (
     HomeAssistant,
@@ -109,7 +110,11 @@ def _period_range(period: str) -> tuple[datetime, datetime]:
         first_this_month = today.replace(day=1)
         first_prev_month = (first_this_month - timedelta(days=1)).replace(day=1)
         return first_prev_month, first_this_month + margin
-    raise ServiceValidationError(f"Unknown period preset: {period}")
+    raise ServiceValidationError(
+        translation_domain=DOMAIN,
+        translation_key="unknown_period",
+        translation_placeholders={"period": str(period)},
+    )
 
 
 def _sanitize(name: str) -> str:
@@ -141,17 +146,22 @@ def _resolve_coordinator(hass: HomeAssistant, device_id: str | None):
             if entry.state is ConfigEntryState.LOADED
         ]
         if not loaded:
-            raise ServiceValidationError("No loaded SMGW HAN device found.")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="no_device"
+            )
         if len(loaded) > 1:
             raise ServiceValidationError(
-                "Multiple SMGW HAN devices are configured; please specify "
-                "'device_id'."
+                translation_domain=DOMAIN, translation_key="multiple_devices"
             )
         return loaded[0].runtime_data
 
     device = dr.async_get(hass).async_get(device_id)
     if device is None:
-        raise ServiceValidationError(f"Unknown device id: {device_id}")
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="unknown_device",
+            translation_placeholders={"device_id": str(device_id)},
+        )
 
     entry: ConfigEntry | None = None
     for entry_id in device.config_entries:
@@ -162,11 +172,11 @@ def _resolve_coordinator(hass: HomeAssistant, device_id: str | None):
 
     if entry is None:
         raise ServiceValidationError(
-            "Selected device does not belong to the SMGW HAN integration."
+            translation_domain=DOMAIN, translation_key="wrong_device"
         )
     if entry.state is not ConfigEntryState.LOADED:
         raise ServiceValidationError(
-            "The SMGW HAN entry for this device is not loaded."
+            translation_domain=DOMAIN, translation_key="device_not_loaded"
         )
     return entry.runtime_data
 
@@ -175,17 +185,18 @@ def _validate_range(from_dt: datetime, to_dt: datetime) -> None:
     """Plausibility checks beyond the frontend's format/required validation."""
     if from_dt >= to_dt:
         raise ServiceValidationError(
-            "'from_datetime' must be before 'to_datetime'."
+            translation_domain=DOMAIN, translation_key="from_after_to"
         )
     now_local = dt_util.now().replace(tzinfo=None)
     if to_dt > now_local:
         raise ServiceValidationError(
-            "'to_datetime' must not be in the future."
+            translation_domain=DOMAIN, translation_key="to_in_future"
         )
     if from_dt < now_local - timedelta(days=SMGW_HISTORY_DAYS):
         raise ServiceValidationError(
-            f"'from_datetime' is older than the SMGW's "
-            f"{SMGW_HISTORY_DAYS}-day history limit."
+            translation_domain=DOMAIN,
+            translation_key="from_too_old",
+            translation_placeholders={"days": str(SMGW_HISTORY_DAYS)},
         )
 
 
@@ -317,30 +328,68 @@ async def run_export(
     return response
 
 
+def build_links_markdown(files: dict[str, str]) -> str:
+    """A markdown line of the download links (CMS · CSV · Excel), in that order."""
+    parts = []
+    if files.get("cms"):
+        parts.append(f"[CMS]({files['cms']})")
+    if files.get("csv"):
+        parts.append(f"[CSV]({files['csv']})")
+    if files.get("xlsx"):
+        parts.append(f"[Excel]({files['xlsx']})")
+    return " · ".join(parts)
+
+
+def _notify_export_files(hass: HomeAssistant, response: dict[str, Any]) -> None:
+    """Post a persistent notification with clickable download links.
+
+    Only fires when the export actually wrote files, so a pure response-variable
+    call (e.g. from an automation) stays silent. The options flow posts its own
+    notification, so this lives in the service handlers, not in ``run_export``.
+    """
+    files = response.get("files")
+    if not files:
+        return
+    message = (
+        f"{response['reading_count']} Werte, "
+        f"{len(response['daily_summary'])} Tage.\n\n"
+        f"{build_links_markdown(files)}"
+    )
+    persistent_notification.async_create(
+        hass,
+        message,
+        title="SMGW Export",
+        notification_id="smgw_export_service",
+    )
+
+
+async def _run_export_call(
+    call: ServiceCall, from_dt: datetime, to_dt: datetime
+) -> ServiceResponse:
+    """Resolve the coordinator, run the export, and notify if files were made."""
+    coordinator = _resolve_coordinator(call.hass, call.data.get(ATTR_DEVICE_ID))
+    response = await run_export(
+        call.hass, coordinator, from_dt, to_dt,
+        download_cms=call.data[ATTR_DOWNLOAD_CMS],
+        do_csv=call.data[ATTR_WRITE_CSV],
+        do_xlsx=call.data[ATTR_WRITE_XLSX],
+    )
+    _notify_export_files(call.hass, response)
+    return response
+
+
 async def _async_handle_export_readings(call: ServiceCall) -> ServiceResponse:
     """Handle ``smgw_han.export_readings`` (explicit from/to)."""
     from_dt: datetime = call.data[ATTR_FROM_DATETIME]
     to_dt: datetime = call.data[ATTR_TO_DATETIME]
     _validate_range(from_dt, to_dt)
-    coordinator = _resolve_coordinator(call.hass, call.data.get(ATTR_DEVICE_ID))
-    return await run_export(
-        call.hass, coordinator, from_dt, to_dt,
-        download_cms=call.data[ATTR_DOWNLOAD_CMS],
-        do_csv=call.data[ATTR_WRITE_CSV],
-        do_xlsx=call.data[ATTR_WRITE_XLSX],
-    )
+    return await _run_export_call(call, from_dt, to_dt)
 
 
 async def _async_handle_export_period(call: ServiceCall) -> ServiceResponse:
     """Handle ``smgw_han.export_period`` (preset range)."""
     from_dt, to_dt = _period_range(call.data[ATTR_PERIOD])
-    coordinator = _resolve_coordinator(call.hass, call.data.get(ATTR_DEVICE_ID))
-    return await run_export(
-        call.hass, coordinator, from_dt, to_dt,
-        download_cms=call.data[ATTR_DOWNLOAD_CMS],
-        do_csv=call.data[ATTR_WRITE_CSV],
-        do_xlsx=call.data[ATTR_WRITE_XLSX],
-    )
+    return await _run_export_call(call, from_dt, to_dt)
 
 
 def async_setup_services(hass: HomeAssistant) -> None:

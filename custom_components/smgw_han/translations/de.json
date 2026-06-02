@@ -214,5 +214,16 @@
         "last_month": "Letzter Monat"
       }
     }
+  },
+  "exceptions": {
+    "from_after_to": {"message": "„Von\" muss vor „Bis\" liegen."},
+    "to_in_future": {"message": "„Bis\" darf nicht in der Zukunft liegen."},
+    "from_too_old": {"message": "„Von\" liegt weiter zurück als die {days}-Tage-Historie des SMGW."},
+    "no_device": {"message": "Kein geladenes SMGW-HAN-Gerät gefunden."},
+    "multiple_devices": {"message": "Es sind mehrere SMGW-HAN-Geräte konfiguriert; bitte 'device_id' angeben."},
+    "unknown_device": {"message": "Unbekannte Geräte-ID: {device_id}."},
+    "wrong_device": {"message": "Das gewählte Gerät gehört nicht zur SMGW-HAN-Integration."},
+    "device_not_loaded": {"message": "Der SMGW-HAN-Eintrag für dieses Gerät ist nicht geladen."},
+    "unknown_period": {"message": "Unbekanntes Zeitraum-Preset: {period}."}
   }
 }
