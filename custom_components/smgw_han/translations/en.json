@@ -40,6 +40,7 @@
     "error": {
       "cannot_connect": "Cannot connect to the SMGW. Check the URL and network connection.",
       "invalid_auth": "Invalid username or password.",
+      "duplicate_login": "Another configured entry already uses this meter and username combination.",
       "parse_error": "Could not parse the SMGW response. Please double-check the username and password. If the credentials are correct, wait up to 15 minutes and try again.",
       "unknown": "An unexpected error occurred."
     },
@@ -103,6 +104,7 @@
       "cannot_connect": "Cannot connect to the SMGW. Check the URL and network connection.",
       "configured_meter_missing": "The previously configured meter is no longer present in the SMGW dropdown, but several other meters are listed. Please remove this entry in Home Assistant and add it again to pick from the available meters.",
       "invalid_auth": "Invalid username or password.",
+      "duplicate_login": "Another configured entry already uses this meter and username combination.",
       "parse_error": "Could not parse the SMGW response. Please double-check the username and password. If the credentials are correct, wait up to 15 minutes and try again.",
       "unknown": "An unexpected error occurred.",
       "invalid_range": "'From' must be before 'To'.",

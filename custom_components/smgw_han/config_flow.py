@@ -15,7 +15,7 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
     BooleanSelector,
     DateTimeSelector,
@@ -135,6 +135,30 @@ def _next_instance_id(used: set[int]) -> int:
     while n in used:
         n += 1
     return n
+
+
+def _expected_unique_id(data: dict[str, Any]) -> str:
+    """The config-entry unique id implied by the current meter id + username.
+
+    The unique id is the duplicate guard (one entry per physical meter + login).
+    It is written once at setup but the settings and reauth flows can change the
+    meter id (hardware swap) or username afterwards, so both re-sync it to this.
+    """
+    return f"{data[CONF_METER_ID]}:{data[CONF_USERNAME]}"
+
+
+def _unique_id_collision(
+    hass: HomeAssistant, unique_id: str, exclude_entry_id: str
+) -> bool:
+    """True if another configured entry already uses ``unique_id``.
+
+    Guards the re-sync so it can never create a duplicate identity that the
+    config flow's ``_abort_if_unique_id_configured`` would normally prevent.
+    """
+    return any(
+        entry.unique_id == unique_id and entry.entry_id != exclude_entry_id
+        for entry in hass.config_entries.async_entries(DOMAIN)
+    )
 
 
 class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -325,10 +349,22 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
                 await client.close()
 
             if not errors:
-                return self.async_update_reload_and_abort(
-                    reauth_entry,
-                    data_updates=user_input,
-                )
+                # Reauth can change the username, which is part of the unique
+                # id (meter:username). Re-sync it unless another entry already
+                # claims that identity.
+                new_unique_id = _expected_unique_id(new_data)
+                if new_unique_id != reauth_entry.unique_id and (
+                    _unique_id_collision(
+                        self.hass, new_unique_id, reauth_entry.entry_id
+                    )
+                ):
+                    errors["base"] = "duplicate_login"
+                else:
+                    return self.async_update_reload_and_abort(
+                        reauth_entry,
+                        data_updates=user_input,
+                        unique_id=new_unique_id,
+                    )
 
         return self.async_show_form(
             step_id="reauth_confirm",
@@ -647,14 +683,29 @@ class SmgwTafOptionsFlow(OptionsFlow):
                 await client.close()
 
             if not errors:
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data=new_data,
-                )
-                await self.hass.config_entries.async_reload(
-                    self.config_entry.entry_id
-                )
-                return self.async_create_entry(title="", data={})
+                # Re-sync the config-entry unique id when meter id (hardware
+                # swap) or username changed, so the duplicate guard keeps
+                # matching reality. Entities/devices ride on instance_id, not
+                # this unique_id, so history is unaffected (see test
+                # test_meter_swap_keeps_identity). Refuse if the new identity
+                # would collide with another configured entry.
+                new_unique_id = _expected_unique_id(new_data)
+                if new_unique_id != self.config_entry.unique_id and (
+                    _unique_id_collision(
+                        self.hass, new_unique_id, self.config_entry.entry_id
+                    )
+                ):
+                    errors["base"] = "duplicate_login"
+                else:
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry,
+                        data=new_data,
+                        unique_id=new_unique_id,
+                    )
+                    await self.hass.config_entries.async_reload(
+                        self.config_entry.entry_id
+                    )
+                    return self.async_create_entry(title="", data={})
 
         return self.async_show_form(
             step_id="settings",
