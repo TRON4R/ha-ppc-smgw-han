@@ -53,7 +53,12 @@ from .const import (
     DEFAULT_URL,
     DOMAIN,
 )
-from .services import PERIOD_PRESETS, _period_range, run_export
+from .services import (
+    PERIOD_PRESETS,
+    _period_range,
+    _validate_range,
+    run_export,
+)
 from .smgw_client import (
     SmgwAuthError,
     SmgwClient,
@@ -470,10 +475,14 @@ class SmgwTafOptionsFlow(OptionsFlow):
         if user_input is not None:
             from_dt = self._coerce_dt(user_input.get(ATTR_FROM_DATETIME))
             to_dt = self._coerce_dt(user_input.get(ATTR_TO_DATETIME))
-            if from_dt is None or to_dt is None or from_dt >= to_dt:
+            if from_dt is None or to_dt is None:
                 errors["base"] = "invalid_range"
             else:
                 try:
+                    # Same validation as the service path (from<to, future day,
+                    # 760-day limit); run_export adds no_data_in_range. All carry
+                    # a translation_key that doubles as the options.error key.
+                    _validate_range(from_dt, to_dt)
                     result = await run_export(
                         self.hass,
                         self.config_entry.runtime_data,
@@ -483,9 +492,8 @@ class SmgwTafOptionsFlow(OptionsFlow):
                         do_csv=self._export_input[ATTR_WRITE_CSV],
                         do_xlsx=self._export_input[ATTR_WRITE_XLSX],
                     )
-                except ServiceValidationError:
-                    # run_export raises this only for an empty/out-of-range CMS.
-                    errors["base"] = "no_data_in_range"
+                except ServiceValidationError as err:
+                    errors["base"] = err.translation_key or "export_failed"
                 except Exception:  # noqa: BLE001 - surface as a form error
                     _LOGGER.exception("Export via options flow failed")
                     errors["base"] = "export_failed"

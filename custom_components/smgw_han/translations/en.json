@@ -110,7 +110,10 @@
       "invalid_range": "'From' must be before 'To'.",
       "export_failed": "The export failed. Check the SMGW connection and the Home Assistant log.",
       "no_outputs": "Select at least one output (certified CMS file, CSV or Excel).",
-      "no_data_in_range": "No meter data is available for the selected time range (e.g. before the meter was commissioned)."
+      "no_data_in_range": "No meter data is available for the selected time range (e.g. before the meter was commissioned).",
+      "from_after_to": "The start ('From') must be before the end ('To').",
+      "to_in_future": "The end of the range ('To') must not be in the future.",
+      "from_too_old": "The start of the range ('From') is older than the SMGW's maximum 760-day history."
     },
     "abort": {
       "export_done": "Export created.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
@@ -218,14 +221,16 @@
   },
   "exceptions": {
     "from_after_to": {"message": "'from_datetime' must be before 'to_datetime'."},
-    "to_in_future": {"message": "'to_datetime' must not be in the future."},
-    "from_too_old": {"message": "'from_datetime' is older than the SMGW's {days}-day history limit."},
+    "to_in_future": {"message": "The end of the range ('to_datetime') must not be in the future."},
+    "from_too_old": {"message": "The start of the range ('from_datetime') is older than the SMGW's maximum 760-day history."},
     "no_device": {"message": "No loaded SMGW HAN device found."},
     "multiple_devices": {"message": "Multiple SMGW HAN devices are configured; please specify 'device_id'."},
     "unknown_device": {"message": "Unknown device id: {device_id}."},
     "wrong_device": {"message": "Selected device does not belong to the SMGW HAN integration."},
     "device_not_loaded": {"message": "The SMGW HAN entry for this device is not loaded."},
     "unknown_period": {"message": "Unknown period preset: {period}."},
-    "no_data_in_range": {"message": "No meter data is available for the selected time range (e.g. before the meter was commissioned)."}
+    "no_data_in_range": {"message": "No meter data is available for the selected time range (e.g. before the meter was commissioned)."},
+    "cms_auth_failed": {"message": "SMGW authentication failed. Please re-authenticate the integration."},
+    "cms_download_failed": {"message": "The SMGW export could not be downloaded. Check the SMGW connection and the Home Assistant log."}
   }
 }

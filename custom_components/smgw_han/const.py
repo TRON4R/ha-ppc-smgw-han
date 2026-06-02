@@ -40,6 +40,8 @@ ATTR_WRITE_XLSX = "write_xlsx"
 # consumption history), and the aggregation tolerates missing days. Generous on
 # purpose, mainly to catch year typos.
 SMGW_HISTORY_DAYS = 760  # ~24 months + ~1 month margin (leap-safe)
+# NOTE: the "from_too_old" message in strings/en/de hard-codes "760" — update it
+# too if this number changes.
 # Files are written under <config>/www/<EXPORT_WWW_SUBDIR>/<token>/ so they are
 # reachable as /local/<EXPORT_WWW_SUBDIR>/<token>/<file> download links.
 EXPORT_WWW_SUBDIR = "smgw_han_exports"
