@@ -213,7 +213,7 @@ Clicking e.g. "Letzter Monat" creates the export and shows the download links as
 
 You can also start the export without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → "Configure"** → menu entry **"Export data"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear as a notification 🔔. The initial setup is unaffected by this.
 
-> **Multiple SMGWs?** Add a `device_id: <your-device-id>` line under `data:` to each button. To read the `device_id`, enable the (disabled-by-default) **"Device ID"** diagnostic entity on the SMGW device — its state is the device id to copy.
+> **Multiple SMGWs?** Add a `device_id: <your-device-id>` line under `data:` to each button. The **"Device ID"** diagnostic entity on each SMGW device shows its `device_id` (the entity state is the device id to copy).
 
 **Important notes:**
 

@@ -14,8 +14,8 @@
 # Ein SMGW-Geraet? Dann ist NICHTS weiter zu tun - das Geraet wird
 # automatisch erkannt. Mehrere SMGWs? Dann an jeden Button eine Zeile
 #   device_id: <deine-device-id>
-# unter "data:" ergaenzen. Die device_id findest du am Geraet ueber die
-# (optionale) Diagnose-Entitaet "Geraete-ID" oder via Entwicklerwerkzeuge.
+# unter "data:" ergaenzen. Die device_id zeigt die Diagnose-Entitaet
+# "Geraete-ID" am jeweiligen SMGW-Geraet (oder via Entwicklerwerkzeuge).
 #
 # EINBINDUNG: Dashboard -> Kachel hinzufuegen -> Manuelle Karte -> dieses
 # YAML einfuegen.

@@ -212,7 +212,7 @@ Ein Klick auf z.B. „Letzter Monat" erzeugt den Export und zeigt die Download-L
 
 Den Export kannst du auch ganz ohne Entwicklerwerkzeuge, Helfer oder Dashboard starten: **Einstellungen → Geräte & Dienste → dein SMGW → „Konfigurieren"** → Menüpunkt **„Daten exportieren"**. Dort wählst du einen Zeitraum (Vorgabe), bestätigst bzw. änderst im nächsten Schritt die **vorausgefüllten** Von/Bis-Felder, und nach dem Export erscheinen die Download-Links als Benachrichtigung 🔔. Die normale Erst-Einrichtung bleibt davon unberührt.
 
-> **Mehrere SMGWs?** Dann an jeden Button unter `data:` eine Zeile `device_id: <deine-device-id>` ergänzen. Die `device_id` kannst du bequem ablesen: aktiviere am SMGW-Gerät die (standardmäßig deaktivierte) Diagnose-Entität **„Geräte-ID"** — ihr Status ist die device_id zum Kopieren.
+> **Mehrere SMGWs?** Dann an jeden Button unter `data:` eine Zeile `device_id: <deine-device-id>` ergänzen. Die `device_id` zeigt die Diagnose-Entität **„Geräte-ID"** am jeweiligen SMGW-Gerät (ihr Status ist die device_id zum Kopieren).
 
 **Wichtige Hinweise:**
 

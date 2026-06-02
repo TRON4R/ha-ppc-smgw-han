@@ -226,15 +226,15 @@ class SmgwDeviceIdSensor(SensorEntity):
     """Diagnostic sensor exposing this device's internal device_id.
 
     Lets users copy the device id for the export services / dashboard tile
-    when more than one SMGW is configured. Disabled by default to avoid
-    clutter (single-SMGW setups don't need it — the services auto-detect the
-    only device).
+    when more than one SMGW is configured. Enabled by default but kept in the
+    diagnostic category, so multi-SMGW users find it without hunting while it
+    stays out of the way for single-SMGW setups (which never need it — the
+    services auto-detect the only device).
     """
 
     _attr_has_entity_name = True
     _attr_translation_key = "device_id"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_entity_registry_enabled_default = False
     _attr_icon = "mdi:identifier"
 
     def __init__(self, config_entry: SmgwTafConfigEntry) -> None:
