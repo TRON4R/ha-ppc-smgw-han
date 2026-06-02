@@ -578,7 +578,8 @@ class SmgwTafOptionsFlow(OptionsFlow):
                     # and adopting it would silently re-point this entry at
                     # the wrong meter.
                     other_entries = [
-                        e for e in self._async_current_entries()
+                        e
+                        for e in self.hass.config_entries.async_entries(DOMAIN)
                         if e.entry_id != self.config_entry.entry_id
                     ]
                     same_smgw_other_entry_exists = any(
