@@ -35,6 +35,7 @@ The existing [ha-ppc-smgw](https://github.com/jannickfahlbusch/ha-ppc-smgw) inte
 - **Accurate tariff split** using the second-precise meter reading at the configured tariff switch time
 - **No timing issues** - values are based on the SMGW's official daily boundaries, not the local clock of the Home Assistant server
 - **Multiple meters and SMGWs in parallel** - supports both several SMGWs and several meters on a single SMGW (Modul-2 setups, separate logins for import and feed-in). Details under [Multiple SMGWs / multiple logins](#multiple-smgws--multiple-logins).
+- **Export of certified CMS files** - the integration allows exporting legally sound CMS files in their certified original straight from the SMGW (e.g. to prove billing errors by the electricity supplier), plus generating CSV and Excel files for further processing of the consumption and feed-in data. Details under [Data export for arbitrary time ranges](#data-export-for-arbitrary-time-ranges).
 
 ## Requirements
 
