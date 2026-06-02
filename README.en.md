@@ -123,62 +123,30 @@ When your metering point operator swaps the physical meter in your basement, you
 
 Meter readings can be fetched for an **arbitrary time range** straight from Home Assistant — no detour via the SMGW web interface. Output as **CSV**, **Excel** and/or the **signed CMS original**.
 
-**Three ways, whatever you prefer:**
+**Three ways, easiest to most flexible** (details below):
 
-- 🛠️ **Easiest – via the integration:** on the SMGW device click the **gear "Configure"** → **"Export SMGW data for a custom time range"**. A guided form with date pickers, no prior knowledge, no helpers. ([details](#directly-via-the-integration-no-helpers-no-dashboard))
+- 🛠️ **Easiest – via the integration:** on the SMGW device click the **gear "Configure"** → **"Export SMGW data for a custom time range"**. A guided form, no prior knowledge, no helpers.
+- 📊 **One click, presets only – dashboard tile:** buttons for "Yesterday", "Last month" etc.
 - ⚙️ **Full control – Developer Tools → Actions:** any parameters, the response (incl. download links) is shown right there.
-- 📊 **One click, presets only – dashboard tile:** buttons for "Yesterday", "Last month" etc. ([details](#dashboard-tile-quick-select))
 
-Under the hood there are **two actions/services** (selectable separately under Developer Tools → Actions):
+Under the hood there are **two actions/services**:
 
 - **`smgw_han.export_readings`** — custom range via `from_datetime` / `to_datetime`.
-- **`smgw_han.export_period`** — a ready-made **period preset** (`Yesterday`, `Last 7 days`, `Last 30 days`, `Current month`, `Last month`); `from`/`to` are computed **automatically**, including the correct day-closing reading, so you don't have to work out the end date yourself.
+- **`smgw_han.export_period`** — a ready-made **period preset** (`Yesterday`, `Last 7 days`, `Last 30 days`, `Current month`, `Last month`); `from`/`to` incl. the correct day-closing reading are computed automatically.
 
-Both return the same result and share these parameters:
+Both return the same result: a response variable with `readings` + `daily_summary`, and (if file switches are set) `files` with download links.
 
-| Field | Action | Description |
-|---|---|---|
-| `device_id` | both | The SMGW device to query |
-| `from_datetime` / `to_datetime` | `export_readings` | Start/end of the range (date + time) |
-| `period` | `export_period` | Ready-made range (dropdown) |
-| `download_cms` | both | Also save the signed **CMS original** (tamper-evident, like the "Exportieren" button in the web interface) |
-| `write_csv` | both | Also save the raw readings as **CSV** (semicolon-separated, Excel-friendly) |
-| `write_xlsx` | both | Also save an **Excel workbook** (raw data, daily end values, tariff zones) |
+---
 
-> **Tip:** "Last month" (in `export_period`) automatically returns the **complete** previous month including the closing meter reading at midnight on the 1st — the value that's easy to miss by hand. With `export_readings`, remember to set `to` to **00:15 of the following day** to include the last day's closing reading.
+### Way 1: Via the integration ("Configure") – easiest
 
-**Return value (response variable):** Both actions always return the raw readings (`readings`) and a daily summary (`daily_summary`) — visible directly in **Developer Tools → Actions** or usable in scripts via `response_variable`. If one or more file switches are set, the response additionally contains `files` with download links.
+Without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → gear "Configure"** → menu entry **"Export SMGW data for a custom time range"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear directly in the final step **and** as a notification 🔔. The initial setup is unaffected by this.
 
-**Example calls (script/automation):**
+### Way 2: Via a dashboard tile (quick select)
 
-```yaml
-# Custom range
-action: smgw_han.export_readings
-data:
-  device_id: <your device id>
-  from_datetime: "2026-05-01 00:00:00"
-  to_datetime: "2026-06-01 00:15:00"
-  write_csv: true
-  write_xlsx: true
-  download_cms: true
-response_variable: smgw_export
-```
+A ready-made tile with buttons for the period presets is available at [`dashboard/datenexport.yaml`](dashboard/datenexport.yaml). It calls a small script that posts a **notification with clickable links** after the export.
 
-```yaml
-# Ready-made preset (no date guessing)
-action: smgw_han.export_period
-data:
-  device_id: <your device id>
-  period: last_month
-  write_csv: true
-  write_xlsx: true
-  download_cms: true
-response_variable: smgw_export
-```
-
-### Clickable download links via notification
-
-In Developer Tools the response is shown as YAML — the links are **not clickable** there. The following script (Settings → Automations & Scenes → Scripts → "Edit in YAML") gives you a **notification with clickable links** after the export. Trigger it from a button, voice assistant or an automation:
+**a) Create the script** (Settings → Automations & Scenes → Scripts → "Edit in YAML") — yields the entity id `script.smgw_export_mit_benachrichtigung`:
 
 ```yaml
 alias: SMGW export with notification
@@ -208,28 +176,59 @@ sequence:
         {% if f.xlsx %}[Excel]({{ f.xlsx }}){% endif %}
 ```
 
-The notification then appears under the bell icon with clickable links to CMS/CSV/Excel.
+**b) Add the tile:** Dashboard → Add card → Manual card → paste the YAML from [`dashboard/datenexport.yaml`](dashboard/datenexport.yaml). **With a single SMGW there's nothing else to do** — the device is auto-detected. Clicking e.g. "Last month" creates the export and shows the links as a notification.
 
-### Dashboard tile (quick select)
+> **Multiple SMGWs?** Add a `device_id: <your-device-id>` line under `data:` in the script (or each tile button). The **"Device ID"** diagnostic entity on each SMGW device shows its `device_id` (the entity state is the device id to copy).
 
-A ready-made tile with buttons for the period presets is available at [`dashboard/datenexport.yaml`](dashboard/datenexport.yaml). It calls the notification script above. Steps:
+### Way 3: Via Developer Tools → Actions (full control)
 
-1. Create the "SMGW export with notification" script (above); adjust `perform_action` in the tile to its entity id if needed.
-2. Dashboard → Add card → Manual card → paste the YAML from the file. **With a single SMGW there's nothing else to do** — the device is auto-detected.
+In **Developer Tools → Actions** both services can be called with any parameters; the response (incl. download links) is shown right there. Parameters:
 
-Clicking e.g. "Letzter Monat" creates the export and shows the download links as a notification.
+| Field | Action | Description |
+|---|---|---|
+| `device_id` | both | The SMGW device to query (optional with a single SMGW) |
+| `from_datetime` / `to_datetime` | `export_readings` | Start/end of the range (date + time) |
+| `period` | `export_period` | Ready-made range (dropdown) |
+| `download_cms` | both | Also save the signed **CMS original** (tamper-evident, like the "Exportieren" button in the web interface) |
+| `write_csv` | both | Also save the raw readings as **CSV** (semicolon-separated, Excel-friendly) |
+| `write_xlsx` | both | Also save an **Excel workbook** (raw data, daily end values, tariff zones) |
 
-### Directly via the integration (no helpers, no dashboard)
+> **Tip:** "Last month" (in `export_period`) automatically returns the **complete** previous month including the closing meter reading at midnight on the 1st — the value that's easy to miss by hand. With `export_readings`, remember to set `to` to **00:15 of the following day** to include the last day's closing reading.
 
-You can also start the export without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → gear "Configure"** → menu entry **"Export SMGW data for a custom time range"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear directly in the final step **and** as a notification 🔔. The initial setup is unaffected by this.
+**Example calls (to embed in a script or an automation):**
 
-> **Multiple SMGWs?** Add a `device_id: <your-device-id>` line under `data:` to each button. The **"Device ID"** diagnostic entity on each SMGW device shows its `device_id` (the entity state is the device id to copy).
+```yaml
+# Custom range
+action: smgw_han.export_readings
+data:
+  device_id: <your device id>   # omit with a single SMGW
+  from_datetime: "2026-05-01 00:00:00"
+  to_datetime: "2026-06-01 00:15:00"
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
 
-**Important notes:**
+```yaml
+# Ready-made preset (no date guessing)
+action: smgw_han.export_period
+data:
+  period: last_month
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
 
-- **Be gentle with the SMGW:** Every call opens a real SMGW session. Do **not** call the service in loops — the SMGW allows only one active session and may briefly lock out on overload. The nightly fetch and a manual export block each other automatically (no conflict) but run sequentially.
-- **Download links are unauthenticated:** Files are written to `config/www/smgw_han_exports/<random>/` and are reachable as `/local/…` links **without login**. Anyone who knows the link can fetch the file. The random path component makes guessing hard; delete export folders you no longer need from time to time.
-- If the `/local/` links don't work on the very first export, create the `config/www/` folder once manually and restart HA (Home Assistant only mounts `www/` at startup).
+To make the links **clickable**, consume the response in a follow-up step — e.g. the notification script from Way 2.
+
+> [!CAUTION]
+> **Important notes**
+>
+> - **Be gentle with the SMGW:** Every call opens a real SMGW session. Do **not** call the service in loops — the SMGW allows only one active session and may briefly lock out on overload. The nightly fetch and a manual export block each other automatically (no conflict) but run sequentially.
+> - **Download links are unauthenticated:** Files are written to `config/www/smgw_han_exports/<random>/` and are reachable as `/local/…` links **without login**. Anyone who knows the link can fetch the file. The random path component makes guessing hard; delete export folders you no longer need from time to time.
+> - If the `/local/` links don't work on the very first export, create the `config/www/` folder once manually and restart HA (Home Assistant only mounts `www/` at startup).
 
 ## Dashboard card: Daily consumption history
 
