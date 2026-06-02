@@ -1,0 +1,100 @@
+<!--
+  Synthetic SMGW showMeterValues response (single bidirectional meter).
+
+  Mirrors the real gateway DOM the parser relies on:
+    - table#metervalue
+    - rows tr#table_metervalues_lineN come in pairs: line1 = import (1.8.0,
+      carries timestamp + istvalide), line2 = export (2.8.0, timestamp and
+      istvalide cells empty -> inherited from the line1 above).
+    - column cells carry ids table_metervalues_col_{timestamp,obis,wert,
+      einheit,status,istvalide}; the textual "status" cell has no usable id,
+      so the id-addressable "istvalide" flag (1/0) is parsed instead.
+  Data is newest-first (descending), exactly like the live gateway.
+
+  Target day for the A-B-C tariff test: 2026-05-15, tariff switch 05:00.
+    A 00:00:01  import 1000.0  export 500.0   (valid)
+    B 05:00:01  import 1002.5  export 500.0   (valid)   Go     = 2.5
+    C 16 00:00  import 1010.0  export 503.0   (valid)   Std    = 7.5
+                                                         Total  = 10.0
+                                                         Feed-in= 3.0
+  Plus a midday pair flagged istvalide=0 to exercise invalid-status
+  inheritance onto the export line.
+-->
+<html>
+<body>
+<table id="metervalue">
+  <tr id="table_metervalues_header">
+    <th>Zeitstempel</th><th>OBIS</th><th>Wert</th><th>Einheit</th>
+    <th>Status</th><th>valide</th>
+  </tr>
+
+  <tr id="table_metervalues_line1">
+    <td id="table_metervalues_col_timestamp">2026-05-16 00:00:01</td>
+    <td id="table_metervalues_col_obis">1-0:1.8.0</td>
+    <td id="table_metervalues_col_wert">1010.0</td>
+    <td id="table_metervalues_col_einheit">kWh</td>
+    <td id="table_metervalues_col_status">gueltig</td>
+    <td id="table_metervalues_col_istvalide">1</td>
+  </tr>
+  <tr id="table_metervalues_line2">
+    <td id="table_metervalues_col_timestamp"></td>
+    <td id="table_metervalues_col_obis">1-0:2.8.0</td>
+    <td id="table_metervalues_col_wert">503.0</td>
+    <td id="table_metervalues_col_einheit">kWh</td>
+    <td id="table_metervalues_col_status"></td>
+    <td id="table_metervalues_col_istvalide"></td>
+  </tr>
+
+  <tr id="table_metervalues_line3">
+    <td id="table_metervalues_col_timestamp">2026-05-15 12:00:01</td>
+    <td id="table_metervalues_col_obis">1-0:1.8.0</td>
+    <td id="table_metervalues_col_wert">1005.0</td>
+    <td id="table_metervalues_col_einheit">kWh</td>
+    <td id="table_metervalues_col_status">ungueltig</td>
+    <td id="table_metervalues_col_istvalide">0</td>
+  </tr>
+  <tr id="table_metervalues_line4">
+    <td id="table_metervalues_col_timestamp"></td>
+    <td id="table_metervalues_col_obis">1-0:2.8.0</td>
+    <td id="table_metervalues_col_wert">501.0</td>
+    <td id="table_metervalues_col_einheit">kWh</td>
+    <td id="table_metervalues_col_status"></td>
+    <td id="table_metervalues_col_istvalide"></td>
+  </tr>
+
+  <tr id="table_metervalues_line5">
+    <td id="table_metervalues_col_timestamp">2026-05-15 05:00:01</td>
+    <td id="table_metervalues_col_obis">1-0:1.8.0</td>
+    <td id="table_metervalues_col_wert">1002.5</td>
+    <td id="table_metervalues_col_einheit">kWh</td>
+    <td id="table_metervalues_col_status">gueltig</td>
+    <td id="table_metervalues_col_istvalide">1</td>
+  </tr>
+  <tr id="table_metervalues_line6">
+    <td id="table_metervalues_col_timestamp"></td>
+    <td id="table_metervalues_col_obis">1-0:2.8.0</td>
+    <td id="table_metervalues_col_wert">500.0</td>
+    <td id="table_metervalues_col_einheit">kWh</td>
+    <td id="table_metervalues_col_status"></td>
+    <td id="table_metervalues_col_istvalide"></td>
+  </tr>
+
+  <tr id="table_metervalues_line7">
+    <td id="table_metervalues_col_timestamp">2026-05-15 00:00:01</td>
+    <td id="table_metervalues_col_obis">1-0:1.8.0</td>
+    <td id="table_metervalues_col_wert">1000.0</td>
+    <td id="table_metervalues_col_einheit">kWh</td>
+    <td id="table_metervalues_col_status">gueltig</td>
+    <td id="table_metervalues_col_istvalide">1</td>
+  </tr>
+  <tr id="table_metervalues_line8">
+    <td id="table_metervalues_col_timestamp"></td>
+    <td id="table_metervalues_col_obis">1-0:2.8.0</td>
+    <td id="table_metervalues_col_wert">500.0</td>
+    <td id="table_metervalues_col_einheit">kWh</td>
+    <td id="table_metervalues_col_status"></td>
+    <td id="table_metervalues_col_istvalide"></td>
+  </tr>
+</table>
+</body>
+</html>

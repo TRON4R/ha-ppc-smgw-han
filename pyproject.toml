@@ -1,0 +1,22 @@
+# Tooling config for tests + lint. This file is repo infrastructure only and is
+# not part of the integration shipped via HACS (which delivers custom_components/).
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Add the repo root so `import custom_components.smgw_han...` resolves when
+# pytest is invoked from anywhere in the tree.
+pythonpath = ["."]
+# Required by pytest-homeassistant-custom-component: run `async def` tests on a
+# managed event loop without a per-test marker.
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+# Generated/sample data must not be linted.
+extend-exclude = ["tests/fixtures"]
+
+# No custom [tool.ruff.lint] select: ruff's defaults (pyflakes F + a focused
+# pycodestyle subset E4/E7/E9) catch real breakage — unused imports, undefined
+# names, syntax errors — without enforcing style churn (e.g. line length) on the
+# existing, already-reviewed integration code.

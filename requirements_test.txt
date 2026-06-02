@@ -1,0 +1,11 @@
+# Test + lint dependencies (CI only — never shipped; HACS delivers only
+# custom_components/). pytest-homeassistant-custom-component pulls in a matching
+# homeassistant + pytest stack for the current HA release line.
+pytest-homeassistant-custom-component
+# The integration's own runtime requirements (manifest.json) — importing the
+# package pulls these in, so the test environment needs them too.
+httpx>=0.27.0
+beautifulsoup4>=4.12.0
+openpyxl>=3.1.0
+freezegun
+ruff

@@ -7,7 +7,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
@@ -15,6 +15,7 @@ from .const import (
     CONF_PASSWORD,
     CONF_URL,
     CONF_USERNAME,
+    DOMAIN,
 )
 from .coordinator import SmgwTafCoordinator
 from .services import async_setup_services
@@ -23,6 +24,12 @@ from .smgw_client import SmgwClient
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+
+# This integration is configured exclusively via the config flow (config
+# entries); it has no YAML configuration. Declaring the schema explicitly
+# satisfies hassfest's CONFIG_SCHEMA requirement for integrations that
+# implement async_setup (here only to register the export services).
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 type SmgwTafConfigEntry = ConfigEntry[SmgwTafCoordinator]
 

@@ -1,0 +1,16 @@
+<!--
+  Synthetic meterform response for a single-meter SMGW.
+  The meter dropdown (select#meterform_select_meter) carries one option whose
+  text encodes the physical meter id; _extract_meter_id strips ".sm" and takes
+  the last dotted segment: "01005e318002.1lgz0072999211.sm" -> "1lgz0072999211".
+-->
+<html>
+<body>
+<form name="meterform">
+  <input type="hidden" name="tkn" value="token-meterform-single" />
+  <select id="meterform_select_meter" name="mid">
+    <option value="mid-aaa-0001">01005e318002.1lgz0072999211.sm</option>
+  </select>
+</form>
+</body>
+</html>
