@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
@@ -11,9 +12,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smgw_han.const import DOMAIN, OBIS_EXPORT, OBIS_IMPORT
+from custom_components.smgw_han.const import DOMAIN
 from custom_components.smgw_han.services import _resolve_coordinator, run_export
-from custom_components.smgw_han.smgw_client import MeterReading
+
+FIXTURE = Path(__file__).parent / "fixtures" / "cms_sample.xml.cms"
 
 
 @pytest.fixture(autouse=True)
@@ -22,28 +24,18 @@ def _enable(enable_custom_integrations):
 
 
 class FakeCoordinator:
-    """Minimal stand-in matching the attributes run_export / resolve use."""
+    """Stand-in for the coordinator: serves the signed CMS bytes for the range.
+
+    run_export now sources its data from a single CMS download, so the export
+    fixture (3 import + 2 export readings, one summarized day) drives the
+    assertions below.
+    """
 
     target_meter_id = "1lgz0072999211"
     tariff_switch = (5, 0)
 
-    def __init__(self, readings: list[MeterReading]) -> None:
-        self._readings = readings
-
-    async def async_export_readings(self, from_dt, to_dt):
-        return self._readings
-
     async def async_download_cms(self, from_dt, to_dt):
-        return b"CMS-BYTES", "original.sm_data.xml.cms"
-
-
-def _readings() -> list[MeterReading]:
-    return [
-        MeterReading(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0, "kWh", "valid"),
-        MeterReading(datetime(2026, 5, 16, 0, 0, 1), OBIS_IMPORT, 1010.0, "kWh", "valid"),
-        MeterReading(datetime(2026, 5, 15, 0, 0, 1), OBIS_EXPORT, 500.0, "kWh", "valid"),
-        MeterReading(datetime(2026, 5, 16, 0, 0, 1), OBIS_EXPORT, 503.0, "kWh", "valid"),
-    ]
+        return FIXTURE.read_bytes(), "export.sm_data.xml.cms"
 
 
 async def test_resolve_auto_detects_single_loaded_entry(hass: HomeAssistant):
@@ -78,14 +70,14 @@ async def test_run_export_writes_all_files(hass: HomeAssistant):
     to_dt = datetime(2026, 5, 16, 0, 15, 0)
     resp = await run_export(
         hass,
-        FakeCoordinator(_readings()),
+        FakeCoordinator(),
         from_dt,
         to_dt,
         download_cms=True,
         do_csv=True,
         do_xlsx=True,
     )
-    assert resp["reading_count"] == 4
+    assert resp["reading_count"] == 5  # 3 import + 2 export from the CMS fixture
     assert resp["meter_id"] == "1lgz0072999211"
     assert set(resp["files"]) == {"cms", "csv", "xlsx"}
     assert len(resp["daily_summary"]) >= 1
@@ -107,7 +99,7 @@ async def test_run_export_without_files_omits_files_key(hass: HomeAssistant):
     to_dt = datetime(2026, 5, 16, 0, 15, 0)
     resp = await run_export(
         hass,
-        FakeCoordinator(_readings()),
+        FakeCoordinator(),
         from_dt,
         to_dt,
         download_cms=False,
@@ -115,5 +107,5 @@ async def test_run_export_without_files_omits_files_key(hass: HomeAssistant):
         do_xlsx=False,
     )
     assert "files" not in resp
-    assert resp["reading_count"] == 4
+    assert resp["reading_count"] == 5
     assert resp["readings"]

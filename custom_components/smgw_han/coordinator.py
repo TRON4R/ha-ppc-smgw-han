@@ -38,7 +38,6 @@ from .const import (
 )
 from .smgw_client import (
     DailyData,
-    MeterReading,
     SmgwAuthError,
     SmgwClient,
     SmgwClientError,
@@ -290,22 +289,6 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 CONF_TARIFF_SWITCH_MINUTE, DEFAULT_TARIFF_SWITCH_MINUTE
             )),
         )
-
-    async def async_export_readings(
-        self, from_dt: datetime, to_dt: datetime
-    ) -> list[MeterReading]:
-        """Fetch raw readings for an arbitrary range (export service).
-
-        Read-only: does not touch coordinator.data, the Store or the sensors.
-        """
-        try:
-            return await self._client.async_fetch_readings(
-                from_dt, to_dt, target_meter_id=self.target_meter_id
-            )
-        except SmgwAuthError as err:
-            raise HomeAssistantError(f"SMGW authentication failed: {err}") from err
-        except SmgwClientError as err:
-            raise HomeAssistantError(f"SMGW export failed: {err}") from err
 
     async def async_download_cms(
         self, from_dt: datetime, to_dt: datetime

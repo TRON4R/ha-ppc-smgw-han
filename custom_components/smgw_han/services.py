@@ -35,6 +35,7 @@ from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.util import dt as dt_util
 
 from .aggregation import DailySummary, build_daily_summary
+from .cms_parser import parse_cms_readings
 from .const import (
     ATTR_DEVICE_ID,
     ATTR_DOWNLOAD_CMS,
@@ -221,6 +222,19 @@ def _write_export_files(
     return written
 
 
+def _parse_and_aggregate(
+    cms_bytes: bytes, tariff_hour: int, tariff_minute: int
+) -> tuple[list[MeterReading], list[DailySummary]]:
+    """Parse CMS bytes and build the daily summary (blocking; run in executor).
+
+    Both steps are CPU-bound on large ranges (multi-MB XML, per-day reading
+    scans), so they belong off the event loop.
+    """
+    readings = parse_cms_readings(cms_bytes)
+    daily_summary = build_daily_summary(readings, tariff_hour, tariff_minute)
+    return readings, daily_summary
+
+
 async def run_export(
     hass: HomeAssistant,
     coordinator,
@@ -236,9 +250,16 @@ async def run_export(
     ``coordinator`` is a loaded :class:`SmgwTafCoordinator`. Returns the
     response dict (download links first, then meter data).
     """
-    readings = await coordinator.async_export_readings(from_dt, to_dt)
     tariff_hour, tariff_minute = coordinator.tariff_switch
-    daily_summary = build_daily_summary(readings, tariff_hour, tariff_minute)
+
+    # The signed CMS export delivers the whole range in a single request and is
+    # the authoritative source. Download once, then parse + aggregate off the
+    # event loop. The same bytes are reused below if the user asked to keep the
+    # .cms file (so there is never a second download).
+    cms_bytes, cms_name = await coordinator.async_download_cms(from_dt, to_dt)
+    readings, daily_summary = await hass.async_add_executor_job(
+        _parse_and_aggregate, cms_bytes, tariff_hour, tariff_minute
+    )
 
     meter_id = coordinator.target_meter_id
     from_str = from_dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -259,17 +280,12 @@ async def run_export(
             "tariff_switch": f"{tariff_hour:02d}:{tariff_minute:02d}",
         }
 
-        cms_bytes: bytes | None = None
-        cms_name: str | None = None
-        if download_cms:
-            cms_bytes, cms_name = await coordinator.async_download_cms(
-                from_dt, to_dt
-            )
-
+        # The CMS bytes are already in hand; save the file only if requested.
         written = await hass.async_add_executor_job(
             _write_export_files,
             export_dir, base, readings, daily_summary, meta,
-            do_csv, do_xlsx, cms_bytes, cms_name,
+            do_csv, do_xlsx,
+            cms_bytes if download_cms else None, cms_name,
         )
         # Prefer an absolute URL so the link is directly usable (clickable in
         # markdown/notifications, copy-pasteable from Developer Tools). Falls

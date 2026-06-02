@@ -1,0 +1,74 @@
+PKCS7-CMS-BINARY-WRAPPER-PREAMBLE-(simulated)
+<?xml version="1.0" encoding="UTF-8"?>
+<ns1:object class_id="7" class_version="1" id="01005e31803c.1lgz0072999211.sm" xmlns:ns1="urn:k461-dke-de:profile_generic-1" xmlns:ns2="urn:k461-dke-de:extension-1">
+  <ns1:attributes count="3">
+    <ns2:logical_name id="1">01005e31803c.1lgz0072999211.sm</ns2:logical_name>
+    <ns1:capture_objects id="2" count="3">
+      <ns1:capture_object id="1">
+        <ns2:logical_name>0100010800ff.1lgz0072999211.sm</ns2:logical_name>
+        <ns2:class_id>32822</ns2:class_id>
+      </ns1:capture_object>
+      <ns1:capture_object id="2">
+        <ns2:logical_name>0100020800ff.1lgz0072999211.sm</ns2:logical_name>
+        <ns2:class_id>32822</ns2:class_id>
+      </ns1:capture_object>
+      <ns1:capture_object id="3">
+        <ns2:logical_name>0100200700ff.1lgz0072999211.sm</ns2:logical_name>
+        <ns2:class_id>32822</ns2:class_id>
+      </ns1:capture_object>
+    </ns1:capture_objects>
+    <ns1:buffer id="3">
+      <ns1:simple_data count="3">
+        <ns1:column count="3" id="1">
+          <ns1:entry_gateway_signed id="1">
+            <ns2:value><ns2:long64>10000000</ns2:long64></ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status><ns2:unsigned>0</ns2:unsigned></ns2:status>
+            <ns2:capture_time>2026-05-14T22:00:01Z</ns2:capture_time>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="2">
+            <ns2:value><ns2:long64>10025000</ns2:long64></ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status><ns2:unsigned>0</ns2:unsigned></ns2:status>
+            <ns2:capture_time>2026-05-15T03:00:01Z</ns2:capture_time>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="3">
+            <ns2:value><ns2:long64>10100000</ns2:long64></ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status><ns2:unsigned>0</ns2:unsigned></ns2:status>
+            <ns2:capture_time>2026-05-15T22:00:01Z</ns2:capture_time>
+          </ns1:entry_gateway_signed>
+        </ns1:column>
+        <ns1:column count="2" id="2">
+          <ns1:entry_gateway_signed id="1">
+            <ns2:value><ns2:long64>5000000</ns2:long64></ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status><ns2:unsigned>0</ns2:unsigned></ns2:status>
+            <ns2:capture_time>2026-05-14T22:00:01Z</ns2:capture_time>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="2">
+            <ns2:value><ns2:long64>5030000</ns2:long64></ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status><ns2:unsigned>0</ns2:unsigned></ns2:status>
+            <ns2:capture_time>2026-05-15T22:00:01Z</ns2:capture_time>
+          </ns1:entry_gateway_signed>
+        </ns1:column>
+        <ns1:column count="1" id="3">
+          <ns1:entry_gateway_signed id="1">
+            <ns2:value><ns2:long64>2300</ns2:long64></ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>35</ns2:unit>
+            <ns2:status><ns2:unsigned>0</ns2:unsigned></ns2:status>
+            <ns2:capture_time>2026-05-14T22:00:01Z</ns2:capture_time>
+          </ns1:entry_gateway_signed>
+        </ns1:column>
+      </ns1:simple_data>
+    </ns1:buffer>
+  </ns1:attributes>
+</ns1:object>
+TRAILING-CMS-SIGNATURE-BYTES-(simulated)
