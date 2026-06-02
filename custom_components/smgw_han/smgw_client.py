@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import urllib.parse
@@ -76,6 +77,37 @@ class DailyData:
     raw_readings: list[MeterReading] = field(default_factory=list)
 
 
+def find_closest_reading(
+    meter_readings: list[MeterReading],
+    target_dt: datetime,
+    tolerance_minutes: int = 7,
+) -> MeterReading | None:
+    """Find the reading closest to ``target_dt`` within a tolerance window.
+
+    Matches the SMGW's 15-minute reading grid (default +/- 7 minutes).
+    Returns ``None`` if no reading falls inside the window. Shared by the
+    strict daily processing and the tolerant range aggregation.
+    """
+    best: MeterReading | None = None
+    best_delta = timedelta.max
+    for r in meter_readings:
+        delta = abs(r.timestamp - target_dt)
+        if delta <= timedelta(minutes=tolerance_minutes) and delta < best_delta:
+            best = r
+            best_delta = delta
+    return best
+
+
+def find_closest_value(
+    meter_readings: list[MeterReading],
+    target_dt: datetime,
+    tolerance_minutes: int = 7,
+) -> float | None:
+    """Value of the reading closest to ``target_dt`` (see find_closest_reading)."""
+    reading = find_closest_reading(meter_readings, target_dt, tolerance_minutes)
+    return reading.value if reading else None
+
+
 class SmgwClient:
     """Client for PPC SMGW HAN interface."""
 
@@ -91,6 +123,10 @@ class SmgwClient:
         self._password = password
         self._token: str | None = None
         self._client: httpx.AsyncClient | None = None
+        # Serializes all SMGW sessions on this client instance. The SMGW
+        # allows only one active session per account, so the nightly daily
+        # fetch and any user-triggered export must not run concurrently.
+        self._lock = asyncio.Lock()
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create the httpx client."""
@@ -190,6 +226,67 @@ class SmgwClient:
             self._token = new_token
 
         return response.text
+
+    async def _post_binary(self, data: dict) -> tuple[bytes, str | None]:
+        """Send a POST and return the raw body + suggested filename.
+
+        Like :meth:`_post` but for binary downloads (the signed CMS export):
+        returns the response bytes instead of decoded text and does not try to
+        parse a CSRF token from the body. All httpx exceptions are wrapped into
+        SmgwClientError subtypes.
+        """
+        if not self._token:
+            raise SmgwClientError("Not logged in - no CSRF token available")
+
+        client = await self._get_client()
+        post_data = {"tkn": self._token, **data}
+
+        try:
+            response = await client.post(
+                self._base_url,
+                data=post_data,
+                auth=httpx.DigestAuth(self._username, self._password),
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as err:
+            raise SmgwConnectionError(
+                f"HTTP error: {err.response.status_code}"
+            ) from err
+        except (httpx.ConnectError, httpx.RemoteProtocolError) as err:
+            raise SmgwConnectionError(
+                f"Connection lost during request: {err}"
+            ) from err
+        except httpx.TimeoutException as err:
+            raise SmgwConnectionError(
+                f"Timeout during request: {err}"
+            ) from err
+        except httpx.RequestError as err:
+            raise SmgwConnectionError(
+                f"Request error: {err}"
+            ) from err
+
+        filename = self._parse_content_disposition_filename(
+            response.headers.get("content-disposition")
+        )
+        return response.content, filename
+
+    @staticmethod
+    def _parse_content_disposition_filename(
+        header: str | None,
+    ) -> str | None:
+        """Extract a filename from a Content-Disposition header, if any."""
+        if not header:
+            return None
+        # RFC 5987 form first: filename*=UTF-8''percent%20encoded
+        match = re.search(
+            r"filename\*=(?:UTF-8'')?([^;]+)", header, re.IGNORECASE
+        )
+        if match:
+            return urllib.parse.unquote(match.group(1).strip().strip('"'))
+        match = re.search(r'filename="?([^";]+)"?', header, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+        return None
 
     async def _logout(self) -> None:
         """Log out from the SMGW."""
@@ -378,12 +475,14 @@ class SmgwClient:
             return readings
 
         last_timestamp: datetime | None = None
+        last_quality = "valid"
 
         for row in rows:
             ts_td = row.find("td", id="table_metervalues_col_timestamp")
             value_td = row.find("td", id="table_metervalues_col_wert")
             unit_td = row.find("td", id="table_metervalues_col_einheit")
             obis_td = row.find("td", id="table_metervalues_col_obis")
+            valid_td = row.find("td", id="table_metervalues_col_istvalide")
 
             # Update running timestamp when a new one appears (line1 rows only)
             if ts_td:
@@ -395,6 +494,18 @@ class SmgwClient:
                         )
                     except ValueError:
                         _LOGGER.debug("Cannot parse timestamp: %s", ts_str)
+
+            # The SMGW "ist valide" flag (1/0) is the gateway's own validity
+            # status. It appears on the line1 row of each timestamp pair; the
+            # line2 (export) row inherits it, mirroring the timestamp handling.
+            # The textual "Status" cell holds the same info but has no stable
+            # HTML id, so the id-addressable flag is parsed instead.
+            if valid_td:
+                valid_str = valid_td.get_text(strip=True)
+                if valid_str:
+                    last_quality = {"1": "valid", "0": "invalid"}.get(
+                        valid_str, valid_str
+                    )
 
             if not all([value_td, obis_td, last_timestamp]):
                 continue
@@ -413,7 +524,7 @@ class SmgwClient:
                         obis_code=obis_str,
                         value=float(value_str),
                         unit=unit_str,
-                        quality="valid",
+                        quality=last_quality,
                     )
                 )
             except (ValueError, TypeError) as err:
@@ -480,6 +591,22 @@ class SmgwClient:
         dropdown is queried; otherwise the first option is used (legacy
         behaviour for single-meter SMGWs).
         """
+        async with self._lock:
+            return await self._fetch_daily_data_locked(
+                target_date,
+                tariff_switch_hour,
+                tariff_switch_minute,
+                target_meter_id,
+            )
+
+    async def _fetch_daily_data_locked(
+        self,
+        target_date: date,
+        tariff_switch_hour: int,
+        tariff_switch_minute: int,
+        target_meter_id: str | None,
+    ) -> DailyData:
+        """Body of :meth:`async_fetch_daily_data`, run under ``self._lock``."""
         try:
             await self._login()
 
@@ -523,6 +650,146 @@ class SmgwClient:
         finally:
             await self._logout()
 
+    async def async_fetch_readings(
+        self,
+        from_dt: datetime,
+        to_dt: datetime,
+        target_meter_id: str | None = None,
+        *,
+        chunk_days: int = 1,
+    ) -> list[MeterReading]:
+        """Fetch all raw meter readings in the ``[from_dt, to_dt]`` range.
+
+        Unlike :meth:`async_fetch_daily_data` this returns the unprocessed
+        ``MeterReading`` list without any tariff postprocessing. Used by the
+        user-triggered export service.
+
+        The SMGW's HTML reading table is paginated, so the range is fetched
+        in small windows (default one day) that each stay on the first page.
+        Readings are de-duplicated on ``(timestamp, obis_code)`` because
+        adjacent windows share their boundary timestamp.
+        """
+        async with self._lock:
+            return await self._fetch_readings_locked(
+                from_dt, to_dt, target_meter_id, chunk_days
+            )
+
+    async def _fetch_readings_locked(
+        self,
+        from_dt: datetime,
+        to_dt: datetime,
+        target_meter_id: str | None,
+        chunk_days: int,
+    ) -> list[MeterReading]:
+        """Body of :meth:`async_fetch_readings`, run under ``self._lock``."""
+        if from_dt >= to_dt:
+            raise SmgwClientError("from_dt must be before to_dt")
+
+        try:
+            await self._login()
+            mid_dropdown, _meter_id = await self._navigate_to_meter(
+                target_meter_id
+            )
+
+            readings_by_key: dict[tuple[datetime, str], MeterReading] = {}
+            window = timedelta(days=max(chunk_days, 1))
+            chunk_start = from_dt
+            while chunk_start < to_dt:
+                chunk_end = min(chunk_start + window, to_dt)
+                # Re-fetch the data-form mid for every chunk: a single mid is
+                # not guaranteed to stay valid across multiple showMeterValues
+                # requests within one session, and the extra POST per day is
+                # cheap compared to the risk of a silently truncated export.
+                mid = await self._get_meter_values_mid(mid_dropdown)
+                from_str = chunk_start.strftime("%Y-%m-%d %H:%M:%S")
+                to_str = chunk_end.strftime("%Y-%m-%d %H:%M:%S")
+                _LOGGER.debug(
+                    "Fetching readings chunk %s .. %s", from_str, to_str
+                )
+                html = await self._post(
+                    {
+                        "action": "showMeterValues",
+                        "mid": mid,
+                        "from": from_str,
+                        "to": to_str,
+                    }
+                )
+                for reading in self._parse_meter_values_table(html):
+                    readings_by_key[(reading.timestamp, reading.obis_code)] = (
+                        reading
+                    )
+                chunk_start = chunk_end
+
+            readings = sorted(
+                readings_by_key.values(),
+                key=lambda r: (r.timestamp, r.obis_code),
+            )
+            _LOGGER.info(
+                "Fetched %d unique readings for %s .. %s",
+                len(readings), from_dt, to_dt,
+            )
+            return readings
+        finally:
+            await self._logout()
+
+    async def async_download_cms(
+        self,
+        from_dt: datetime,
+        to_dt: datetime,
+        target_meter_id: str | None = None,
+    ) -> tuple[bytes, str | None]:
+        """Download the signed CMS export for the given range.
+
+        Returns the raw PKCS#7/CMS bytes (the SMGW's tamper-evident original,
+        identical to the web interface "Exportieren" button) together with the
+        server-suggested filename from ``Content-Disposition`` if present. The
+        bytes are not parsed.
+        """
+        async with self._lock:
+            return await self._download_cms_locked(
+                from_dt, to_dt, target_meter_id
+            )
+
+    async def _download_cms_locked(
+        self,
+        from_dt: datetime,
+        to_dt: datetime,
+        target_meter_id: str | None,
+    ) -> tuple[bytes, str | None]:
+        """Body of :meth:`async_download_cms`, run under ``self._lock``."""
+        if from_dt >= to_dt:
+            raise SmgwClientError("from_dt must be before to_dt")
+
+        try:
+            await self._login()
+            mid_dropdown, _meter_id = await self._navigate_to_meter(
+                target_meter_id
+            )
+            mid = await self._get_meter_values_mid(mid_dropdown)
+
+            from_str = from_dt.strftime("%Y-%m-%d %H:%M:%S")
+            to_str = to_dt.strftime("%Y-%m-%d %H:%M:%S")
+            _LOGGER.debug(
+                "Downloading CMS export %s .. %s", from_str, to_str
+            )
+            content, filename = await self._post_binary(
+                {
+                    "action": "exportMeterValues",
+                    "mid": mid,
+                    "from": from_str,
+                    "to": to_str,
+                }
+            )
+            if not content:
+                raise SmgwParseError("CMS export returned an empty response")
+            _LOGGER.info(
+                "Downloaded CMS export (%d bytes, filename=%s)",
+                len(content), filename,
+            )
+            return content, filename
+        finally:
+            await self._logout()
+
     def _process_readings(
         self,
         target_date: date,
@@ -539,24 +806,6 @@ class SmgwClient:
 
         import_readings = [r for r in readings if r.obis_code == OBIS_IMPORT]
         export_readings = [r for r in readings if r.obis_code == OBIS_EXPORT]
-
-        def find_closest_value(
-            meter_readings: list[MeterReading],
-            target_dt: datetime,
-            tolerance_minutes: int = 7,
-        ) -> float | None:
-            """Find reading closest to target_dt within tolerance."""
-            best: MeterReading | None = None
-            best_delta = timedelta.max
-            for r in meter_readings:
-                delta = abs(r.timestamp - target_dt)
-                if (
-                    delta <= timedelta(minutes=tolerance_minutes)
-                    and delta < best_delta
-                ):
-                    best = r
-                    best_delta = delta
-            return best.value if best else None
 
         # Target timestamps
         midnight_start = datetime(

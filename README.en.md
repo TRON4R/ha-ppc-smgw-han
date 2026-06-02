@@ -117,6 +117,110 @@ When your metering point operator swaps the physical meter in your basement, you
 | Daily date | Date of the last fetched data | `date` | — |
 
 
+## Data export for arbitrary time ranges
+
+Meter readings can be fetched for an **arbitrary time range** straight from Home Assistant — no detour via the SMGW web interface. There are **two actions** (selectable separately under Developer Tools → Actions):
+
+- **`smgw_han.export_readings`** — custom range via `from_datetime` / `to_datetime`.
+- **`smgw_han.export_period`** — a ready-made **period preset** (`Yesterday`, `Last 7 days`, `Last 30 days`, `Current month`, `Last month`); `from`/`to` are computed **automatically**, including the correct day-closing reading, so you don't have to work out the end date yourself.
+
+Both return the same result and share these parameters:
+
+| Field | Action | Description |
+|---|---|---|
+| `device_id` | both | The SMGW device to query |
+| `from_datetime` / `to_datetime` | `export_readings` | Start/end of the range (date + time) |
+| `period` | `export_period` | Ready-made range (dropdown) |
+| `download_cms` | both | Also save the signed **CMS original** (tamper-evident, like the "Exportieren" button in the web interface) |
+| `write_csv` | both | Also save the raw readings as **CSV** (semicolon-separated, Excel-friendly) |
+| `write_xlsx` | both | Also save an **Excel workbook** (raw data, daily end values, tariff zones) |
+
+> **Tip:** "Last month" (in `export_period`) automatically returns the **complete** previous month including the closing meter reading at midnight on the 1st — the value that's easy to miss by hand. With `export_readings`, remember to set `to` to **00:15 of the following day** to include the last day's closing reading.
+
+**Return value (response variable):** Both actions always return the raw readings (`readings`) and a daily summary (`daily_summary`) — visible directly in **Developer Tools → Actions** or usable in scripts via `response_variable`. If one or more file switches are set, the response additionally contains `files` with download links.
+
+**Example calls (script/automation):**
+
+```yaml
+# Custom range
+action: smgw_han.export_readings
+data:
+  device_id: <your device id>
+  from_datetime: "2026-05-01 00:00:00"
+  to_datetime: "2026-06-01 00:15:00"
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
+
+```yaml
+# Ready-made preset (no date guessing)
+action: smgw_han.export_period
+data:
+  device_id: <your device id>
+  period: last_month
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
+
+### Clickable download links via notification
+
+In Developer Tools the response is shown as YAML — the links are **not clickable** there. The following script (Settings → Automations & Scenes → Scripts → "Edit in YAML") gives you a **notification with clickable links** after the export. Trigger it from a button, voice assistant or an automation:
+
+```yaml
+alias: SMGW export with notification
+fields:
+  period:
+    selector:
+      select:
+        options: [yesterday, last_7_days, last_30_days, current_month, last_month]
+sequence:
+  - action: smgw_han.export_period
+    data:
+      # device_id is omitted with a single SMGW (auto-detected).
+      # Multiple SMGWs? Add device_id: <your-device-id> here.
+      period: "{{ period | default('last_month') }}"
+      download_cms: true
+      write_csv: true
+      write_xlsx: true
+    response_variable: result
+  - action: persistent_notification.create
+    data:
+      title: SMGW export
+      message: >-
+        {{ result.reading_count }} values, {{ result.daily_summary | count }} days.
+        {% set f = result.files | default({}) %}
+        {% if f.cms %}[CMS]({{ f.cms }}) · {% endif %}
+        {% if f.csv %}[CSV]({{ f.csv }}) · {% endif %}
+        {% if f.xlsx %}[Excel]({{ f.xlsx }}){% endif %}
+```
+
+The notification then appears under the bell icon with clickable links to CMS/CSV/Excel.
+
+### Dashboard tile (quick select)
+
+A ready-made tile with buttons for the period presets is available at [`dashboard/datenexport.yaml`](dashboard/datenexport.yaml). It calls the notification script above. Steps:
+
+1. Create the "SMGW export with notification" script (above); adjust `perform_action` in the tile to its entity id if needed.
+2. Dashboard → Add card → Manual card → paste the YAML from the file. **With a single SMGW there's nothing else to do** — the device is auto-detected.
+
+Clicking e.g. "Letzter Monat" creates the export and shows the download links as a notification.
+
+### Directly via the integration (no helpers, no dashboard)
+
+You can also start the export without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → "Configure"** → menu entry **"Export data"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear as a notification 🔔. The initial setup is unaffected by this.
+
+> **Multiple SMGWs?** Add a `device_id: <your-device-id>` line under `data:` to each button. The **"Device ID"** diagnostic entity on each SMGW device shows its `device_id` (the entity state is the device id to copy).
+
+**Important notes:**
+
+- **Be gentle with the SMGW:** Every call opens a real SMGW session. Do **not** call the service in loops — the SMGW allows only one active session and may briefly lock out on overload. The nightly fetch and a manual export block each other automatically (no conflict) but run sequentially.
+- **Download links are unauthenticated:** Files are written to `config/www/smgw_han_exports/<random>/` and are reachable as `/local/…` links **without login**. Anyone who knows the link can fetch the file. The random path component makes guessing hard; delete export folders you no longer need from time to time.
+- If the `/local/` links don't work on the very first export, create the `config/www/` folder once manually and restart HA (Home Assistant only mounts `www/` at startup).
+
 ## Dashboard card: Daily consumption history
 
 **Prerequisite:** [ApexCharts Card](https://github.com/RomRider/apexcharts-card) (installable via HACS)

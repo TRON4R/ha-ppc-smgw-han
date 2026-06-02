@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_INSTANCE_ID,
@@ -16,6 +17,7 @@ from .const import (
     CONF_USERNAME,
 )
 from .coordinator import SmgwTafCoordinator
+from .services import async_setup_services
 from .smgw_client import SmgwClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,6 +25,12 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 type SmgwTafConfigEntry = ConfigEntry[SmgwTafCoordinator]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up integration-wide resources (the export service)."""
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(

@@ -116,6 +116,110 @@ Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst d
 | Zählerstand Einspeisung Endstand Vortag | Absoluter Einspeise-Zählerstand zu Tagesbeginn (00:00) | `energy` | `total_increasing` |
 | Tagesdatum | Datum der zuletzt abgerufenen Daten | `date` | — |
 
+## Datenexport für beliebige Zeiträume
+
+Die Zählerdaten lassen sich für einen **frei wählbaren Zeitraum** direkt aus Home Assistant abrufen — ohne Umweg über das SMGW-Webinterface. Dafür gibt es **zwei Aktionen** (in Entwicklerwerkzeuge → Aktionen je separat auswählbar):
+
+- **`smgw_han.export_readings`** — eigener Zeitraum über `from_datetime` / `to_datetime`.
+- **`smgw_han.export_period`** — fertige **Zeitraum-Vorgabe** (`Gestern`, `Letzte 7 Tage`, `Letzte 30 Tage`, `Aktueller Monat`, `Letzter Monat`); `from`/`to` werden **automatisch** berechnet — inkl. korrektem Tagesabschluss. So musst Du das End-Datum nicht selbst ausrechnen.
+
+Beide liefern dasselbe Ergebnis und teilen sich diese Parameter:
+
+| Feld | Aktion | Beschreibung |
+|---|---|---|
+| `device_id` | beide | Das abzufragende SMGW-Gerät |
+| `from_datetime` / `to_datetime` | `export_readings` | Beginn/Ende des Zeitraums (Datum + Uhrzeit) |
+| `period` | `export_period` | Fertiger Zeitraum (Dropdown) |
+| `download_cms` | beide | Speichert zusätzlich das signierte **CMS-Original** (fälschungssicher, wie der „Exportieren"-Button im Webinterface) |
+| `write_csv` | beide | Speichert zusätzlich die Rohdaten als **CSV** (semikolongetrennt, Excel-freundlich) |
+| `write_xlsx` | beide | Speichert zusätzlich eine **Excel-Mappe** (Rohdaten, Tagesendwerte, Tarifzonen) |
+
+> **Tipp:** „Letzter Monat" (in `export_period`) liefert automatisch den **vollständigen** Vormonat inklusive des Abschluss-Zählerstands am Monatsersten 00:00 — der Wert, den man bei manueller Eingabe leicht vergisst. Bei `export_readings` denke selbst daran: für den Tagesabschluss des letzten Tages das `to` auf **00:15 des Folgetags** setzen.
+
+**Rückgabe (Response-Variable):** Beide Aktionen geben immer die Roh-Readings (`readings`) und eine Tagessummen-Aufstellung (`daily_summary`) zurück — sichtbar direkt in **Entwicklerwerkzeuge → Aktionen** oder in Skripten via `response_variable`. Sind ein oder mehrere Datei-Schalter gesetzt, enthält die Antwort zusätzlich `files` mit Download-Links.
+
+**Aufruf-Beispiele (Skript/Automation):**
+
+```yaml
+# Eigener Zeitraum
+action: smgw_han.export_readings
+data:
+  device_id: <deine Geräte-ID>
+  from_datetime: "2026-05-01 00:00:00"
+  to_datetime: "2026-06-01 00:15:00"
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
+
+```yaml
+# Fertige Vorgabe (kein Datums-Raten)
+action: smgw_han.export_period
+data:
+  device_id: <deine Geräte-ID>
+  period: last_month
+  write_csv: true
+  write_xlsx: true
+  download_cms: true
+response_variable: smgw_export
+```
+
+### Klickbare Download-Links per Benachrichtigung
+
+In den Entwicklerwerkzeugen wird die Antwort als YAML angezeigt — die Links sind dort **nicht anklickbar**. Mit folgendem Skript (Einstellungen → Automationen & Szenen → Skripte → „in YAML bearbeiten") bekommst Du nach dem Export eine **Benachrichtigung mit anklickbaren Links**. Das Skript lässt sich per Knopf, Sprachassistent oder aus einer Automation auslösen:
+
+```yaml
+alias: SMGW Export mit Benachrichtigung
+fields:
+  period:
+    selector:
+      select:
+        options: [yesterday, last_7_days, last_30_days, current_month, last_month]
+sequence:
+  - action: smgw_han.export_period
+    data:
+      # device_id entfällt bei nur einem SMGW (wird automatisch erkannt).
+      # Mehrere SMGWs? Hier device_id: <deine-device-id> ergänzen.
+      period: "{{ period | default('last_month') }}"
+      download_cms: true
+      write_csv: true
+      write_xlsx: true
+    response_variable: result
+  - action: persistent_notification.create
+    data:
+      title: SMGW Export
+      message: >-
+        {{ result.reading_count }} Werte, {{ result.daily_summary | count }} Tage.
+        {% set f = result.files | default({}) %}
+        {% if f.cms %}[CMS]({{ f.cms }}) · {% endif %}
+        {% if f.csv %}[CSV]({{ f.csv }}) · {% endif %}
+        {% if f.xlsx %}[Excel]({{ f.xlsx }}){% endif %}
+```
+
+Die Benachrichtigung erscheint dann unter dem Glocken-Symbol mit klickbaren Links zu CMS/CSV/Excel.
+
+### Dashboard-Kachel (Schnellwahl)
+
+Eine fertige Kachel mit Buttons für die Zeitraum-Vorgaben liegt unter [`dashboard/datenexport.yaml`](dashboard/datenexport.yaml). Sie ruft das obige Benachrichtigungs-Skript auf. Vorgehen:
+
+1. Das Skript „SMGW Export mit Benachrichtigung" (oben) anlegen — Entity-ID `script.smgw_export_mit_benachrichtigung`.
+2. Dashboard → Kachel hinzufügen → Manuelle Karte → YAML aus der Datei einfügen. **Bei nur einem SMGW ist nichts weiter zu tun** — das Gerät wird automatisch erkannt.
+
+Ein Klick auf z.B. „Letzter Monat" erzeugt den Export und zeigt die Download-Links als Benachrichtigung.
+
+### Direkt über die Integration (ohne Helfer, ohne Dashboard)
+
+Den Export kannst du auch ganz ohne Entwicklerwerkzeuge, Helfer oder Dashboard starten: **Einstellungen → Geräte & Dienste → dein SMGW → „Konfigurieren"** → Menüpunkt **„Daten exportieren"**. Dort wählst du einen Zeitraum (Vorgabe), bestätigst bzw. änderst im nächsten Schritt die **vorausgefüllten** Von/Bis-Felder, und nach dem Export erscheinen die Download-Links als Benachrichtigung 🔔. Die normale Erst-Einrichtung bleibt davon unberührt.
+
+> **Mehrere SMGWs?** Dann an jeden Button unter `data:` eine Zeile `device_id: <deine-device-id>` ergänzen. Die `device_id` zeigt die Diagnose-Entität **„Geräte-ID"** am jeweiligen SMGW-Gerät (ihr Status ist die device_id zum Kopieren).
+
+**Wichtige Hinweise:**
+
+- **SMGW schonen:** Jeder Aufruf öffnet eine echte SMGW-Sitzung. Den Dienst **nicht in Schleifen** aufrufen — das SMGW erlaubt nur eine aktive Sitzung und kann bei Überlastung kurzzeitig sperren. Der nächtliche Abruf und ein manueller Export blockieren sich gegenseitig automatisch (kein Konflikt), laufen aber nacheinander.
+- **Download-Links sind unauthentifiziert:** Die Dateien landen unter `config/www/smgw_han_exports/<zufallscode>/` und sind als `/local/…`-Link **ohne Anmeldung** erreichbar. Wer den Link kennt, kann die Datei laden. Der Zufallscode im Pfad erschwert das Erraten; lösche nicht mehr benötigte Export-Ordner gelegentlich.
+- Erscheinen die `/local/`-Links beim allerersten Export nicht, lege den Ordner `config/www/` einmal manuell an und starte HA neu (Home Assistant bindet `www/` nur beim Start ein).
+
 ## Dashboard-Kachel: Verbrauchshistorie (täglich)
 
 **Voraussetzung:** [ApexCharts Card](https://github.com/RomRider/apexcharts-card) (über HACS installierbar)

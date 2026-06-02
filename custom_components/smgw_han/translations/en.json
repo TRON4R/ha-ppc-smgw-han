@@ -51,6 +51,13 @@
   "options": {
     "step": {
       "init": {
+        "title": "SMGW HAN",
+        "menu_options": {
+          "settings": "Change settings",
+          "export": "Export SMGW data for a custom time range"
+        }
+      },
+      "settings": {
         "title": "SMGW Settings",
         "description": "Update credentials, tariff time and fetch time.",
         "data": {
@@ -69,6 +76,27 @@
           "update_time": "Time of day for the automatic daily data fetch",
           "device_name": "Custom name (e.g. \"SMGW Import\" / \"SMGW Export\") for the case where you run multiple logins against the same SMGW as separate entries. Otherwise leave empty."
         }
+      },
+      "export": {
+        "title": "Export consumption and feed-in data",
+        "description": "Choose a period and which files to create. The next step lets you fine-tune the exact date range.",
+        "data": {
+          "period": "Period",
+          "download_cms": "Download certified CMS file",
+          "write_csv": "Create CSV",
+          "write_xlsx": "Create Excel (XLSX)"
+        },
+        "data_description": {
+          "period": "The next step pre-fills the date range from this choice; you can still edit it there."
+        }
+      },
+      "export_dates": {
+        "title": "Confirm time range",
+        "description": "Adjust the range if needed, then submit to start the export. Tip: to include the last day's closing reading, set 'To' to 00:15 of the following day.",
+        "data": {
+          "from_datetime": "From",
+          "to_datetime": "To"
+        }
       }
     },
     "error": {
@@ -76,7 +104,13 @@
       "configured_meter_missing": "The previously configured meter is no longer present in the SMGW dropdown, but several other meters are listed. Please remove this entry in Home Assistant and add it again to pick from the available meters.",
       "invalid_auth": "Invalid username or password.",
       "parse_error": "Could not parse the SMGW response. Please double-check the username and password. If the credentials are correct, wait up to 15 minutes and try again.",
-      "unknown": "An unexpected error occurred."
+      "unknown": "An unexpected error occurred.",
+      "invalid_range": "'From' must be before 'To'.",
+      "export_failed": "The export failed. Check the SMGW connection and the Home Assistant log.",
+      "no_outputs": "Select at least one output (certified CMS file, CSV or Excel)."
+    },
+    "abort": {
+      "export_done": "Export created.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
     }
   },
   "entity": {
@@ -104,6 +138,78 @@
       },
       "date": {
         "name": "Daily date"
+      },
+      "device_id": {
+        "name": "Device ID"
+      }
+    }
+  },
+  "services": {
+    "export_readings": {
+      "name": "Export readings (custom range)",
+      "description": "Fetch the SMGW meter readings for a custom From/To range. Returns the data as a response variable and can additionally create the signed CMS original file, a CSV and/or an Excel file, downloadable via the links (shown at the top of the response variable).",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The SMGW meter device to query. In scripts and dashboards you can leave this empty if you have only one SMGW."
+        },
+        "from_datetime": {
+          "name": "From",
+          "description": "Start of the time range (date and time)."
+        },
+        "to_datetime": {
+          "name": "To",
+          "description": "End of the time range. Tip: to include the closing reading of the last day, set this to 00:15 of the following day."
+        },
+        "download_cms": {
+          "name": "Download certified CMS file",
+          "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
+        },
+        "write_csv": {
+          "name": "Create CSV",
+          "description": "Also create the raw readings as a semicolon-separated CSV file."
+        },
+        "write_xlsx": {
+          "name": "Create Excel (XLSX)",
+          "description": "Also create an Excel workbook with raw data, daily end values and tariff zones."
+        }
+      }
+    },
+    "export_period": {
+      "name": "Export readings (period preset)",
+      "description": "Fetch the SMGW meter readings for a ready-made period. The range, including the closing reading of the last day, is computed automatically. Identical outputs and download options as the custom-range export.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The SMGW meter device to query. In scripts and dashboards you can leave this empty if you have only one SMGW."
+        },
+        "period": {
+          "name": "Period",
+          "description": "The time range to export. The end is set automatically to capture the closing reading of the last day."
+        },
+        "download_cms": {
+          "name": "Download certified CMS file",
+          "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
+        },
+        "write_csv": {
+          "name": "Create CSV",
+          "description": "Also create the raw readings as a semicolon-separated CSV file."
+        },
+        "write_xlsx": {
+          "name": "Create Excel (XLSX)",
+          "description": "Also create an Excel workbook with raw data, daily end values and tariff zones."
+        }
+      }
+    }
+  },
+  "selector": {
+    "export_period": {
+      "options": {
+        "yesterday": "Yesterday",
+        "last_7_days": "Last 7 days",
+        "last_30_days": "Last 30 days",
+        "current_month": "Current month (so far)",
+        "last_month": "Last month"
       }
     }
   }

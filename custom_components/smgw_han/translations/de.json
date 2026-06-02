@@ -51,6 +51,13 @@
   "options": {
     "step": {
       "init": {
+        "title": "SMGW HAN",
+        "menu_options": {
+          "settings": "Einstellungen ändern",
+          "export": "SMGW-Daten für einen wählbaren Zeitraum exportieren"
+        }
+      },
+      "settings": {
         "title": "SMGW-Einstellungen ändern",
         "description": "Zugangsdaten, Tarifzeit und Abrufzeit anpassen.",
         "data": {
@@ -69,6 +76,27 @@
           "update_time": "Tageszeit für den automatischen Abruf der Vortageswerte",
           "device_name": "Sprechender Name (z.B. „SMGW Verbrauch\" / „SMGW Einspeisung\") für den Fall, dass du mehrere Logins zum selben SMGW als separate Einträge betreibst. Sonst leer lassen."
         }
+      },
+      "export": {
+        "title": "Verbrauchs- und Einspeisedaten exportieren",
+        "description": "Wähle einen Zeitraum und welche Dateien erzeugt werden sollen. Im nächsten Schritt kannst du den genauen Zeitraum noch anpassen.",
+        "data": {
+          "period": "Zeitraum",
+          "download_cms": "Zertifizierte CMS-Datei downloaden",
+          "write_csv": "CSV erzeugen",
+          "write_xlsx": "Excel (XLSX) erzeugen"
+        },
+        "data_description": {
+          "period": "Der nächste Schritt füllt den Zeitraum anhand dieser Auswahl vor; du kannst ihn dort weiterhin ändern."
+        }
+      },
+      "export_dates": {
+        "title": "Zeitraum bestätigen",
+        "description": "Passe den Zeitraum bei Bedarf an und sende ab, um den Export zu starten. Tipp: Um den Tagesabschluss des letzten Tages einzuschließen, „Bis\" auf 00:15 des Folgetags setzen.",
+        "data": {
+          "from_datetime": "Von",
+          "to_datetime": "Bis"
+        }
       }
     },
     "error": {
@@ -76,7 +104,13 @@
       "configured_meter_missing": "Der bisher konfigurierte Zähler ist im SMGW-Dropdown nicht mehr vorhanden, der SMGW liefert aber mehrere andere Zähler. Bitte entferne diesen Eintrag in Home Assistant und lege ihn neu an, um aus den verfügbaren Zählern auszuwählen.",
       "invalid_auth": "Ungültiger Benutzername oder Passwort.",
       "parse_error": "Antwort des SMGW konnte nicht ausgewertet werden. Bitte Benutzername und Passwort prüfen. Falls die Zugangsdaten korrekt sind, bis zu 15 Minuten warten und erneut versuchen.",
-      "unknown": "Ein unerwarteter Fehler ist aufgetreten."
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten.",
+      "invalid_range": "„Von\" muss vor „Bis\" liegen.",
+      "export_failed": "Der Export ist fehlgeschlagen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen.",
+      "no_outputs": "Bitte mindestens eine Ausgabe wählen (zertifizierte CMS-Datei, CSV oder Excel)."
+    },
+    "abort": {
+      "export_done": "Export erstellt.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
     }
   },
   "entity": {
@@ -104,6 +138,78 @@
       },
       "date": {
         "name": "Tagesdatum"
+      },
+      "device_id": {
+        "name": "Geräte-ID"
+      }
+    }
+  },
+  "services": {
+    "export_readings": {
+      "name": "Zählerdaten exportieren (eigener Zeitraum)",
+      "description": "Ruft die SMGW-Zählerdaten für einen frei wählbaren Von/Bis-Zeitraum ab. Gibt die Daten als Antwort-Variable zurück und kann zusätzlich die signierte CMS-Original-Datei, eine CSV und/oder eine Excel-Datei erzeugen, welche über Download-Links (sichtbar am Anfang der Antwort-Variable) heruntergeladen werden können.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Das abzufragende SMGW-Zählergerät. In Skripten und Dashboards kann dies leer bleiben, wenn nur ein SMGW vorhanden ist."
+        },
+        "from_datetime": {
+          "name": "Von",
+          "description": "Beginn des Zeitraums (Datum und Uhrzeit)."
+        },
+        "to_datetime": {
+          "name": "Bis",
+          "description": "Ende des Zeitraums. Tipp: Um den Tagesabschluss des letzten Tages einzuschließen, auf 00:15 des Folgetags setzen."
+        },
+        "download_cms": {
+          "name": "Zertifizierte CMS-Datei downloaden",
+          "description": "Speichert zusätzlich die signierte CMS-Datei exakt so, wie sie das SMGW liefert (fälschungssicheres Original)."
+        },
+        "write_csv": {
+          "name": "CSV erzeugen",
+          "description": "Erzeugt zusätzlich die Rohdaten als semikolongetrennte CSV-Datei."
+        },
+        "write_xlsx": {
+          "name": "Excel (XLSX) erzeugen",
+          "description": "Erzeugt zusätzlich eine Excel-Mappe mit Rohdaten, Tagesendwerten und Tarifzonen."
+        }
+      }
+    },
+    "export_period": {
+      "name": "Zählerdaten exportieren (Zeitraum-Vorgabe)",
+      "description": "Ruft die SMGW-Zählerdaten für einen fertigen Zeitraum ab. Der Bereich inklusive des Tagesabschlusses am letzten Tag wird automatisch berechnet. Identische Ausgaben und Download-Optionen wie beim Export mit eigenem Zeitraum.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Das abzufragende SMGW-Zählergerät. In Skripten und Dashboards kann dies leer bleiben, wenn nur ein SMGW vorhanden ist."
+        },
+        "period": {
+          "name": "Zeitraum",
+          "description": "Der zu exportierende Zeitraum. Das Ende wird automatisch so gesetzt, dass der Tagesabschluss des letzten Tages erfasst wird."
+        },
+        "download_cms": {
+          "name": "Zertifizierte CMS-Datei downloaden",
+          "description": "Speichert zusätzlich die signierte CMS-Datei exakt so, wie sie das SMGW liefert (fälschungssicheres Original)."
+        },
+        "write_csv": {
+          "name": "CSV erzeugen",
+          "description": "Erzeugt zusätzlich die Rohdaten als semikolongetrennte CSV-Datei."
+        },
+        "write_xlsx": {
+          "name": "Excel (XLSX) erzeugen",
+          "description": "Erzeugt zusätzlich eine Excel-Mappe mit Rohdaten, Tagesendwerten und Tarifzonen."
+        }
+      }
+    }
+  },
+  "selector": {
+    "export_period": {
+      "options": {
+        "yesterday": "Gestern",
+        "last_7_days": "Letzte 7 Tage",
+        "last_30_days": "Letzte 30 Tage",
+        "current_month": "Aktueller Monat (bisher)",
+        "last_month": "Letzter Monat"
       }
     }
   }

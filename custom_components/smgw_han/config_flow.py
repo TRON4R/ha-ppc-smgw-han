@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 import voluptuous as vol
 
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -15,6 +17,8 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    BooleanSelector,
+    DateTimeSelector,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -24,8 +28,15 @@ from homeassistant.helpers.selector import (
     TimeSelector,
     TimeSelectorConfig,
 )
+from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_DOWNLOAD_CMS,
+    ATTR_FROM_DATETIME,
+    ATTR_PERIOD,
+    ATTR_TO_DATETIME,
+    ATTR_WRITE_CSV,
+    ATTR_WRITE_XLSX,
     CONF_DEVICE_NAME,
     CONF_INSTANCE_ID,
     CONF_METER_ID,
@@ -41,6 +52,7 @@ from .const import (
     DEFAULT_URL,
     DOMAIN,
 )
+from .services import PERIOD_PRESETS, _period_range, run_export
 from .smgw_client import (
     SmgwAuthError,
     SmgwClient,
@@ -345,10 +357,177 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
 class SmgwTafOptionsFlow(OptionsFlow):
     """Handle options flow for SMGW HAN."""
 
+    def __init__(self) -> None:
+        """Initialize the options flow."""
+        # Carries the step-1 export choices over to the step-2 date form.
+        self._export_input: dict[str, Any] = {}
+        self._export_from: datetime | None = None
+        self._export_to: datetime | None = None
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage the options."""
+        """Top-level menu: change settings or export data."""
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["settings", "export"],
+        )
+
+    # ------------------------------------------------------------------
+    # Data export (period preset -> prefilled, editable date range)
+    # ------------------------------------------------------------------
+
+    async def async_step_export(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Step 1: pick a period preset and the file outputs."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            if not (
+                user_input[ATTR_DOWNLOAD_CMS]
+                or user_input[ATTR_WRITE_CSV]
+                or user_input[ATTR_WRITE_XLSX]
+            ):
+                errors["base"] = "no_outputs"
+            else:
+                self._export_input = user_input
+                self._export_from, self._export_to = _period_range(
+                    user_input[ATTR_PERIOD]
+                )
+                return await self.async_step_export_dates()
+
+        d = user_input or {}
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    ATTR_PERIOD, default=d.get(ATTR_PERIOD, "last_month")
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=list(PERIOD_PRESETS),
+                        mode=SelectSelectorMode.DROPDOWN,
+                        translation_key="export_period",
+                    )
+                ),
+                vol.Required(
+                    ATTR_DOWNLOAD_CMS, default=d.get(ATTR_DOWNLOAD_CMS, True)
+                ): BooleanSelector(),
+                vol.Required(
+                    ATTR_WRITE_CSV, default=d.get(ATTR_WRITE_CSV, True)
+                ): BooleanSelector(),
+                vol.Required(
+                    ATTR_WRITE_XLSX, default=d.get(ATTR_WRITE_XLSX, True)
+                ): BooleanSelector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="export", data_schema=schema, errors=errors
+        )
+
+    async def async_step_export_dates(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Step 2: confirm/edit the prefilled date range, then run the export."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            from_dt = self._coerce_dt(user_input.get(ATTR_FROM_DATETIME))
+            to_dt = self._coerce_dt(user_input.get(ATTR_TO_DATETIME))
+            if from_dt is None or to_dt is None or from_dt >= to_dt:
+                errors["base"] = "invalid_range"
+            else:
+                try:
+                    result = await run_export(
+                        self.hass,
+                        self.config_entry.runtime_data,
+                        from_dt,
+                        to_dt,
+                        download_cms=self._export_input[ATTR_DOWNLOAD_CMS],
+                        do_csv=self._export_input[ATTR_WRITE_CSV],
+                        do_xlsx=self._export_input[ATTR_WRITE_XLSX],
+                    )
+                except Exception:  # noqa: BLE001 - surface as a form error
+                    _LOGGER.exception("Export via options flow failed")
+                    errors["base"] = "export_failed"
+                else:
+                    links = self._links_markdown(result)
+                    self._notify_export(result, links)
+                    return self.async_abort(
+                        reason="export_done",
+                        description_placeholders={"links": links},
+                    )
+
+        # Prefill with the submitted values (on error) or the preset range.
+        submitted = user_input or {}
+        suggested = {
+            ATTR_FROM_DATETIME: submitted.get(ATTR_FROM_DATETIME)
+            or self._fmt(self._export_from),
+            ATTR_TO_DATETIME: submitted.get(ATTR_TO_DATETIME)
+            or self._fmt(self._export_to),
+        }
+        schema = self.add_suggested_values_to_schema(
+            vol.Schema(
+                {
+                    vol.Required(ATTR_FROM_DATETIME): DateTimeSelector(),
+                    vol.Required(ATTR_TO_DATETIME): DateTimeSelector(),
+                }
+            ),
+            suggested,
+        )
+        return self.async_show_form(
+            step_id="export_dates", data_schema=schema, errors=errors
+        )
+
+    @staticmethod
+    def _fmt(value: datetime | None) -> str:
+        return value.strftime("%Y-%m-%d %H:%M:%S") if value else ""
+
+    @staticmethod
+    def _coerce_dt(value: Any) -> datetime | None:
+        """Parse a datetime selector value (str or datetime) to local naive."""
+        if value is None:
+            return None
+        dt = value if isinstance(value, datetime) else dt_util.parse_datetime(value)
+        if dt is None:
+            return None
+        if dt.tzinfo is not None:
+            dt = dt_util.as_local(dt).replace(tzinfo=None)
+        return dt
+
+    @staticmethod
+    def _links_markdown(result: dict[str, Any]) -> str:
+        """Build a markdown line of the download links (CMS, CSV, Excel)."""
+        files = result.get("files", {})
+        parts = []
+        if files.get("cms"):
+            parts.append(f"[CMS]({files['cms']})")
+        if files.get("csv"):
+            parts.append(f"[CSV]({files['csv']})")
+        if files.get("xlsx"):
+            parts.append(f"[Excel]({files['xlsx']})")
+        return " · ".join(parts) if parts else "_(keine Dateien)_"
+
+    def _notify_export(self, result: dict[str, Any], links: str) -> None:
+        """Post a persistent notification as a lasting copy of the links."""
+        message = (
+            f"{result['reading_count']} Werte, "
+            f"{len(result['daily_summary'])} Tage.\n\n{links}"
+        )
+        persistent_notification.async_create(
+            self.hass,
+            message,
+            title="SMGW Export",
+            notification_id=f"smgw_export_{self.config_entry.entry_id}",
+        )
+
+    # ------------------------------------------------------------------
+    # Connection / tariff settings (the former single options step)
+    # ------------------------------------------------------------------
+
+    async def async_step_settings(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the connection and tariff settings."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -477,7 +656,7 @@ class SmgwTafOptionsFlow(OptionsFlow):
                 return self.async_create_entry(title="", data={})
 
         return self.async_show_form(
-            step_id="init",
+            step_id="settings",
             data_schema=_build_schema(dict(self.config_entry.data)),
             errors=errors,
         )
