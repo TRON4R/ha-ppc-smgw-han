@@ -47,6 +47,19 @@ def test_single_complete_day_is_summarized():
     assert s.import_end == 1010.0
 
 
+def test_to_dict_keys_and_boundary_timestamps():
+    readings = [
+        _imp(datetime(2026, 5, 15, 0, 0, 1), 1000.0),
+        _imp(datetime(2026, 5, 15, 5, 0, 1), 1002.5),
+        _imp(datetime(2026, 5, 16, 0, 0, 1), 1010.0),
+    ]
+    d = build_daily_summary(readings, 5, 0)[0].to_dict()
+    assert d["day_of_summary"] == "2026-05-15"  # renamed from "date"
+    assert "date" not in d
+    assert d["start_timestamp"] == "2026-05-15T00:00:01"  # D 00:00 reading
+    assert d["end_timestamp"] == "2026-05-16T00:00:01"  # D+1 00:00 reading
+
+
 def test_day_without_end_value_is_excluded():
     # Only a start reading -> no closing value -> no date-only row emitted.
     readings = [_imp(datetime(2026, 5, 15, 0, 0, 1), 1000.0)]
