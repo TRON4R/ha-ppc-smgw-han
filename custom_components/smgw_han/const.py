@@ -33,8 +33,13 @@ ATTR_TO_DATETIME = "to_datetime"
 ATTR_DOWNLOAD_CMS = "download_cms"
 ATTR_WRITE_CSV = "write_csv"
 ATTR_WRITE_XLSX = "write_xlsx"
-# SMGW keeps roughly 458 days of history; requests further back are pointless.
-SMGW_HISTORY_DAYS = 458
+# Client-side plausibility guard for the export start date: reject requests
+# further back than ~24 months + the running month. This is NOT the SMGW's true
+# retention — the gateway returns whatever it actually has (PPC handbook
+# guarantees billing data for at least 15 months; MsbG expects 24 months of
+# consumption history), and the aggregation tolerates missing days. Generous on
+# purpose, mainly to catch year typos.
+SMGW_HISTORY_DAYS = 760  # ~24 months + ~1 month margin (leap-safe)
 # Files are written under <config>/www/<EXPORT_WWW_SUBDIR>/<token>/ so they are
 # reachable as /local/<EXPORT_WWW_SUBDIR>/<token>/<file> download links.
 EXPORT_WWW_SUBDIR = "smgw_han_exports"

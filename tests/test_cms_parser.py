@@ -69,3 +69,49 @@ def test_end_to_end_daily_summary():
 def test_missing_xml_raises():
     with pytest.raises(CmsParseError):
         parse_cms_readings(b"no xml in here at all")
+
+
+# One import column with three entries: status 0 (valid), 4 (invalid),
+# 3 (not present / carried-forward gap placeholder).
+_STATUS_CMS = (
+    b"PKCS7-WRAPPER\n"
+    b'<?xml version="1.0" encoding="UTF-8"?>\n'
+    b'<ns1:object class_id="7" id="x.1lgz.sm"'
+    b' xmlns:ns1="urn:k461-dke-de:profile_generic-1"'
+    b' xmlns:ns2="urn:k461-dke-de:extension-1">'
+    b'<ns1:attributes count="3">'
+    b'<ns1:capture_objects id="2" count="1">'
+    b'<ns1:capture_object id="1">'
+    b"<ns2:logical_name>0100010800ff.1lgz.sm</ns2:logical_name>"
+    b"</ns1:capture_object></ns1:capture_objects>"
+    b'<ns1:buffer id="3"><ns1:simple_data count="1">'
+    b'<ns1:column count="3" id="1">'
+    b'<ns1:entry_gateway_signed id="1"><ns2:value><ns2:long64>10000000'
+    b"</ns2:long64></ns2:value><ns2:scaler>-1</ns2:scaler><ns2:unit>30"
+    b"</ns2:unit><ns2:status><ns2:unsigned>0</ns2:unsigned></ns2:status>"
+    b"<ns2:capture_time>2026-05-14T22:00:01Z</ns2:capture_time>"
+    b"</ns1:entry_gateway_signed>"
+    b'<ns1:entry_gateway_signed id="2"><ns2:value><ns2:long64>10010000'
+    b"</ns2:long64></ns2:value><ns2:scaler>-1</ns2:scaler><ns2:unit>30"
+    b"</ns2:unit><ns2:status><ns2:unsigned>4</ns2:unsigned></ns2:status>"
+    b"<ns2:capture_time>2026-05-14T23:00:01Z</ns2:capture_time>"
+    b"</ns1:entry_gateway_signed>"
+    b'<ns1:entry_gateway_signed id="3"><ns2:value><ns2:long64>10010000'
+    b"</ns2:long64></ns2:value><ns2:scaler>-1</ns2:scaler><ns2:unit>30"
+    b"</ns2:unit><ns2:status><ns2:unsigned>3</ns2:unsigned></ns2:status>"
+    b"<ns2:capture_time>2026-05-15T00:00:00Z</ns2:capture_time>"
+    b"</ns1:entry_gateway_signed>"
+    b"</ns1:column></ns1:simple_data></ns1:buffer></ns1:attributes>"
+    b"</ns1:object>\nSIGNATURE-TRAILER"
+)
+
+
+def test_status_maps_to_quality_and_keeps_all():
+    readings = parse_cms_readings(_STATUS_CMS)
+    # All three entries are kept (nothing dropped), labelled by their status.
+    assert len(readings) == 3
+    assert sorted(r.quality for r in readings) == [
+        "invalid",
+        "not_present",
+        "valid",
+    ]

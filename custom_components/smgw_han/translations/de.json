@@ -109,7 +109,8 @@
       "unknown": "Ein unerwarteter Fehler ist aufgetreten.",
       "invalid_range": "„Von\" muss vor „Bis\" liegen.",
       "export_failed": "Der Export ist fehlgeschlagen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen.",
-      "no_outputs": "Bitte mindestens eine Ausgabe wählen (zertifizierte CMS-Datei, CSV oder Excel)."
+      "no_outputs": "Bitte mindestens eine Ausgabe wählen (zertifizierte CMS-Datei, CSV oder Excel).",
+      "no_data_in_range": "Für den gewählten Zeitraum sind keine Zählerdaten vorhanden (z. B. vor der Inbetriebnahme des Zählers)."
     },
     "abort": {
       "export_done": "Export erstellt.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
@@ -224,6 +225,7 @@
     "unknown_device": {"message": "Unbekannte Geräte-ID: {device_id}."},
     "wrong_device": {"message": "Das gewählte Gerät gehört nicht zur SMGW-HAN-Integration."},
     "device_not_loaded": {"message": "Der SMGW-HAN-Eintrag für dieses Gerät ist nicht geladen."},
-    "unknown_period": {"message": "Unbekanntes Zeitraum-Preset: {period}."}
+    "unknown_period": {"message": "Unbekanntes Zeitraum-Preset: {period}."},
+    "no_data_in_range": {"message": "Für den gewählten Zeitraum sind keine Zählerdaten vorhanden (z. B. vor der Inbetriebnahme des Zählers)."}
   }
 }

@@ -177,3 +177,20 @@ async def test_service_no_notification_without_files(hass: HomeAssistant):
             return_response=True,
         )
     assert not mock_notify.called
+
+
+async def test_run_export_no_data_raises(hass: HomeAssistant):
+    class EmptyCoordinator(FakeCoordinator):
+        async def async_download_cms(self, from_dt, to_dt):
+            return b"", None  # range entirely before the meter start
+
+    with pytest.raises(ServiceValidationError):
+        await run_export(
+            hass,
+            EmptyCoordinator(),
+            datetime(2026, 5, 15, 0, 0, 0),
+            datetime(2026, 5, 16, 0, 15, 0),
+            download_cms=True,
+            do_csv=False,
+            do_xlsx=False,
+        )

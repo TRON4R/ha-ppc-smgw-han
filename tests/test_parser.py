@@ -41,7 +41,7 @@ def test_export_line_inherits_timestamp_and_valid_status(fixture_text):
     assert exp_c.quality == "valid"
 
 
-def test_istvalide_zero_marks_invalid_and_is_inherited(fixture_text):
+def test_istvalide_2_marks_invalid_and_is_inherited(fixture_text):
     readings = _client()._parse_meter_values_table(
         fixture_text("showmetervalues_single.html")
     )
@@ -52,8 +52,33 @@ def test_istvalide_zero_marks_invalid_and_is_inherited(fixture_text):
     exp = next(
         r for r in readings if r.obis_code == OBIS_EXPORT and r.timestamp == ts
     )
-    assert imp.quality == "invalid"  # istvalide=0
+    assert imp.quality == "invalid"  # istvalide=2
     assert exp.quality == "invalid"  # inherited onto the export line
+
+
+def test_istvalide_3_marks_not_present():
+    # ist valide = 3 -> "not present" (a carried-forward gap placeholder); the
+    # reading is still emitted and the status inherits onto the export line.
+    html = (
+        '<table id="metervalue">'
+        '<tr id="table_metervalues_line1">'
+        '<td id="table_metervalues_col_timestamp">2026-05-15 14:00:00</td>'
+        '<td id="table_metervalues_col_obis">1-0:1.8.0</td>'
+        '<td id="table_metervalues_col_wert">1005.0</td>'
+        '<td id="table_metervalues_col_einheit">kWh</td>'
+        '<td id="table_metervalues_col_istvalide">3</td>'
+        "</tr>"
+        '<tr id="table_metervalues_line2">'
+        '<td id="table_metervalues_col_timestamp"></td>'
+        '<td id="table_metervalues_col_obis">1-0:2.8.0</td>'
+        '<td id="table_metervalues_col_wert">501.0</td>'
+        '<td id="table_metervalues_col_einheit">kWh</td>'
+        '<td id="table_metervalues_col_istvalide"></td>'
+        "</tr></table>"
+    )
+    readings = _client()._parse_meter_values_table(html)
+    assert len(readings) == 2
+    assert all(r.quality == "not_present" for r in readings)
 
 
 def test_valid_status_resets_on_following_pair(fixture_text):

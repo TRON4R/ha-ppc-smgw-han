@@ -495,7 +495,7 @@ class SmgwClient:
                     except ValueError:
                         _LOGGER.debug("Cannot parse timestamp: %s", ts_str)
 
-            # The SMGW "ist valide" flag (1/0) is the gateway's own validity
+            # The SMGW "ist valide" flag (1/2/3) is the gateway's own validity
             # status. It appears on the line1 row of each timestamp pair; the
             # line2 (export) row inherits it, mirroring the timestamp handling.
             # The textual "Status" cell holds the same info but has no stable
@@ -503,9 +503,12 @@ class SmgwClient:
             if valid_td:
                 valid_str = valid_td.get_text(strip=True)
                 if valid_str:
-                    last_quality = {"1": "valid", "0": "invalid"}.get(
-                        valid_str, valid_str
-                    )
+                    # SMGW "ist valide" codes: 1=valid, 2=invalid, 3=not present.
+                    last_quality = {
+                        "1": "valid",
+                        "2": "invalid",
+                        "3": "not_present",
+                    }.get(valid_str, valid_str)
 
             if not all([value_td, obis_td, last_timestamp]):
                 continue
@@ -698,8 +701,9 @@ class SmgwClient:
                     "to": to_str,
                 }
             )
-            if not content:
-                raise SmgwParseError("CMS export returned an empty response")
+            # An empty body is not an error here: a range entirely before the
+            # meter's first reading legitimately returns no CMS. run_export
+            # turns "no data" into a clean user-facing message.
             _LOGGER.info(
                 "Downloaded CMS export (%d bytes, filename=%s)",
                 len(content), filename,

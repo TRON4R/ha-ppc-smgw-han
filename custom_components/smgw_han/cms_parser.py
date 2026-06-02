@@ -37,6 +37,11 @@ _ROOT_CLOSE = "</ns1:object>"
 _LOCAL_TZ = ZoneInfo("Europe/Berlin")
 _UNIT_WATT_HOURS = 30  # DLMS unit code; values in Wh are scaled to kWh.
 
+# CMS measurement status (<status><unsigned>): 0=valid, 4=invalid, 3=not present
+# (a carried-forward placeholder for a missing 15-min slot). Readings are kept
+# regardless and labelled accordingly; nothing is dropped.
+_CMS_STATUS = {"0": "valid", "4": "invalid", "3": "not_present"}
+
 # Hex OBIS (capture_object logical_name) -> the integration's OBIS code.
 _OBIS_HEX_TO_CODE = {
     "0100010800ff": OBIS_IMPORT,  # 1.8.0 consumption
@@ -91,6 +96,9 @@ def _parse_entries(column: ET.Element, obis_code: str) -> list[MeterReading]:
             "e:scaler", default="0", namespaces=_NS
         ).strip()
         unit_text = entry.findtext("e:unit", default="", namespaces=_NS).strip()
+        status_text = entry.findtext(
+            "e:status/e:unsigned", default="", namespaces=_NS
+        ).strip()
         try:
             value = Decimal(long64) * (Decimal(10) ** int(scaler_text or "0"))
             ts_utc = datetime.fromisoformat(
@@ -100,6 +108,9 @@ def _parse_entries(column: ET.Element, obis_code: str) -> list[MeterReading]:
             raise CmsParseError(f"Unparseable CMS entry: {err}") from err
         if unit_text and int(unit_text) == _UNIT_WATT_HOURS:
             value = value / Decimal(1000)
+        quality = (
+            _CMS_STATUS.get(status_text, status_text) if status_text else "valid"
+        )
         ts_local = ts_utc.astimezone(_LOCAL_TZ).replace(tzinfo=None)
         readings.append(
             MeterReading(
@@ -107,7 +118,7 @@ def _parse_entries(column: ET.Element, obis_code: str) -> list[MeterReading]:
                 obis_code=obis_code,
                 value=float(value),
                 unit="kWh",
-                quality="valid",
+                quality=quality,
             )
         )
     return readings

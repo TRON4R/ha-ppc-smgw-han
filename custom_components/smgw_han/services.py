@@ -268,9 +268,19 @@ async def run_export(
     # event loop. The same bytes are reused below if the user asked to keep the
     # .cms file (so there is never a second download).
     cms_bytes, cms_name = await coordinator.async_download_cms(from_dt, to_dt)
+    # A range entirely before the meter's first reading comes back without a CMS
+    # payload — surface that as a clean "no data" message, not a raw parse error.
+    if not cms_bytes or b"<?xml" not in cms_bytes:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN, translation_key="no_data_in_range"
+        )
     readings, daily_summary = await hass.async_add_executor_job(
         _parse_and_aggregate, cms_bytes, tariff_hour, tariff_minute
     )
+    if not readings:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN, translation_key="no_data_in_range"
+        )
 
     meter_id = coordinator.target_meter_id
     from_str = from_dt.strftime("%Y-%m-%d %H:%M:%S")
