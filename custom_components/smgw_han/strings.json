@@ -109,7 +109,8 @@
       "unknown": "An unexpected error occurred.",
       "invalid_range": "'From' must be before 'To'.",
       "export_failed": "The export failed. Check the SMGW connection and the Home Assistant log.",
-      "no_outputs": "Select at least one output (certified CMS file, CSV or Excel)."
+      "no_outputs": "Select at least one output (certified CMS file, CSV or Excel).",
+      "no_data_in_range": "No meter data is available for the selected time range (e.g. before the meter was commissioned)."
     },
     "abort": {
       "export_done": "Export created.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
@@ -224,6 +225,7 @@
     "unknown_device": {"message": "Unknown device id: {device_id}."},
     "wrong_device": {"message": "Selected device does not belong to the SMGW HAN integration."},
     "device_not_loaded": {"message": "The SMGW HAN entry for this device is not loaded."},
-    "unknown_period": {"message": "Unknown period preset: {period}."}
+    "unknown_period": {"message": "Unknown period preset: {period}."},
+    "no_data_in_range": {"message": "No meter data is available for the selected time range (e.g. before the meter was commissioned)."}
   }
 }

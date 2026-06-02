@@ -16,6 +16,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.selector import (
     BooleanSelector,
     DateTimeSelector,
@@ -482,6 +483,9 @@ class SmgwTafOptionsFlow(OptionsFlow):
                         do_csv=self._export_input[ATTR_WRITE_CSV],
                         do_xlsx=self._export_input[ATTR_WRITE_XLSX],
                     )
+                except ServiceValidationError:
+                    # run_export raises this only for an empty/out-of-range CMS.
+                    errors["base"] = "no_data_in_range"
                 except Exception:  # noqa: BLE001 - surface as a form error
                     _LOGGER.exception("Export via options flow failed")
                     errors["base"] = "export_failed"
