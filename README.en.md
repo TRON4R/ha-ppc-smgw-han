@@ -24,7 +24,7 @@ This integration connects to your PPC SMGW once per day and retrieves the offici
 
 All sensors are compatible with the **Home Assistant Energy Dashboard**.
 
-**Since v2.1.0** you can also **export meter data for arbitrary time ranges** – as CSV, Excel and the signed CMS original, straight from Home Assistant. See [Data export for arbitrary time ranges](#data-export-for-arbitrary-time-ranges).
+**Since v2.1.0** you can also **export meter data for user-defined time ranges** – as CSV, Excel and the signed CMS original, straight from Home Assistant. See [Data export for user-defined time ranges](#data-export-for-user-defined-time-ranges).
 
 ## How does this differ from ha-ppc-smgw?
 
@@ -35,7 +35,7 @@ The existing [ha-ppc-smgw](https://github.com/jannickfahlbusch/ha-ppc-smgw) inte
 - **Accurate tariff split** using the second-precise meter reading at the configured tariff switch time
 - **No timing issues** - values are based on the SMGW's official daily boundaries, not the local clock of the Home Assistant server
 - **Multiple meters and SMGWs in parallel** - supports both several SMGWs and several meters on a single SMGW (Modul-2 setups, separate logins for import and feed-in). Details under [Multiple SMGWs / multiple logins](#multiple-smgws--multiple-logins).
-- **Export of certified CMS files** - the integration allows exporting legally sound CMS files in their certified original straight from the SMGW (e.g. to prove billing errors by the electricity supplier), plus generating CSV and Excel files for further processing of the consumption and feed-in data. Details under [Data export for arbitrary time ranges](#data-export-for-arbitrary-time-ranges).
+- **Export of certified CMS files** - the integration allows exporting legally sound CMS files in their certified original straight from the SMGW (e.g. to prove billing errors by the electricity supplier), plus generating CSV and Excel files for further processing of the consumption and feed-in data. Details under [Data export for user-defined time ranges](#data-export-for-user-defined-time-ranges).
 
 ## Requirements
 
@@ -120,13 +120,13 @@ When your metering point operator swaps the physical meter in your basement, you
 | Daily date | Date of the last fetched data | `date` | — |
 
 
-## Data export for arbitrary time ranges
+## Data export for user-defined time ranges
 
 Meter readings can be fetched for an **arbitrary time range** straight from Home Assistant — no detour via the SMGW web interface. Output as **CSV**, **Excel** and/or the **signed CMS original**.
 
 **Three ways, easiest to most flexible** (details below):
 
-- 🛠️ **Easiest – via the integration:** on the SMGW device click the **gear "Configure"** → **"Export SMGW data for a custom time range"**. A guided form, no prior knowledge, no helpers.
+- 🛠️ **Easiest – via the integration:** on the SMGW device click the **gear "Configure"** → **"Export SMGW data for a custom time range"**. A guided form, no prior knowledge and no helpers are necessary.
 - 📊 **One click, presets only – dashboard tile:** buttons for "Yesterday", "Last month" etc.
 - ⚙️ **Full control – Developer Tools → Actions:** any parameters, the response (incl. download links) is shown right there.
 
