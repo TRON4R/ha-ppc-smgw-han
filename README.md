@@ -125,7 +125,7 @@ Die Zählerdaten lassen sich für einen **frei wählbaren Zeitraum** direkt aus 
 
 **Drei Wege – vom einfachsten zum flexibelsten** (Details jeweils unten):
 
-- 🛠️ **Am einfachsten – über die Integration:** Beim SMGW-Gerät auf das **Zahnrad „Konfigurieren"** → **„SMGW-Daten für einen wählbaren Zeitraum exportieren"**. Geführtes Formular, keine Vorkenntnisse, keine Helfer.
+- 🛠️ **Am einfachsten – über die Integration:** Beim SMGW-Gerät auf das **Zahnrad „Konfigurieren"** → **„SMGW-Daten für einen wählbaren Zeitraum exportieren"**. Geführtes Formular, keine Vorkenntnisse und keine Helfer erforderlich.
 - 📊 **Ein-Klick, nur Vorgaben – Dashboard-Kachel:** Buttons für „Gestern", „Letzter Monat" usw.
 - ⚙️ **Volle Kontrolle – Entwicklerwerkzeuge → Aktionen:** beliebige Parameter, Antwort inkl. Download-Links direkt sichtbar.
 
