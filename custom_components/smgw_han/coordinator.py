@@ -8,6 +8,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.storage import Store
 from homeassistant.exceptions import (
@@ -30,6 +31,7 @@ from .const import (
     DEFAULT_TARIFF_SWITCH_MINUTE,
     DEFAULT_UPDATE_TIME,
     DOMAIN,
+    ISSUE_NO_RECENT_DATA,
     SENSOR_DAILY_CONSUMPTION_SLOT_1,
     SENSOR_DAILY_CONSUMPTION_SLOT_2,
     SENSOR_DAILY_CONSUMPTION_TOTAL,
@@ -45,6 +47,7 @@ from .smgw_client import (
     SmgwAuthError,
     SmgwClient,
     SmgwClientError,
+    SmgwNoDataError,
     SmgwServerError,
 )
 
@@ -245,10 +248,41 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise ConfigEntryAuthFailed(
                 f"Authentication failed: {err}"
             ) from err
+        except SmgwNoDataError as err:
+            # The gateway responded fine but has no (complete) daily values for
+            # yesterday — e.g. a frozen meter after an account/meter swap. This
+            # is NOT an auth or connection failure: do not trigger reauth, do not
+            # crash, and keep any existing sensor values. Surface it as a
+            # self-healing HA repair issue plus a clearly distinct log line.
+            last_date = (
+                self.data.get(SENSOR_DATE) if self.data else None
+            ) or "—"
+            _LOGGER.warning(
+                "SMGW lieferte keine Tagesdaten für %s "
+                "(zuletzt erfolgreich: %s): %s",
+                yesterday, last_date, err,
+            )
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                self._no_data_issue_id,
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=ISSUE_NO_RECENT_DATA,
+                translation_placeholders={
+                    "date": yesterday.isoformat(),
+                    "last_date": last_date,
+                },
+            )
+            return
         except SmgwClientError as err:
             raise UpdateFailed(
                 f"Failed to fetch SMGW data for {yesterday}: {err}"
             ) from err
+
+        # A successful fetch clears any prior "no recent data" repair issue
+        # (idempotent: a no-op when none exists).
+        ir.async_delete_issue(self.hass, DOMAIN, self._no_data_issue_id)
 
         data = self._daily_data_to_dict(daily_data)
 
@@ -277,6 +311,11 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Called for manual refreshes from the UI."""
         await self._async_do_daily_fetch()
         return self.data if self.data is not None else {}
+
+    @property
+    def _no_data_issue_id(self) -> str:
+        """Unique repair issue id for the 'no recent data' issue of this entry."""
+        return f"{ISSUE_NO_RECENT_DATA}_{self.config_entry.entry_id}"
 
     @property
     def target_meter_id(self) -> str | None:

@@ -10,7 +10,7 @@ from custom_components.smgw_han.const import OBIS_IMPORT
 from custom_components.smgw_han.smgw_client import (
     MeterReading,
     SmgwClient,
-    SmgwParseError,
+    SmgwNoDataError,
 )
 
 
@@ -61,17 +61,18 @@ def test_import_only_assumes_zero_feedin():
 
 def test_missing_required_import_reading_raises():
     # Import present at 00:00 and the tariff switch, but the mandatory
-    # next-day-midnight closing reading (C) is absent.
+    # next-day-midnight closing reading (C) is absent. This is an incomplete
+    # day (no usable data), not broken HTML -> SmgwNoDataError.
     readings = [
         _mr(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0),
         _mr(datetime(2026, 5, 15, 5, 0, 1), OBIS_IMPORT, 1002.5),
     ]
-    with pytest.raises(SmgwParseError):
+    with pytest.raises(SmgwNoDataError):
         _client()._process_readings(date(2026, 5, 15), readings, 5, 0)
 
 
 def test_no_readings_at_all_raises():
-    with pytest.raises(SmgwParseError):
+    with pytest.raises(SmgwNoDataError):
         _client()._process_readings(date(2026, 5, 15), [], 5, 0)
 
 

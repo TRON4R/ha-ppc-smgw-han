@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import pytest
+
 from custom_components.smgw_han.const import OBIS_EXPORT, OBIS_IMPORT
-from custom_components.smgw_han.smgw_client import SmgwClient
+from custom_components.smgw_han.smgw_client import SmgwClient, SmgwParseError
 
 
 def _client() -> SmgwClient:
@@ -95,11 +97,16 @@ def test_valid_status_resets_on_following_pair(fixture_text):
     assert a.quality == "valid"
 
 
-def test_missing_table_returns_empty():
-    assert _client()._parse_meter_values_table("<html><body>x</body></html>") == []
+def test_missing_table_raises_parse_error():
+    # No values table at all = broken/unexpected HTML, a real parse error -
+    # NOT "no data for the day" (which is signalled by an empty list below).
+    with pytest.raises(SmgwParseError):
+        _client()._parse_meter_values_table("<html><body>x</body></html>")
 
 
 def test_table_without_rows_returns_empty():
+    # Table present but empty = a genuine "no readings for this day"; the empty
+    # list lets the fetch raise SmgwNoDataError (-> self-healing repair issue).
     assert _client()._parse_meter_values_table('<table id="metervalue"></table>') == []
 
 

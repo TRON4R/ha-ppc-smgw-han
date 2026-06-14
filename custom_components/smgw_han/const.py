@@ -46,6 +46,11 @@ SMGW_HISTORY_DAYS = 760  # ~24 months + ~1 month margin (leap-safe)
 # reachable as /local/<EXPORT_WWW_SUBDIR>/<token>/<file> download links.
 EXPORT_WWW_SUBDIR = "smgw_han_exports"
 
+# Repair issues (homeassistant.helpers.issue_registry)
+# translation_key for the "gateway delivered no recent daily data" repair. The
+# per-entry issue_id is built in the coordinator as f"{ISSUE_NO_RECENT_DATA}_{entry_id}".
+ISSUE_NO_RECENT_DATA = "no_recent_data"
+
 # Store
 STORE_VERSION = 4
 
