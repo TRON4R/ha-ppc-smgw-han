@@ -54,6 +54,14 @@ from .smgw_client import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def no_data_issue_id(entry_id: str) -> str:
+    """Repair issue id for the 'no recent data' issue of a config entry.
+
+    Single source of truth shared by the coordinator (create/delete on
+    fetch) and ``async_remove_entry`` (cleanup when the entry is removed).
+    """
+    return f"{ISSUE_NO_RECENT_DATA}_{entry_id}"
+
 
 class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for daily SMGW HAN data fetching.
@@ -315,7 +323,7 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def _no_data_issue_id(self) -> str:
         """Unique repair issue id for the 'no recent data' issue of this entry."""
-        return f"{ISSUE_NO_RECENT_DATA}_{self.config_entry.entry_id}"
+        return no_data_issue_id(self.config_entry.entry_id)
 
     @property
     def target_meter_id(self) -> str | None:
