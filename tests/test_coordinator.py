@@ -16,8 +16,12 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.smgw_han import async_remove_entry
 from custom_components.smgw_han.const import CONF_METER_ID, DOMAIN, SENSOR_DATE
-from custom_components.smgw_han.coordinator import SmgwTafCoordinator
+from custom_components.smgw_han.coordinator import (
+    SmgwTafCoordinator,
+    no_data_issue_id,
+)
 from custom_components.smgw_han.smgw_client import (
     DailyData,
     SmgwAuthError,
@@ -146,6 +150,24 @@ async def test_connection_error_raises_update_failed(hass: HomeAssistant):
         await coord._async_do_daily_fetch()
     reg = ir.async_get(hass)
     assert reg.async_get_issue(DOMAIN, coord._no_data_issue_id) is None
+
+
+async def test_remove_entry_clears_repair_issue(hass: HomeAssistant):
+    # An active no-data issue must not survive removal of the config entry.
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_METER_ID: "M"})
+    entry.add_to_hass(hass)
+    issue_id = no_data_issue_id(entry.entry_id)
+    ir.async_create_issue(
+        hass, DOMAIN, issue_id,
+        is_fixable=False, severity=ir.IssueSeverity.WARNING,
+        translation_key="no_recent_data",
+        translation_placeholders={"date": "x", "last_date": "y"},
+    )
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
+
+    await async_remove_entry(hass, entry)
+
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
 
 
 async def test_server_error_maps_to_no_data(hass: HomeAssistant):

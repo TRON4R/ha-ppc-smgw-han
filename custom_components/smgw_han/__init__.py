@@ -7,7 +7,11 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    issue_registry as ir,
+)
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
@@ -17,7 +21,7 @@ from .const import (
     CONF_USERNAME,
     DOMAIN,
 )
-from .coordinator import SmgwTafCoordinator
+from .coordinator import SmgwTafCoordinator, no_data_issue_id
 from .services import async_setup_services
 from .smgw_client import SmgwClient
 
@@ -89,6 +93,20 @@ async def async_remove_config_entry_device(
 ) -> bool:
     """Allow removal of a device from the UI."""
     return True
+
+
+async def async_remove_entry(
+    hass: HomeAssistant, entry: SmgwTafConfigEntry
+) -> None:
+    """Clean up the per-entry repair issue when the entry is removed.
+
+    The coordinator deletes the "no recent data" issue on a successful fetch,
+    but if the entry is removed while that issue is still active, nothing else
+    would clear it — leaving a stale repair entry behind. Deleting here (rather
+    than in async_unload_entry, which also runs on every reload/shutdown) keeps
+    an active issue intact across reloads while avoiding the orphan on removal.
+    """
+    ir.async_delete_issue(hass, DOMAIN, no_data_issue_id(entry.entry_id))
 
 
 async def async_unload_entry(
