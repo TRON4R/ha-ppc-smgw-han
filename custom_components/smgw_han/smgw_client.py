@@ -769,13 +769,44 @@ class SmgwClient:
             next_day.year, next_day.month, next_day.day, 0, 0, 1
         )
 
-        import_a = find_closest_value(import_readings, midnight_start)
-        import_b = find_closest_value(import_readings, tariff_switch)
-        import_c = find_closest_value(import_readings, midnight_end)
-        export_a = find_closest_value(export_readings, midnight_start)
-        export_c = find_closest_value(export_readings, midnight_end)
+        # Resolve each anchor reading (the full MeterReading, so we keep the
+        # gateway's validity flag alongside the value).
+        import_a_r = find_closest_reading(import_readings, midnight_start)
+        import_b_r = find_closest_reading(import_readings, tariff_switch)
+        import_c_r = find_closest_reading(import_readings, midnight_end)
+        export_a_r = find_closest_reading(export_readings, midnight_start)
+        export_c_r = find_closest_reading(export_readings, midnight_end)
+
+        import_a = import_a_r.value if import_a_r is not None else None
+        import_b = import_b_r.value if import_b_r is not None else None
+        import_c = import_c_r.value if import_c_r is not None else None
+        export_a = export_a_r.value if export_a_r is not None else None
+        export_c = export_c_r.value if export_c_r is not None else None
 
         tariff_str = f"{tariff_switch_hour:02d}:{tariff_switch_minute:02d}"
+
+        # An "invalid" status (SMGW "ist valide" = 2 / CMS = 4) means the gateway
+        # itself flagged that measurement as untrustworthy. Log it for visibility
+        # but keep using the value — behaviour is intentionally unchanged here
+        # (observe-first). "not_present" (3) is a carried-forward placeholder on a
+        # cumulative register and stays silent: daily deltas are unaffected.
+        invalid_anchors = [
+            label
+            for label, r in (
+                (f"Import 00:00 on {target_date}", import_a_r),
+                (f"Import {tariff_str} on {target_date}", import_b_r),
+                (f"Import 00:00 on {next_day}", import_c_r),
+                (f"Export 00:00 on {target_date}", export_a_r),
+                (f"Export 00:00 on {next_day}", export_c_r),
+            )
+            if r is not None and r.quality == "invalid"
+        ]
+        if invalid_anchors:
+            _LOGGER.warning(
+                "SMGW flagged anchor reading(s) as invalid for %s: %s "
+                "(daily values are still computed from them)",
+                target_date, ", ".join(invalid_anchors),
+            )
 
         # At least one of import (1.8.0) or export (2.8.0) must be present;
         # otherwise the meter has no usable readings at all.

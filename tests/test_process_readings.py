@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime
 
 import pytest
@@ -18,9 +19,11 @@ def _client() -> SmgwClient:
     return SmgwClient("https://smgw.local/cgi-bin/hanservice.cgi", "user", "pw")
 
 
-def _mr(ts: datetime, obis: str, value: float) -> MeterReading:
+def _mr(
+    ts: datetime, obis: str, value: float, quality: str = "valid"
+) -> MeterReading:
     return MeterReading(
-        timestamp=ts, obis_code=obis, value=value, unit="kWh", quality="valid"
+        timestamp=ts, obis_code=obis, value=value, unit="kWh", quality=quality
     )
 
 
@@ -74,6 +77,35 @@ def test_missing_required_import_reading_raises():
 def test_no_readings_at_all_raises():
     with pytest.raises(SmgwNoDataError):
         _client()._process_readings(date(2026, 5, 15), [], 5, 0)
+
+
+def test_invalid_anchor_is_logged_but_value_still_used(caplog):
+    # The next-day-midnight closing reading (C) carries the gateway's "invalid"
+    # flag. Observe-first: a WARNING is logged, but the value is still used, so
+    # the daily total is unchanged (no behaviour change, no NoData).
+    readings = [
+        _mr(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0),
+        _mr(datetime(2026, 5, 15, 5, 0, 1), OBIS_IMPORT, 1002.5),
+        _mr(datetime(2026, 5, 16, 0, 0, 1), OBIS_IMPORT, 1010.0, "invalid"),
+    ]
+    with caplog.at_level(logging.WARNING):
+        daily = _client()._process_readings(date(2026, 5, 15), readings, 5, 0)
+    assert daily.daily_import_total == 10.0  # 1010.0 - 1000.0, value still used
+    assert "invalid" in caplog.text.lower()
+
+
+def test_not_present_anchor_does_not_warn(caplog):
+    # "not_present" is a carried-forward placeholder on a cumulative register
+    # and must stay silent (deliberately distinct from "invalid").
+    readings = [
+        _mr(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0),
+        _mr(datetime(2026, 5, 15, 5, 0, 1), OBIS_IMPORT, 1002.5),
+        _mr(datetime(2026, 5, 16, 0, 0, 1), OBIS_IMPORT, 1010.0, "not_present"),
+    ]
+    with caplog.at_level(logging.WARNING):
+        daily = _client()._process_readings(date(2026, 5, 15), readings, 5, 0)
+    assert daily.daily_import_total == 10.0
+    assert "invalid" not in caplog.text.lower()
 
 
 def test_custom_tariff_switch_time():
