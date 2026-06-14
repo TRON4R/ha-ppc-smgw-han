@@ -232,5 +232,11 @@
     "no_data_in_range": {"message": "Für den gewählten Zeitraum sind keine Zählerdaten vorhanden (z. B. vor der Inbetriebnahme des Zählers)."},
     "cms_auth_failed": {"message": "Die Anmeldung am SMGW ist fehlgeschlagen. Bitte die Integration neu authentifizieren."},
     "cms_download_failed": {"message": "Der SMGW-Export konnte nicht heruntergeladen werden. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen."}
+  },
+  "issues": {
+    "no_recent_data": {
+      "title": "SMGW liefert keine aktuellen Daten",
+      "description": "Das Smart Meter Gateway hat für den {date} keine (vollständigen) Tageswerte geliefert (zuletzt erfolgreich: {last_date}). Anmeldung und Verbindung funktionieren — es kommen nur keine neuen Tagesdaten vom Gateway (z. B. nach einem Zähler- oder Kontoumbau). Bestehende Sensorwerte bleiben erhalten. Dieser Hinweis verschwindet automatisch, sobald wieder ein Tag erfolgreich abgerufen wurde."
+    }
   }
 }

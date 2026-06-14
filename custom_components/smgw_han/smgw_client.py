@@ -35,6 +35,16 @@ class SmgwServerError(SmgwClientError):
     meter was commissioned)."""
 
 
+class SmgwNoDataError(SmgwClientError):
+    """The SMGW responded normally but has no usable readings for the target day.
+
+    Distinct from :class:`SmgwParseError` (broken/unexpected HTML): here the page
+    parsed fine, the gateway just has no (complete) daily values for the requested
+    date — e.g. a frozen meter after an account/meter swap, or a fresh install for
+    a date the gateway never recorded. The coordinator turns this into a
+    self-healing HA repair issue instead of an auth/connection failure."""
+
+
 class SmgwParseError(SmgwClientError):
     """HTML parsing error."""
 
@@ -473,13 +483,19 @@ class SmgwClient:
 
         table = soup.find("table", id="metervalue")
         if not table:
-            _LOGGER.warning("No meter values table found in HTML response")
-            return readings
+            # The values table is missing entirely: this is broken/unexpected
+            # HTML, not an empty day. Signal a real parse error so the caller
+            # keeps it distinct from "no data for the target day".
+            raise SmgwParseError(
+                "Meter values table not found in SMGW response"
+            )
 
         rows = table.find_all(
             "tr", id=lambda x: x and x.startswith("table_metervalues_line")
         )
         if not rows:
+            # Table present but empty: a genuine "no readings for this day".
+            # An empty list lets _fetch_daily_data_locked raise SmgwNoDataError.
             _LOGGER.warning("No meter value rows found in table")
             return readings
 
@@ -650,7 +666,10 @@ class SmgwClient:
             all_readings = self._parse_meter_values_table(html)
 
             if not all_readings:
-                raise SmgwParseError(
+                # Table parsed fine but held no rows: the gateway has no daily
+                # values for this date (frozen meter / not yet recorded), not a
+                # parse failure. The coordinator maps this to a repair issue.
+                raise SmgwNoDataError(
                     f"No meter readings found for {target_date}"
                 )
 
@@ -761,7 +780,7 @@ class SmgwClient:
         # At least one of import (1.8.0) or export (2.8.0) must be present;
         # otherwise the meter has no usable readings at all.
         if not import_readings and not export_readings:
-            raise SmgwParseError(
+            raise SmgwNoDataError(
                 f"No import (1.8.0) or export (2.8.0) readings found "
                 f"for {target_date}"
             )
@@ -783,7 +802,10 @@ class SmgwClient:
                 all_timestamps = sorted(
                     set(r.timestamp for r in import_readings + export_readings)
                 )
-                raise SmgwParseError(
+                # Readings exist but not at the required target timestamps:
+                # an incomplete day, not broken HTML. Treat as "no usable data"
+                # (self-healing repair issue), not a hard parse failure.
+                raise SmgwNoDataError(
                     f"Missing required meter readings: {', '.join(missing)}. "
                     f"Available timestamps: {all_timestamps}"
                 )

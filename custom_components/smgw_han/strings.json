@@ -232,5 +232,11 @@
     "no_data_in_range": {"message": "No meter data is available for the selected time range (e.g. before the meter was commissioned)."},
     "cms_auth_failed": {"message": "SMGW authentication failed. Please re-authenticate the integration."},
     "cms_download_failed": {"message": "The SMGW export could not be downloaded. Check the SMGW connection and the Home Assistant log."}
+  },
+  "issues": {
+    "no_recent_data": {
+      "title": "SMGW is not delivering current data",
+      "description": "The Smart Meter Gateway returned no (complete) daily values for {date} (last successful: {last_date}). Login and connection work fine — the gateway simply isn't providing new daily data (e.g. after a meter or account change). Existing sensor values are kept. This notice disappears automatically as soon as a day is fetched successfully again."
+    }
   }
 }
