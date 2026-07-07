@@ -313,7 +313,15 @@ async def run_export(
         # markdown/notifications, copy-pasteable from Developer Tools). Falls
         # back to a relative /local path if no base URL is configured.
         try:
-            base_url = get_url(hass).rstrip("/")
+            # Prefer Home Assistant's external URL (if configured) so links
+            # generated for exported files are reachable from remote UIs
+            # (e.g. when HA is behind a reverse proxy). Some older HA
+            # versions don't accept the `prefer_external` argument, so fall
+            # back to the no-arg form on TypeError.
+            try:
+                base_url = get_url(hass, prefer_external=True).rstrip("/")
+            except TypeError:
+                base_url = get_url(hass).rstrip("/")
         except NoURLAvailableError:
             base_url = ""
         files = {
