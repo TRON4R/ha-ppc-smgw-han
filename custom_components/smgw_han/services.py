@@ -342,14 +342,27 @@ async def run_export(
 
 
 def build_links_markdown(files: dict[str, str]) -> str:
-    """A markdown line of the download links (CMS · CSV · Excel), in that order."""
-    parts = []
-    if files.get("cms"):
-        parts.append(f"[CMS]({files['cms']})")
-    if files.get("csv"):
-        parts.append(f"[CSV]({files['csv']})")
-    if files.get("xlsx"):
-        parts.append(f"[Excel]({files['xlsx']})")
+    """Download links (CMS · CSV · Excel) as explicit ``target="_blank"`` anchors.
+
+    Rendered as raw ``<a target="_blank">`` anchors, NOT markdown ``[text](url)``:
+    Home Assistant's frontend only auto-adds ``target="_blank"`` to cross-origin
+    links (``node.host !== document.location.host``). Once the export URL is the
+    same host the user is currently browsing (which is the norm since v2.5.3
+    prefers the external URL), a plain markdown link is same-origin, so the SPA
+    router intercepts the click and lands on the default dashboard instead of
+    downloading. An explicit ``target="_blank"`` survives HA's markdown sanitizer
+    (js-xss whitelists ``a[target]``) and opens the file in a new tab, which
+    downloads it — origin-independent. Verified live against a real instance.
+
+    ``href``/label are safe unescaped: the token is ``token_urlsafe`` and the
+    filename is ``_sanitize``d, so neither contains HTML metacharacters.
+    """
+    labels = (("cms", "CMS"), ("csv", "CSV"), ("xlsx", "Excel"))
+    parts = [
+        f'<a href="{files[key]}" target="_blank">{label}</a>'
+        for key, label in labels
+        if files.get(key)
+    ]
     return " · ".join(parts)
 
 

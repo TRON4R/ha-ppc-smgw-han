@@ -120,6 +120,8 @@ async def test_run_export_without_files_omits_files_key(hass: HomeAssistant):
 
 
 async def test_build_links_markdown():
+    # Explicit target="_blank" anchors (not markdown links) so a same-origin
+    # export URL is not swallowed by HA's SPA router on left-click.
     md = build_links_markdown(
         {
             "cms": "http://h/a.cms",
@@ -128,7 +130,9 @@ async def test_build_links_markdown():
         }
     )
     assert md == (
-        "[CMS](http://h/a.cms) · [CSV](http://h/a.csv) · [Excel](http://h/a.xlsx)"
+        '<a href="http://h/a.cms" target="_blank">CMS</a> · '
+        '<a href="http://h/a.csv" target="_blank">CSV</a> · '
+        '<a href="http://h/a.xlsx" target="_blank">Excel</a>'
     )
     assert build_links_markdown({}) == ""
 
@@ -157,7 +161,7 @@ async def test_service_posts_notification_with_links(hass: HomeAssistant):
         )
     assert mock_notify.called
     message = mock_notify.call_args.args[1]
-    assert "[CMS]" in message
+    assert 'target="_blank">CMS</a>' in message
 
 
 async def test_service_no_notification_without_files(hass: HomeAssistant):
