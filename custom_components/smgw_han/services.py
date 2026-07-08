@@ -310,10 +310,12 @@ async def run_export(
             cms_bytes if download_cms else None, cms_name,
         )
         # Prefer an absolute URL so the link is directly usable (clickable in
-        # markdown/notifications, copy-pasteable from Developer Tools). Falls
-        # back to a relative /local path if no base URL is configured.
+        # markdown/notifications, copy-pasteable from Developer Tools). Prefer
+        # the external URL so links work behind a reverse proxy / when accessed
+        # from outside (get_url falls back to the internal URL if no external one
+        # is configured). Falls back to a relative /local path if neither exists.
         try:
-            base_url = get_url(hass).rstrip("/")
+            base_url = get_url(hass, prefer_external=True).rstrip("/")
         except NoURLAvailableError:
             base_url = ""
         files = {
