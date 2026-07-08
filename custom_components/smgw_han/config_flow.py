@@ -57,6 +57,7 @@ from .services import (
     PERIOD_PRESETS,
     _period_range,
     _validate_range,
+    build_links_markdown,
     run_export,
 )
 from .smgw_client import (
@@ -498,7 +499,10 @@ class SmgwTafOptionsFlow(OptionsFlow):
                     _LOGGER.exception("Export via options flow failed")
                     errors["base"] = "export_failed"
                 else:
-                    links = self._links_markdown(result)
+                    links = (
+                        build_links_markdown(result.get("files", {}))
+                        or "_(keine Dateien)_"
+                    )
                     self._notify_export(result, links)
                     return self.async_abort(
                         reason="export_done",
@@ -541,19 +545,6 @@ class SmgwTafOptionsFlow(OptionsFlow):
         if dt.tzinfo is not None:
             dt = dt_util.as_local(dt).replace(tzinfo=None)
         return dt
-
-    @staticmethod
-    def _links_markdown(result: dict[str, Any]) -> str:
-        """Build a markdown line of the download links (CMS, CSV, Excel)."""
-        files = result.get("files", {})
-        parts = []
-        if files.get("cms"):
-            parts.append(f"[CMS]({files['cms']})")
-        if files.get("csv"):
-            parts.append(f"[CSV]({files['csv']})")
-        if files.get("xlsx"):
-            parts.append(f"[Excel]({files['xlsx']})")
-        return " · ".join(parts) if parts else "_(keine Dateien)_"
 
     def _notify_export(self, result: dict[str, Any], links: str) -> None:
         """Post a persistent notification as a lasting copy of the links."""
