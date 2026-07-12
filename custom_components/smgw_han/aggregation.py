@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from .const import OBIS_EXPORT, OBIS_IMPORT
-from .smgw_client import MeterReading, find_closest_reading
+from .smgw_client import MeterReading, TariffZones, find_closest_reading
 
 
 @dataclass
@@ -23,8 +23,9 @@ class DailySummary:
 
     The "end value" of day D is the first cumulative reading at 00:00 of the
     following day (D+1), which is the cleanest closing value for a cumulative
-    register. Consumption splits follow the Octopus Go model
-    (Go = start..switch, Standard = switch..next-day-midnight).
+    register. Consumption splits follow the configured tariff zones: segments
+    sharing a zone name are summed into one value; a zone with any missing
+    boundary reading is ``None``.
     """
 
     day: date
@@ -33,9 +34,8 @@ class DailySummary:
     import_end: float | None  # 1.8.0 cumulative reading at D+1 00:00
     export_end: float | None  # 2.8.0 cumulative reading at D+1 00:00
     import_start: float | None  # 1.8.0 at D 00:00
-    import_switch: float | None  # 1.8.0 at tariff switch time on D
-    consumption_go: float | None
-    consumption_standard: float | None
+    import_switches: dict[str, float | None]  # 1.8.0 at each inner boundary ("HH:MM")
+    zone_consumptions: dict[str, float | None]  # zone name -> kWh (or None)
     consumption_total: float | None
     feedin_total: float | None
 
@@ -54,9 +54,8 @@ class DailySummary:
             "import_end": self.import_end,
             "export_end": self.export_end,
             "import_start": self.import_start,
-            "import_switch": self.import_switch,
-            "consumption_go": self.consumption_go,
-            "consumption_standard": self.consumption_standard,
+            "import_switches": dict(self.import_switches),
+            "zones": dict(self.zone_consumptions),
             "consumption_total": self.consumption_total,
             "feedin_total": self.feedin_total,
         }
@@ -71,13 +70,14 @@ def _diff(a: float | None, b: float | None) -> float | None:
 
 def build_daily_summary(
     readings: list[MeterReading],
-    tariff_switch_hour: int = 5,
-    tariff_switch_minute: int = 0,
+    zones: TariffZones,
 ) -> list[DailySummary]:
     """Aggregate raw readings into one :class:`DailySummary` per calendar day.
 
-    Days are taken from the span of timestamps present in ``readings``. A day
-    is included only if at least one of its computed values is available.
+    ``zones`` is the parsed tariff-zone definition (ordered ``(time, name)``
+    pairs, the first at 00:00). Days are taken from the span of timestamps
+    present in ``readings``. A day is included only if at least one of its
+    computed values is available.
     """
     if not readings:
         return []
@@ -92,28 +92,48 @@ def build_daily_summary(
     day = first_day
     while day <= last_day:
         next_day = day + timedelta(days=1)
-        midnight_start = datetime(day.year, day.month, day.day, 0, 0, 1)
-        tariff_switch = datetime(
-            day.year, day.month, day.day,
-            tariff_switch_hour, tariff_switch_minute, 1,
-        )
-        midnight_end = datetime(
-            next_day.year, next_day.month, next_day.day, 0, 0, 1
+        # Segment boundaries: each configured segment start (second :01, like
+        # the strict daily processing) plus next-day midnight as the closer.
+        boundary_times = [
+            datetime(day.year, day.month, day.day, t.hour, t.minute, 1)
+            for t, _name in zones
+        ]
+        boundary_times.append(
+            datetime(next_day.year, next_day.month, next_day.day, 0, 0, 1)
         )
 
-        import_start = find_closest_reading(import_readings, midnight_start)
-        import_switch = find_closest_reading(import_readings, tariff_switch)
-        import_end = find_closest_reading(import_readings, midnight_end)
-        export_start = find_closest_reading(export_readings, midnight_start)
-        export_end = find_closest_reading(export_readings, midnight_end)
+        boundary_rs = [
+            find_closest_reading(import_readings, bt) for bt in boundary_times
+        ]
+        boundary_vals = [r.value if r else None for r in boundary_rs]
+        export_start = find_closest_reading(export_readings, boundary_times[0])
+        export_end = find_closest_reading(export_readings, boundary_times[-1])
+
+        # Sum segment diffs per zone name; any missing boundary makes the
+        # affected zone(s) None while the other zones stay computable.
+        zone_consumptions: dict[str, float | None] = {}
+        for i, (_t, name) in enumerate(zones):
+            seg = _diff(boundary_vals[i], boundary_vals[i + 1])
+            if name in zone_consumptions:
+                prev = zone_consumptions[name]
+                zone_consumptions[name] = (
+                    None
+                    if prev is None or seg is None
+                    else round(prev + seg, 4)
+                )
+            else:
+                zone_consumptions[name] = seg
+
+        import_switches = {
+            t.strftime("%H:%M"): boundary_vals[i]
+            for i, (t, _name) in enumerate(zones)
+            if i > 0
+        }
 
         # Representative timestamps of the day's boundary readings.
-        start_reading = import_start or export_start
-        end_reading = import_end or export_end
+        start_reading = boundary_rs[0] or export_start
+        end_reading = boundary_rs[-1] or export_end
 
-        start_val = import_start.value if import_start else None
-        switch_val = import_switch.value if import_switch else None
-        end_val = import_end.value if import_end else None
         export_start_val = export_start.value if export_start else None
         export_end_val = export_end.value if export_end else None
 
@@ -121,13 +141,12 @@ def build_daily_summary(
             day=day,
             start_timestamp=start_reading.timestamp if start_reading else None,
             end_timestamp=end_reading.timestamp if end_reading else None,
-            import_end=end_val,
+            import_end=boundary_vals[-1],
             export_end=export_end_val,
-            import_start=start_val,
-            import_switch=switch_val,
-            consumption_go=_diff(start_val, switch_val),
-            consumption_standard=_diff(switch_val, end_val),
-            consumption_total=_diff(start_val, end_val),
+            import_start=boundary_vals[0],
+            import_switches=import_switches,
+            zone_consumptions=zone_consumptions,
+            consumption_total=_diff(boundary_vals[0], boundary_vals[-1]),
             feedin_total=_diff(export_start_val, export_end_val),
         )
 

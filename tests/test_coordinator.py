@@ -66,8 +66,7 @@ class _FetchStub:
         self.calls = 0
 
     async def async_fetch_daily_data(
-        self, target_date, tariff_switch_hour=5,
-        tariff_switch_minute=0, target_meter_id=None,
+        self, target_date, zones=None, target_meter_id=None,
     ):
         self.calls += 1
         if self._exc is not None:
@@ -89,16 +88,39 @@ def _fetch_coordinator(
 def _daily_data(target_date) -> DailyData:
     return DailyData(
         date=target_date,
-        import_midnight=1000.0,
-        import_tariff_switch=1002.5,
-        import_next_midnight=1010.0,
+        import_boundaries=[1000.0, 1002.5, 1010.0],
         export_midnight=500.0,
         export_next_midnight=503.0,
+        zone_totals={"Zeitfenster 1": 2.5, "Zeitfenster 2": 7.5},
         daily_import_total=10.0,
-        daily_import_go=2.5,
-        daily_import_standard=7.5,
         daily_export_total=3.0,
     )
+
+
+def test_daily_data_to_dict_generates_slot_and_switch_keys():
+    # 3 zones over 4 segments (one name repeated): slot index follows first
+    # appearance, inner boundaries become switch_{n}.
+    dd = DailyData(
+        date=datetime(2026, 5, 15).date(),
+        import_boundaries=[1000.0, 1001.0, 1003.0, 1006.0, 1010.0],
+        export_midnight=500.0,
+        export_next_midnight=503.0,
+        zone_totals={"Standard": 6.0, "Niedrig": 2.0, "Hoch": 2.0},
+        daily_import_total=10.0,
+        daily_export_total=3.0,
+    )
+    data = SmgwTafCoordinator._daily_data_to_dict(dd)
+    assert data["daily_consumption_slot_1"] == 6.0  # Standard
+    assert data["daily_consumption_slot_2"] == 2.0  # Niedrig
+    assert data["daily_consumption_slot_3"] == 2.0  # Hoch
+    assert "daily_consumption_slot_4" not in data
+    assert data["meter_consumption_prev_day_close"] == 1000.0
+    assert data["meter_consumption_switch_1"] == 1001.0
+    assert data["meter_consumption_switch_2"] == 1003.0
+    assert data["meter_consumption_switch_3"] == 1006.0
+    assert "meter_consumption_switch_4" not in data
+    assert data["daily_consumption_total"] == 10.0
+    assert data["daily_feedin_total"] == 3.0
 
 
 async def test_no_data_creates_repair_issue_and_keeps_data(hass: HomeAssistant):

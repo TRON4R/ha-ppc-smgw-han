@@ -88,12 +88,31 @@ def write_xlsx(
     daily_summary: list[DailySummary],
     meta: dict[str, Any],
 ) -> None:
-    """Write a multi-sheet workbook. Imports openpyxl lazily."""
+    """Write a multi-sheet workbook. Imports openpyxl lazily.
+
+    ``meta["zones"]`` is the tariff-zone definition as ordered
+    ``("HH:MM", name)`` pairs (the first at 00:00); it drives the dynamic
+    columns of the "Tarifzonen" sheet and the "Definition" sheet.
+    """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font
     from openpyxl.utils import get_column_letter
 
-    tariff_label = meta.get("tariff_switch", "05:00")
+    zones: list[tuple[str, str]] = [
+        (t, name) for t, name in meta.get("zones", [])
+    ]
+    inner_times = [t for t, _name in zones[1:]]
+    zone_names = list(dict.fromkeys(name for _t, name in zones))
+    # Each zone's daily windows, e.g. "Standard: 06:00-12:00 + 16:00-18:00".
+    segment_ends = [*inner_times, "24:00"]
+    zone_windows = {
+        name: [
+            f"{zones[i][0]}-{segment_ends[i]}"
+            for i in range(len(zones))
+            if zones[i][1] == name
+        ]
+        for name in zone_names
+    }
 
     wb = Workbook()
 
@@ -123,25 +142,28 @@ def write_xlsx(
         for cell in row:
             cell.number_format = "0.0000"
 
-    # --- Sheet 3: tariff zones ------------------------------------------
+    # --- Sheet 3: tariff zones (dynamic columns from the zone config) ----
     tarif = wb.create_sheet("Tarifzonen")
     tarif.append([
         "Datum",
         "Bezug 00:00 (kWh)",
-        f"Bezug {tariff_label} (kWh)",
+        *[f"Bezug {t} (kWh)" for t in inner_times],
         "Bezug Folgetag 00:00 (kWh)",
-        f"Go-Verbrauch 00:00-{tariff_label} (kWh)",
-        f"Standard-Verbrauch {tariff_label}-24:00 (kWh)",
+        *[f"Verbrauch {name} (kWh)" for name in zone_names],
         "Gesamtverbrauch 00:00-24:00 (kWh)",
         "Einspeisung gesamt (kWh)",
     ])
     for s in daily_summary:
         tarif.append([
-            s.day.isoformat(), s.import_start, s.import_switch, s.import_end,
-            s.consumption_go, s.consumption_standard, s.consumption_total,
+            s.day.isoformat(),
+            s.import_start,
+            *[s.import_switches.get(t) for t in inner_times],
+            s.import_end,
+            *[s.zone_consumptions.get(name) for name in zone_names],
+            s.consumption_total,
             s.feedin_total,
         ])
-    for row in tarif.iter_rows(min_row=2, min_col=2, max_col=8):
+    for row in tarif.iter_rows(min_row=2, min_col=2, max_col=tarif.max_column):
         for cell in row:
             cell.number_format = "0.0000"
 
@@ -163,32 +185,39 @@ def write_xlsx(
         "Zählerstand am Folgetag D+1 um 00:00 Uhr lokaler Zeit "
         "(Europe/Berlin)."
     )
-    info["A9"] = "Tarifzonen für Intelligent Octopus Go"
+    info["A9"] = "Tarifzonen (konfiguriert, lokale Zeit des Kalendertags D)"
     info["A9"].font = bold
-    info["A10"] = (
-        f"Go-Zeit = 00:00 bis {tariff_label} lokaler Zeit des Kalendertags D."
+    row = 10
+    for name in zone_names:
+        info[f"A{row}"] = f"{name}: {' + '.join(zone_windows[name])}"
+        row += 1
+    row += 1
+    info[f"A{row}"] = "Berechnung Bezug"
+    info[f"A{row}"].font = bold
+    row += 1
+    info[f"A{row}"] = (
+        "Verbrauch eines Zeitfensters = Bezug(Fensterende) - "
+        "Bezug(Fensterbeginn); 24:00 entspricht 00:00 des Folgetags D+1."
     )
-    info["A11"] = (
-        f"Standardzeit = {tariff_label} bis 00:00 lokaler Zeit des "
-        "Folgetags D+1."
+    row += 1
+    info[f"A{row}"] = (
+        "Verbrauch einer Tarifzone = Summe der Verbräuche ihrer Zeitfenster."
     )
-    info["A13"] = "Berechnung Bezug"
-    info["A13"].font = bold
-    info["A14"] = f"Go-Verbrauch = Bezug({tariff_label}) - Bezug(00:00)"
-    info["A15"] = (
-        f"Standard-Verbrauch = Bezug(Folgetag 00:00) - Bezug({tariff_label})"
-    )
-    info["A16"] = "Gesamtverbrauch = Bezug(Folgetag 00:00) - Bezug(00:00)"
-    info["A18"] = "Wichtiger Hinweis"
-    info["A18"].font = bold
-    info["A19"] = (
+    row += 1
+    info[f"A{row}"] = "Gesamtverbrauch = Bezug(Folgetag 00:00) - Bezug(00:00)"
+    row += 2
+    info[f"A{row}"] = "Wichtiger Hinweis"
+    info[f"A{row}"].font = bold
+    row += 1
+    info[f"A{row}"] = (
         "Gesamtverbrauch wird direkt aus den beiden Tagesrand-Zählerständen "
-        "berechnet. Er ist damit rechnerisch identisch zu Go-Verbrauch + "
-        "Standard-Verbrauch, sofern alle drei Messpunkte vorhanden sind."
+        "berechnet. Er ist damit rechnerisch identisch zur Summe der "
+        "Tarifzonen-Verbräuche, sofern alle Messpunkte vorhanden sind."
     )
-    info["A20"] = (
+    row += 1
+    info[f"A{row}"] = (
         "Falls für einen Tag ein benötigter Messpunkt fehlt (00:00 oder "
-        "Tarifwechsel), bleibt die berechnete Spalte leer."
+        "eine Umschaltzeit), bleibt die betroffene berechnete Spalte leer."
     )
     info.column_dimensions["A"].width = 140
 

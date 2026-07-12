@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, time
 
 from openpyxl import load_workbook
 
@@ -54,14 +54,17 @@ def test_write_csv_wide_format(tmp_path):
     assert row.split(";")[2] == ""
 
 
+GO_ZONES = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
+
+
 def test_write_xlsx_sheets_and_rowcount(tmp_path):
     path = tmp_path / "out.xlsx"
-    summary = build_daily_summary(READINGS, 5, 0)
+    summary = build_daily_summary(READINGS, GO_ZONES)
     meta = {
         "meter_id": "1lgz0072999211",
         "from": "2026-05-15 00:00:00",
         "to": "2026-05-16 00:15:00",
-        "tariff_switch": "05:00",
+        "zones": [("00:00", "Go"), ("05:00", "Standard")],
     }
     write_xlsx(path, READINGS, summary, meta)
 
@@ -76,3 +79,51 @@ def test_write_xlsx_sheets_and_rowcount(tmp_path):
     assert wb["Rohdaten"].max_row == 1 + len(READINGS)
     # Tagesendwerte: header + one row per summarized day.
     assert wb["Tagesendwerte"].max_row == 1 + len(summary)
+    # Tarifzonen: one boundary column per inner switch time and one
+    # consumption column per distinct zone name.
+    header = [c.value for c in wb["Tarifzonen"][1]]
+    assert header == [
+        "Datum",
+        "Bezug 00:00 (kWh)",
+        "Bezug 05:00 (kWh)",
+        "Bezug Folgetag 00:00 (kWh)",
+        "Verbrauch Go (kWh)",
+        "Verbrauch Standard (kWh)",
+        "Gesamtverbrauch 00:00-24:00 (kWh)",
+        "Einspeisung gesamt (kWh)",
+    ]
+    row = [c.value for c in wb["Tarifzonen"][2]]
+    assert row == [
+        "2026-05-15", 1000.0, 1002.5, 1010.0, 2.5, 7.5, 10.0, 3.0,
+    ]
+
+
+def test_write_xlsx_multi_window_zone_definition(tmp_path):
+    # A zone spanning several windows (Heat-style) must be listed with all
+    # its windows on the Definition sheet and get exactly one consumption
+    # column on the Tarifzonen sheet.
+    zones = [
+        (time(0, 0), "Standard"),
+        (time(2, 0), "Niedrig"),
+        (time(6, 0), "Standard"),
+    ]
+    summary = build_daily_summary(READINGS, zones)
+    meta = {
+        "meter_id": "m",
+        "from": "x",
+        "to": "y",
+        "zones": [("00:00", "Standard"), ("02:00", "Niedrig"), ("06:00", "Standard")],
+    }
+    path = tmp_path / "out.xlsx"
+    write_xlsx(path, READINGS, summary, meta)
+
+    wb = load_workbook(path)
+    header = [c.value for c in wb["Tarifzonen"][1]]
+    assert header.count("Verbrauch Standard (kWh)") == 1
+    assert "Bezug 02:00 (kWh)" in header
+    assert "Bezug 06:00 (kWh)" in header
+    definition_texts = [
+        c.value for row in wb["Definition"].iter_rows() for c in row if c.value
+    ]
+    assert "Standard: 00:00-02:00 + 06:00-24:00" in definition_texts
+    assert "Niedrig: 02:00-06:00" in definition_texts

@@ -8,15 +8,13 @@
           "url": "URL",
           "username": "Benutzername",
           "password": "Passwort",
-          "tariff_switch_hour": "Start Standard-Tarif (Stunde)",
-          "tariff_switch_minute": "Start Standard-Tarif (Minute)",
+          "tariff_zones": "Tarifzonen (Umschaltpunkte)",
           "update_time": "Abrufzeit",
           "device_name": "Gerätename (optional)"
         },
         "data_description": {
           "url": "URL der SMGW HAN-Schnittstelle (Standard: https://192.168.100.100/cgi-bin/hanservice.cgi)",
-          "tariff_switch_hour": "Volle Stunde, ab der der Standard-Tarif gilt",
-          "tariff_switch_minute": "Minute des Tarifwechsels (0, 15, 30 oder 45)",
+          "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format „HH:MM Zonenname\", beginnend mit 00:00; der letzte Eintrag gilt bis Mitternacht. Beispiel Octopus Go: „00:00 Go\" und „05:00 Standard\". Gleiche Zonennamen ergeben einen gemeinsamen Sensor: „00:00 Standard\", „02:00 Niedrig\", „06:00 Standard\", „12:00 Niedrig\" erzeugt zwei Sensoren — „Standard\" summiert 00:00–02:00 und 06:00–12:00, „Niedrig\" summiert 02:00–06:00 und 12:00–24:00. Minuten nur 00, 15, 30 oder 45.",
           "update_time": "Tageszeit für den automatischen Abruf der Vortageswerte",
           "device_name": "Nur ausfüllen, wenn du diese Integration mehrfach mit unterschiedlichen Logins zum selben SMGW verwendest — z.B. wenn dir dein Messstellenbetreiber separate Zugangsdaten für die Verbrauchs- (1.8.0) und die Einspeise-Abfrage (2.8.0) gegeben hat. Vergib in dem Fall hier sprechende Namen wie „SMGW Verbrauch\" und „SMGW Einspeisung\", damit du die beiden Geräte in Home Assistant unterscheiden kannst. Leer lassen, wenn du nur einen SMGW oder unterschiedliche physische Zähler abfragst — dann reicht der Standardname."
         }
@@ -42,7 +40,12 @@
       "invalid_auth": "Ungültiger Benutzername oder Passwort.",
       "duplicate_login": "Ein anderer Eintrag verwendet bereits diese Kombination aus Zähler und Benutzername.",
       "parse_error": "Antwort des SMGW konnte nicht ausgewertet werden. Bitte Benutzername und Passwort prüfen. Falls die Zugangsdaten korrekt sind, bis zu 15 Minuten warten und erneut versuchen.",
-      "unknown": "Ein unerwarteter Fehler ist aufgetreten."
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten.",
+      "invalid_zone_entry": "Jeder Eintrag muss das Format „HH:MM Zonenname\" haben, z.B. „05:00 Standard\".",
+      "zone_too_few": "Mindestens zwei Einträge angeben (00:00 plus ein Umschaltpunkt).",
+      "zone_first_not_midnight": "Der erste Eintrag muss bei 00:00 beginnen.",
+      "zone_times_not_ascending": "Die Umschaltzeiten müssen innerhalb des Tages strikt aufsteigend sein.",
+      "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster)."
     },
     "abort": {
       "already_configured": "Dieser Zähler ist bereits konfiguriert.",
@@ -65,15 +68,13 @@
           "url": "URL",
           "username": "Benutzername",
           "password": "Passwort",
-          "tariff_switch_hour": "Start Standard-Tarif (Stunde)",
-          "tariff_switch_minute": "Start Standard-Tarif (Minute)",
+          "tariff_zones": "Tarifzonen (Umschaltpunkte)",
           "update_time": "Abrufzeit",
           "device_name": "Gerätename (optional)"
         },
         "data_description": {
           "url": "URL der SMGW HAN-Schnittstelle (Standard: https://192.168.100.100/cgi-bin/hanservice.cgi)",
-          "tariff_switch_hour": "Volle Stunde, ab der der Standard-Tarif gilt",
-          "tariff_switch_minute": "Minute des Tarifwechsels (0, 15, 30 oder 45)",
+          "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format „HH:MM Zonenname\", beginnend mit 00:00; der letzte Eintrag gilt bis Mitternacht. Beispiel Octopus Go: „00:00 Go\" und „05:00 Standard\". Gleiche Zonennamen ergeben einen gemeinsamen Sensor: „00:00 Standard\", „02:00 Niedrig\", „06:00 Standard\", „12:00 Niedrig\" erzeugt zwei Sensoren — „Standard\" summiert 00:00–02:00 und 06:00–12:00, „Niedrig\" summiert 02:00–06:00 und 12:00–24:00. Minuten nur 00, 15, 30 oder 45. Achtung: Sensor n gehört zur n-ten neu auftauchenden Zone der Liste. Steht nach einer Änderung an Position n eine andere Zone als bisher, übernimmt deren Sensor die Historie der alten Zone (die Statistik vermischt dann zwei Tarife). Zeiten ändern oder Zonen hinten anfügen ist unkritisch.",
           "update_time": "Tageszeit für den automatischen Abruf der Vortageswerte",
           "device_name": "Sprechender Name (z.B. „SMGW Verbrauch\" / „SMGW Einspeisung\") für den Fall, dass du mehrere Logins zum selben SMGW als separate Einträge betreibst. Sonst leer lassen."
         }
@@ -113,7 +114,12 @@
       "no_data_in_range": "Für den gewählten Zeitraum sind keine Zählerdaten vorhanden (z. B. vor der Inbetriebnahme des Zählers).",
       "from_after_to": "„Von\" muss vor „Bis\" liegen.",
       "to_in_future": "Das Ende des Zeitraumes („Bis\") darf nicht in der Zukunft liegen.",
-      "from_too_old": "Der Beginn des Zeitraumes („Von\") liegt weiter zurück als die maximal mögliche 760-Tage-Historie des SMGW."
+      "from_too_old": "Der Beginn des Zeitraumes („Von\") liegt weiter zurück als die maximal mögliche 760-Tage-Historie des SMGW.",
+      "invalid_zone_entry": "Jeder Eintrag muss das Format „HH:MM Zonenname\" haben, z.B. „05:00 Standard\".",
+      "zone_too_few": "Mindestens zwei Einträge angeben (00:00 plus ein Umschaltpunkt).",
+      "zone_first_not_midnight": "Der erste Eintrag muss bei 00:00 beginnen.",
+      "zone_times_not_ascending": "Die Umschaltzeiten müssen innerhalb des Tages strikt aufsteigend sein.",
+      "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster)."
     },
     "abort": {
       "export_done": "Export erstellt.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
@@ -124,11 +130,8 @@
       "daily_consumption_total": {
         "name": "Tagesverbrauch gesamt"
       },
-      "daily_consumption_slot_1": {
-        "name": "Tagesverbrauch Zeitfenster 1"
-      },
-      "daily_consumption_slot_2": {
-        "name": "Tagesverbrauch Zeitfenster 2"
+      "daily_consumption_zone": {
+        "name": "Tagesverbrauch {zone_name}"
       },
       "daily_feedin_total": {
         "name": "Tageseinspeisung gesamt"
@@ -136,8 +139,8 @@
       "meter_consumption_prev_day_close": {
         "name": "Zählerstand Verbrauch Endstand Vortag"
       },
-      "meter_consumption_switch_1": {
-        "name": "Zählerstand Verbrauch Tarifwechsel 1"
+      "meter_consumption_switch": {
+        "name": "Zählerstand Verbrauch Tarifwechsel {index}"
       },
       "meter_feedin_prev_day_close": {
         "name": "Zählerstand Einspeisung Endstand Vortag"

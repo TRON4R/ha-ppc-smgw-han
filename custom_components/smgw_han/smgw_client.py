@@ -7,7 +7,7 @@ import logging
 import re
 import urllib.parse
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 import httpx
 from bs4 import BeautifulSoup
@@ -76,19 +76,31 @@ class SmgwDeviceInfo:
     """
 
 
+# Parsed tariff-zone definition: ordered (segment start time, zone name)
+# pairs, the first entry starting at 00:00. A zone name may appear in several
+# segments (e.g. Octopus Heat's "Standard" zone covers three windows a day);
+# such segments are summed into one zone total.
+TariffZones = list[tuple[time, str]]
+
+
 @dataclass
 class DailyData:
-    """Processed daily meter data."""
+    """Processed daily meter data.
+
+    ``import_boundaries`` holds the absolute 1.8.0 readings at every segment
+    boundary in config order: index 0 is midnight of the target day (reading
+    A), the last index is midnight of the following day (reading C), and the
+    entries between are the configured switch times. ``zone_totals`` maps each
+    distinct zone name (in order of first appearance) to the summed kWh of its
+    segments.
+    """
 
     date: date
-    import_midnight: float
-    import_tariff_switch: float
-    import_next_midnight: float
+    import_boundaries: list[float]
     export_midnight: float
     export_next_midnight: float
+    zone_totals: dict[str, float]
     daily_import_total: float
-    daily_import_go: float
-    daily_import_standard: float
     daily_export_total: float
     raw_readings: list[MeterReading] = field(default_factory=list)
 
@@ -609,29 +621,25 @@ class SmgwClient:
     async def async_fetch_daily_data(
         self,
         target_date: date,
-        tariff_switch_hour: int = 5,
-        tariff_switch_minute: int = 0,
+        zones: TariffZones,
         target_meter_id: str | None = None,
     ) -> DailyData:
         """Fetch and process daily data for a given date.
 
+        ``zones`` is the parsed tariff-zone definition (see :data:`TariffZones`).
         If ``target_meter_id`` is given, that specific meter from the SMGW
         dropdown is queried; otherwise the first option is used (legacy
         behaviour for single-meter SMGWs).
         """
         async with self._lock:
             return await self._fetch_daily_data_locked(
-                target_date,
-                tariff_switch_hour,
-                tariff_switch_minute,
-                target_meter_id,
+                target_date, zones, target_meter_id
             )
 
     async def _fetch_daily_data_locked(
         self,
         target_date: date,
-        tariff_switch_hour: int,
-        tariff_switch_minute: int,
+        zones: TariffZones,
         target_meter_id: str | None,
     ) -> DailyData:
         """Body of :meth:`async_fetch_daily_data`, run under ``self._lock``."""
@@ -673,10 +681,7 @@ class SmgwClient:
                     f"No meter readings found for {target_date}"
                 )
 
-            return self._process_readings(
-                target_date, all_readings,
-                tariff_switch_hour, tariff_switch_minute,
-            )
+            return self._process_readings(target_date, all_readings, zones)
 
         finally:
             await self._logout()
@@ -744,61 +749,62 @@ class SmgwClient:
         self,
         target_date: date,
         readings: list[MeterReading],
-        tariff_switch_hour: int = 5,
-        tariff_switch_minute: int = 0,
+        zones: TariffZones,
     ) -> DailyData:
         """Process raw readings into DailyData with tariff calculations.
 
-        Finds the reading closest to the target time (hour:minute) within
-        a tolerance window of +/- 7 minutes to match the 15-minute grid.
+        ``zones`` defines the segment boundaries within the target day (the
+        first at 00:00); the closing boundary is midnight of the following
+        day. Each boundary reading is resolved within a tolerance window of
+        +/- 7 minutes to match the 15-minute grid. Segments sharing a zone
+        name are summed into one zone total.
         """
         next_day = target_date + timedelta(days=1)
 
         import_readings = [r for r in readings if r.obis_code == OBIS_IMPORT]
         export_readings = [r for r in readings if r.obis_code == OBIS_EXPORT]
 
-        # Target timestamps
-        midnight_start = datetime(
-            target_date.year, target_date.month, target_date.day, 0, 0, 1
-        )
-        tariff_switch = datetime(
-            target_date.year, target_date.month, target_date.day,
-            tariff_switch_hour, tariff_switch_minute, 1,
-        )
-        midnight_end = datetime(
-            next_day.year, next_day.month, next_day.day, 0, 0, 1
+        # Target timestamps: every configured segment start (second :01, as
+        # the SMGW records the daily closing values at 00:00:01) plus the
+        # closing boundary at next-day midnight.
+        boundary_times = [
+            datetime(
+                target_date.year, target_date.month, target_date.day,
+                t.hour, t.minute, 1,
+            )
+            for t, _name in zones
+        ]
+        boundary_times.append(
+            datetime(next_day.year, next_day.month, next_day.day, 0, 0, 1)
         )
 
-        # Resolve each anchor reading (the full MeterReading, so we keep the
+        # Resolve each boundary reading (the full MeterReading, so we keep the
         # gateway's validity flag alongside the value).
-        import_a_r = find_closest_reading(import_readings, midnight_start)
-        import_b_r = find_closest_reading(import_readings, tariff_switch)
-        import_c_r = find_closest_reading(import_readings, midnight_end)
-        export_a_r = find_closest_reading(export_readings, midnight_start)
-        export_c_r = find_closest_reading(export_readings, midnight_end)
+        import_rs = [
+            find_closest_reading(import_readings, bt) for bt in boundary_times
+        ]
+        export_a_r = find_closest_reading(export_readings, boundary_times[0])
+        export_c_r = find_closest_reading(export_readings, boundary_times[-1])
 
-        import_a = import_a_r.value if import_a_r is not None else None
-        import_b = import_b_r.value if import_b_r is not None else None
-        import_c = import_c_r.value if import_c_r is not None else None
         export_a = export_a_r.value if export_a_r is not None else None
         export_c = export_c_r.value if export_c_r is not None else None
-
-        tariff_str = f"{tariff_switch_hour:02d}:{tariff_switch_minute:02d}"
 
         # An "invalid" status (SMGW "ist valide" = 2 / CMS = 4) means the gateway
         # itself flagged that measurement as untrustworthy. Log it for visibility
         # but keep using the value — behaviour is intentionally unchanged here
         # (observe-first). "not_present" (3) is a carried-forward placeholder on a
         # cumulative register and stays silent: daily deltas are unaffected.
+        anchor_candidates = [
+            (f"Import {bt:%H:%M} on {bt.date()}", r)
+            for bt, r in zip(boundary_times, import_rs)
+        ]
+        anchor_candidates += [
+            (f"Export 00:00 on {target_date}", export_a_r),
+            (f"Export 00:00 on {next_day}", export_c_r),
+        ]
         invalid_anchors = [
             label
-            for label, r in (
-                (f"Import 00:00 on {target_date}", import_a_r),
-                (f"Import {tariff_str} on {target_date}", import_b_r),
-                (f"Import 00:00 on {next_day}", import_c_r),
-                (f"Export 00:00 on {target_date}", export_a_r),
-                (f"Export 00:00 on {next_day}", export_c_r),
-            )
+            for label, r in anchor_candidates
             if r is not None and r.quality == "invalid"
         ]
         if invalid_anchors:
@@ -817,18 +823,15 @@ class SmgwClient:
             )
 
         if import_readings:
-            # Meter has 1.8.0 data (consumption or bidirectional). The three
-            # target timestamps (00:00 start, tariff switch, 00:00 next day)
-            # are mandatory — missing one indicates a real data problem,
+            # Meter has 1.8.0 data (consumption or bidirectional). Every
+            # boundary timestamp (00:00 start, each tariff switch, 00:00 next
+            # day) is mandatory — missing one indicates a real data problem,
             # not just a meter without import capability.
-            missing = []
-            if import_a is None:
-                missing.append(f"Import at 00:00 on {target_date}")
-            if import_b is None:
-                missing.append(f"Import at {tariff_str} on {target_date}")
-            if import_c is None:
-                missing.append(f"Import at 00:00 on {next_day}")
-
+            missing = [
+                f"Import at {bt:%H:%M} on {bt.date()}"
+                for bt, r in zip(boundary_times, import_rs)
+                if r is None
+            ]
             if missing:
                 all_timestamps = sorted(
                     set(r.timestamp for r in import_readings + export_readings)
@@ -840,6 +843,7 @@ class SmgwClient:
                     f"Missing required meter readings: {', '.join(missing)}. "
                     f"Available timestamps: {all_timestamps}"
                 )
+            import_boundaries = [r.value for r in import_rs]
         else:
             # Export-only meter (e.g. dedicated PV-production meter on a
             # Modul-2 SMGW where the production meter only exposes 2.8.0).
@@ -850,7 +854,7 @@ class SmgwClient:
                 "assuming no consumption (export-only meter)",
                 target_date,
             )
-            import_a = import_b = import_c = 0.0
+            import_boundaries = [0.0] * len(boundary_times)
 
         # Export readings are optional (not all meters have PV / feed-in)
         if export_a is None or export_c is None:
@@ -879,17 +883,29 @@ class SmgwClient:
                 )
                 export_a = export_c
 
-        daily_import_go = round(import_b - import_a, 4)
-        daily_import_standard = round(import_c - import_b, 4)
-        daily_import_total = round(import_c - import_a, 4)
+        # Segment diff = boundary[i+1] - boundary[i]; segments sharing a zone
+        # name are summed into one zone total (insertion order = order of
+        # first appearance in the config, which fixes the slot_{n} index).
+        zone_totals: dict[str, float] = {}
+        for i, (_t, name) in enumerate(zones):
+            diff = import_boundaries[i + 1] - import_boundaries[i]
+            zone_totals[name] = zone_totals.get(name, 0.0) + diff
+        zone_totals = {name: round(val, 4) for name, val in zone_totals.items()}
+
+        daily_import_total = round(
+            import_boundaries[-1] - import_boundaries[0], 4
+        )
         daily_export_total = round(export_c - export_a, 4)
 
-        for label, val in [
-            ("Go import", daily_import_go),
-            ("Standard import", daily_import_standard),
+        checks = [
+            (f"Zone '{name}' import", val)
+            for name, val in zone_totals.items()
+        ]
+        checks += [
             ("Total import", daily_import_total),
             ("Total export", daily_export_total),
-        ]:
+        ]
+        for label, val in checks:
             if val < 0:
                 _LOGGER.warning(
                     "%s is negative (%.4f kWh) for %s - "
@@ -901,14 +917,11 @@ class SmgwClient:
 
         return DailyData(
             date=target_date,
-            import_midnight=import_a,
-            import_tariff_switch=import_b,
-            import_next_midnight=import_c,
+            import_boundaries=import_boundaries,
             export_midnight=export_a,
             export_next_midnight=export_c,
+            zone_totals=zone_totals,
             daily_import_total=daily_import_total,
-            daily_import_go=daily_import_go,
-            daily_import_standard=daily_import_standard,
             daily_export_total=daily_export_total,
             raw_readings=readings,
         )
