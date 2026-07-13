@@ -223,6 +223,29 @@ def test_tiny_negative_delta_is_clamped_to_zero():
     assert daily.zone_totals["Standard"] == 10.0
 
 
+def test_negative_segment_masked_by_grouping_rejects_day():
+    # A negative single window (impossible register decrease) must reject the
+    # day even when other windows of the SAME zone overcompensate it — the
+    # per-zone sum, the daily total and even the zone/total reconciliation
+    # would all look fine here.
+    zones = [
+        (time(0, 0), "Standard"),
+        (time(5, 0), "Go"),
+        (time(7, 0), "Standard"),
+        (time(16, 0), "Standard"),
+    ]
+    readings = [
+        _mr(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0),
+        _mr(datetime(2026, 5, 15, 5, 0, 1), OBIS_IMPORT, 1004.0),  # Std +4
+        _mr(datetime(2026, 5, 15, 7, 0, 1), OBIS_IMPORT, 1005.0),  # Go  +1
+        _mr(datetime(2026, 5, 15, 16, 0, 1), OBIS_IMPORT, 1003.0),  # Std -2!
+        _mr(datetime(2026, 5, 16, 0, 0, 1), OBIS_IMPORT, 1008.0),  # Std +5
+    ]
+    with pytest.raises(SmgwNoDataError) as ei:
+        _client()._process_readings(date(2026, 5, 15), readings, zones)
+    assert "07:00-16:00" in str(ei.value)  # the offending window is named
+
+
 def test_degenerate_midnight_switch_computes_like_v2():
     # Regression for the v1->v2 migration of a legacy 00:00 switch time: two
     # zones with the same 00:00 boundary are degenerate but must compute the

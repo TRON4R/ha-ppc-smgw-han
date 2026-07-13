@@ -138,9 +138,6 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 stored.get(SENSOR_DATE, "unknown"),
             )
 
-        # Schedule the daily fetch
-        self._schedule_daily_fetch()
-
         # Check if we need to fetch: either no data at all, or stale data,
         # or tariff time has changed since last fetch
         yesterday = dt_util.now().date() - timedelta(days=1)
@@ -193,6 +190,12 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raise ConfigEntryNotReady(
                         f"Initial SMGW fetch failed: {err}"
                     ) from err
+
+        # Register the daily time listener only after everything above
+        # succeeded: an aborted setup (ConfigEntryNotReady / auth -> reauth)
+        # must not leave an orphaned listener behind that keeps fetching on a
+        # discarded coordinator instance across HA's setup retries.
+        self._schedule_daily_fetch()
 
     def _schedule_daily_fetch(self) -> None:
         """Register a time-based trigger for the daily data fetch."""

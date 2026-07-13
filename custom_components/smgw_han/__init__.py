@@ -148,7 +148,15 @@ async def async_setup_entry(
     )
 
     coordinator = SmgwTafCoordinator(hass, entry, client)
-    await coordinator.async_setup()
+    try:
+        await coordinator.async_setup()
+    except Exception:
+        # Aborted setup (ConfigEntryNotReady -> HA retries with backoff,
+        # ConfigEntryAuthFailed -> reauth): runtime_data is never set, so
+        # nothing would ever unload this instance — clean up here so no time
+        # listener or HTTP client outlives the failed attempt.
+        await coordinator.async_unload()
+        raise
 
     entry.runtime_data = coordinator
 

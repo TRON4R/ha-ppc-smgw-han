@@ -309,7 +309,8 @@ async def test_zone_change_withholds_stale_zone_values_on_auth_error(
     # The stripped cache was published before the fetch attempt.
     assert "daily_consumption_slot_1" not in coord.data
     assert coord.data["daily_consumption_total"] == 10.0
-    await coord.async_unload()
+    # Aborted setup must not leave a daily time listener behind.
+    assert coord._unsub_time_listener is None
 
 
 async def test_matching_zones_keep_cached_slot_values(
@@ -326,6 +327,7 @@ async def test_matching_zones_keep_cached_slot_values(
     assert coord.data["daily_consumption_slot_1"] == 2.5
     assert coord.data["daily_consumption_slot_2"] == 7.5
     assert stub.calls == 0  # nothing changed -> no fetch
+    assert coord._unsub_time_listener is not None  # successful setup schedules
     await coord.async_unload()
 
 
@@ -339,7 +341,9 @@ async def test_no_cache_and_connection_error_raises_not_ready(
 
     with pytest.raises(ConfigEntryNotReady):
         await coord.async_setup()
-    await coord.async_unload()
+    # Aborted setup must not leave a daily time listener behind (HA retries
+    # would otherwise pile up orphaned listeners on discarded coordinators).
+    assert coord._unsub_time_listener is None
 
 
 async def test_no_cache_and_no_data_loads_with_repair_issue(

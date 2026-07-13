@@ -911,9 +911,26 @@ class SmgwClient:
         # Segment diff = boundary[i+1] - boundary[i]; segments sharing a zone
         # name are summed into one zone total (insertion order = order of
         # first appearance in the config, which fixes the slot_{n} index).
+        # Every single segment must be non-negative on a cumulative register —
+        # checked BEFORE summing, because grouping could otherwise mask an
+        # impossible negative window behind positive windows of the same zone.
         zone_totals: dict[str, float] = {}
-        for i, (_t, name) in enumerate(zones):
+        for i, (start, name) in enumerate(zones):
             diff = import_boundaries[i + 1] - import_boundaries[i]
+            if -NEGATIVE_TOLERANCE_KWH < diff < 0.0:
+                diff = 0.0  # rounding artifact on 4-decimal register values
+            elif diff < 0.0:
+                end = (
+                    zones[i + 1][0].strftime("%H:%M")
+                    if i + 1 < len(zones)
+                    else "24:00"
+                )
+                raise SmgwNoDataError(
+                    f"Negative segment value for {target_date} "
+                    f"({start:%H:%M}-{end}, zone '{name}'): {diff:.4f} kWh "
+                    f"— meter readings are inconsistent (e.g. meter swap or "
+                    f"register reset); keeping previous state"
+                )
             zone_totals[name] = zone_totals.get(name, 0.0) + diff
         zone_totals = {name: round(val, 4) for name, val in zone_totals.items()}
 

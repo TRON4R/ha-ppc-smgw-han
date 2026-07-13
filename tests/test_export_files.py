@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime, time
 
+import pytest
 from openpyxl import load_workbook
 
 from custom_components.smgw_han.aggregation import build_daily_summary
 from custom_components.smgw_han.const import OBIS_EXPORT, OBIS_IMPORT
 from custom_components.smgw_han.export_files import (
     _pivot_by_timestamp,
+    _safe_text,
     write_readings_csv,
     write_xlsx,
 )
@@ -96,6 +98,16 @@ def test_write_xlsx_sheets_and_rowcount(tmp_path):
     assert row == [
         "2026-05-15", 1000.0, 1002.5, 1010.0, 2.5, 7.5, 10.0, 3.0,
     ]
+
+
+@pytest.mark.parametrize("prefix", ["=", "+", "-", "@"])
+def test_safe_text_neutralizes_every_formula_prefix(prefix):
+    assert _safe_text(prefix + "x") == "'" + prefix + "x"
+
+
+def test_safe_text_leaves_benign_text_untouched():
+    assert _safe_text("Standard") == "Standard"
+    assert _safe_text("") == ""
 
 
 def test_formula_injection_is_neutralized(tmp_path):
