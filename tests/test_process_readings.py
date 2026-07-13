@@ -195,6 +195,48 @@ def test_not_present_anchor_does_not_warn(caplog):
     assert "invalid" not in caplog.text.lower()
 
 
+def test_material_negative_delta_rejects_day():
+    # A meter swap: the new register starts near 0, so C - A is hugely
+    # negative. The day must be rejected (SmgwNoDataError -> repair issue,
+    # previous sensor values kept) instead of publishing nonsense into the
+    # long-term statistics.
+    readings = [
+        _mr(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 8000.0),
+        _mr(datetime(2026, 5, 15, 5, 0, 1), OBIS_IMPORT, 8001.0),
+        _mr(datetime(2026, 5, 16, 0, 0, 1), OBIS_IMPORT, 3.0),  # new meter
+    ]
+    with pytest.raises(SmgwNoDataError) as ei:
+        _client()._process_readings(date(2026, 5, 15), readings, GO_ZONES)
+    assert "inconsistent" in str(ei.value)
+
+
+def test_tiny_negative_delta_is_clamped_to_zero():
+    # Rounding artifacts within the tolerance band become exactly 0 instead
+    # of a cosmetic -0.0002 in the sensor (and instead of rejecting the day).
+    readings = [
+        _mr(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0002),
+        _mr(datetime(2026, 5, 15, 5, 0, 1), OBIS_IMPORT, 1000.0),
+        _mr(datetime(2026, 5, 16, 0, 0, 1), OBIS_IMPORT, 1010.0),
+    ]
+    daily = _client()._process_readings(date(2026, 5, 15), readings, GO_ZONES)
+    assert daily.zone_totals["Go"] == 0.0  # -0.0002 clamped
+    assert daily.zone_totals["Standard"] == 10.0
+
+
+def test_degenerate_midnight_switch_computes_like_v2():
+    # Regression for the v1->v2 migration of a legacy 00:00 switch time: two
+    # zones with the same 00:00 boundary are degenerate but must compute the
+    # historical v2 behaviour (slot 1 = 0, slot 2 = whole day) without error.
+    zones = [(time(0, 0), "Zeitfenster 1"), (time(0, 0), "Zeitfenster 2")]
+    readings = [
+        _mr(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0),
+        _mr(datetime(2026, 5, 16, 0, 0, 1), OBIS_IMPORT, 1010.0),
+    ]
+    daily = _client()._process_readings(date(2026, 5, 15), readings, zones)
+    assert daily.zone_totals == {"Zeitfenster 1": 0.0, "Zeitfenster 2": 10.0}
+    assert daily.daily_import_total == 10.0
+
+
 def test_custom_tariff_switch_time():
     readings = [
         _mr(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0),

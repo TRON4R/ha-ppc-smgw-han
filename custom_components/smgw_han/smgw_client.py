@@ -16,6 +16,12 @@ from .const import OBIS_EXPORT, OBIS_IMPORT
 
 _LOGGER = logging.getLogger(__name__)
 
+# Daily deltas on a cumulative register can come out marginally negative from
+# rounding of the 4-decimal gateway values; anything within this band is
+# clamped to 0. A delta below -NEGATIVE_TOLERANCE_KWH is real data corruption
+# (meter swap/reset, mis-attributed reading) and rejects the whole day.
+NEGATIVE_TOLERANCE_KWH = 0.001
+
 
 class SmgwClientError(Exception):
     """Base exception for SMGW client errors."""
@@ -144,6 +150,7 @@ class SmgwClient:
         base_url: str,
         username: str,
         password: str,
+        lock: asyncio.Lock | None = None,
     ) -> None:
         """Initialize the SMGW client."""
         self._base_url = base_url.rstrip("/")
@@ -151,10 +158,13 @@ class SmgwClient:
         self._password = password
         self._token: str | None = None
         self._client: httpx.AsyncClient | None = None
-        # Serializes all SMGW sessions on this client instance. The SMGW
-        # allows only one active session per account, so the nightly daily
-        # fetch and any user-triggered export must not run concurrently.
-        self._lock = asyncio.Lock()
+        # Serializes all SMGW sessions. The SMGW allows only one active
+        # session per account, so the nightly daily fetch, user-triggered
+        # exports and config-flow validation must not run concurrently —
+        # ACROSS config entries too. HA callers therefore inject the shared
+        # per-gateway lock (see ``gateway_lock`` in ``__init__.py``); a
+        # private lock is only the fallback for standalone use (tests).
+        self._lock = lock or asyncio.Lock()
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create the httpx client."""
@@ -525,6 +535,12 @@ class SmgwClient:
             if ts_td:
                 ts_str = ts_td.get_text(strip=True)
                 if ts_str:
+                    # A non-empty but unparseable timestamp must invalidate
+                    # the running timestamp — otherwise this row's value (and
+                    # its paired export line) would silently be attributed to
+                    # the PREVIOUS timestamp. Reset first, so the whole broken
+                    # group is skipped instead of mis-dated.
+                    last_timestamp = None
                     try:
                         last_timestamp = datetime.strptime(
                             ts_str, "%Y-%m-%d %H:%M:%S"
@@ -586,6 +602,15 @@ class SmgwClient:
         found in the dropdown; otherwise to the first option (legacy
         behaviour for callers that have not yet been updated).
         """
+        async with self._lock:
+            return await self._validate_and_get_device_info_locked(
+                target_meter_id
+            )
+
+    async def _validate_and_get_device_info_locked(
+        self, target_meter_id: str | None
+    ) -> SmgwDeviceInfo:
+        """Body of :meth:`async_validate_and_get_device_info`, under lock."""
         try:
             login_html = await self._login()
             firmware = self._parse_firmware(login_html)
@@ -897,6 +922,19 @@ class SmgwClient:
         )
         daily_export_total = round(export_c - export_a, 4)
 
+        # Negative daily deltas on a cumulative register are impossible.
+        # Within the rounding band -> clamp to 0; materially negative ->
+        # reject the whole day (self-healing repair issue, previous sensor
+        # values are kept) instead of publishing a plausible-looking nonsense
+        # value into the long-term statistics (e.g. after a meter swap the
+        # new register starts near 0, making C - A hugely negative).
+        def _clamp(value: float) -> float:
+            return 0.0 if -NEGATIVE_TOLERANCE_KWH < value < 0.0 else value
+
+        zone_totals = {name: _clamp(val) for name, val in zone_totals.items()}
+        daily_import_total = _clamp(daily_import_total)
+        daily_export_total = _clamp(daily_export_total)
+
         checks = [
             (f"Zone '{name}' import", val)
             for name, val in zone_totals.items()
@@ -905,15 +943,25 @@ class SmgwClient:
             ("Total import", daily_import_total),
             ("Total export", daily_export_total),
         ]
-        for label, val in checks:
-            if val < 0:
-                _LOGGER.warning(
-                    "%s is negative (%.4f kWh) for %s - "
-                    "meter readings may be inconsistent",
-                    label,
-                    val,
-                    target_date,
-                )
+        negative = [
+            f"{label}={val:.4f} kWh" for label, val in checks if val < 0
+        ]
+        if negative:
+            raise SmgwNoDataError(
+                f"Negative daily value(s) for {target_date}: "
+                f"{', '.join(negative)} — meter readings are inconsistent "
+                f"(e.g. meter swap or register reset); keeping previous state"
+            )
+
+        # Reconciliation: the zone totals telescope to the daily total by
+        # construction; a larger gap can only come from rounding gone wrong.
+        zone_sum = round(sum(zone_totals.values()), 4)
+        if abs(zone_sum - daily_import_total) > 0.01:
+            _LOGGER.warning(
+                "Zone totals (%.4f kWh) do not add up to the daily total "
+                "(%.4f kWh) for %s",
+                zone_sum, daily_import_total, target_date,
+            )
 
         return DailyData(
             date=target_date,

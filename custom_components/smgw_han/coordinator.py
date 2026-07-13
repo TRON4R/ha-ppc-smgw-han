@@ -13,6 +13,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.storage import Store
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
     HomeAssistantError,
     ServiceValidationError,
 )
@@ -52,6 +53,14 @@ from .smgw_client import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# coordinator.data keys whose meaning depends on the configured tariff zones.
+# They must never be published under a zone definition they were not computed
+# with (the values would look plausible but be mislabeled).
+_ZONE_DEPENDENT_KEY_PREFIXES = (
+    "daily_consumption_slot_",
+    "meter_consumption_switch_",
+)
 
 
 def no_data_issue_id(entry_id: str) -> str:
@@ -106,6 +115,23 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._store.async_remove()
             stored = None
         if stored and isinstance(stored, dict):
+            if stored.get("_tariff_zones") != self._zones_config:
+                # The cached day was computed with a DIFFERENT zone
+                # definition. Publishing its per-zone values would attach
+                # them to the new zone names/sensors — plausible-looking but
+                # mislabeled. Keep only the zone-independent values (total,
+                # feed-in, date, closing readings) until a refetch succeeds;
+                # dropping "_tariff_zones" keeps the refetch triggers armed.
+                stored = {
+                    key: value
+                    for key, value in stored.items()
+                    if not key.startswith(_ZONE_DEPENDENT_KEY_PREFIXES)
+                    and key != "_tariff_zones"
+                }
+                _LOGGER.info(
+                    "Tariff zones changed since the cached day - withholding "
+                    "per-zone values until a refetch succeeds"
+                )
             self.async_set_updated_data(stored)
             _LOGGER.debug(
                 "Loaded stored data for date: %s",
@@ -150,10 +176,23 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             try:
                 await self._async_do_daily_fetch()
             except UpdateFailed as err:
-                _LOGGER.warning(
-                    "Startup fetch failed (will retry at scheduled time): %s",
-                    err,
-                )
+                if self.data:
+                    # Cached values exist — keep running, the scheduled
+                    # nightly fetch will retry.
+                    _LOGGER.warning(
+                        "Startup fetch failed (will retry at scheduled "
+                        "time): %s",
+                        err,
+                    )
+                else:
+                    # No data at all: fail setup so HA retries with its own
+                    # backoff instead of leaving empty sensors until the
+                    # next nightly fetch. (SmgwNoDataError does NOT land
+                    # here — the gateway answered fine and a repair issue
+                    # was raised; auth errors propagate to trigger reauth.)
+                    raise ConfigEntryNotReady(
+                        f"Initial SMGW fetch failed: {err}"
+                    ) from err
 
     def _schedule_daily_fetch(self) -> None:
         """Register a time-based trigger for the daily data fetch."""

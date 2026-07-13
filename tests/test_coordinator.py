@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import asyncio
+from datetime import date, datetime, time, timedelta
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
     HomeAssistantError,
     ServiceValidationError,
 )
@@ -16,8 +18,14 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smgw_han import async_remove_entry
-from custom_components.smgw_han.const import CONF_METER_ID, DOMAIN, SENSOR_DATE
+from custom_components.smgw_han import async_remove_entry, gateway_lock
+from custom_components.smgw_han.const import (
+    CONF_METER_ID,
+    CONF_TARIFF_ZONES,
+    DOMAIN,
+    SENSOR_DATE,
+    STORE_VERSION,
+)
 from custom_components.smgw_han.coordinator import (
     SmgwTafCoordinator,
     no_data_issue_id,
@@ -25,6 +33,7 @@ from custom_components.smgw_han.coordinator import (
 from custom_components.smgw_han.smgw_client import (
     DailyData,
     SmgwAuthError,
+    SmgwClient,
     SmgwClientError,
     SmgwConnectionError,
     SmgwNoDataError,
@@ -190,6 +199,205 @@ async def test_remove_entry_clears_repair_issue(hass: HomeAssistant):
     await async_remove_entry(hass, entry)
 
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+
+
+# ---------------------------------------------------------------------------
+# Zone-change cache handling (async_setup) + startup retry semantics
+# ---------------------------------------------------------------------------
+
+OLD_ZONES = [
+    {"time": "00:00", "name": "Go"},
+    {"time": "05:00", "name": "Standard"},
+]
+NEW_ZONES = [
+    {"time": "00:00", "name": "Nacht"},
+    {"time": "06:00", "name": "Tag"},
+]
+
+
+def _stored_day(zones: list[dict], day: str) -> dict:
+    return {
+        SENSOR_DATE: day,
+        "daily_consumption_total": 10.0,
+        "daily_consumption_slot_1": 2.5,
+        "daily_consumption_slot_2": 7.5,
+        "daily_feedin_total": 3.0,
+        "meter_consumption_prev_day_close": 1000.0,
+        "meter_consumption_switch_1": 1002.5,
+        "meter_feedin_prev_day_close": 500.0,
+        "_tariff_zones": zones,
+    }
+
+
+def _coordinator_with_store(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    stub: _FetchStub,
+    entry_zones: list[dict],
+    stored: dict | None,
+) -> SmgwTafCoordinator:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_METER_ID: "M", CONF_TARIFF_ZONES: entry_zones},
+    )
+    entry.add_to_hass(hass)
+    if stored is not None:
+        key = f"{DOMAIN}_{entry.entry_id}"
+        hass_storage[key] = {
+            "version": STORE_VERSION,
+            "minor_version": 1,
+            "key": key,
+            "data": stored,
+        }
+    return SmgwTafCoordinator(hass, entry, stub)
+
+
+async def test_zone_change_withholds_stale_zone_values_on_no_data(
+    hass: HomeAssistant, hass_storage: dict
+):
+    # Cached day was computed with OLD zones, entry now has NEW zones, and
+    # the refetch yields no data: the per-zone values must NOT be published
+    # under the new zone names; zone-independent values are kept.
+    yesterday = (dt_util.now().date() - timedelta(days=1)).isoformat()
+    stub = _FetchStub(exc=SmgwNoDataError("empty"))
+    coord = _coordinator_with_store(
+        hass, hass_storage, stub, NEW_ZONES, _stored_day(OLD_ZONES, yesterday)
+    )
+
+    await coord.async_setup()
+
+    assert "daily_consumption_slot_1" not in coord.data
+    assert "daily_consumption_slot_2" not in coord.data
+    assert "meter_consumption_switch_1" not in coord.data
+    assert coord.data["daily_consumption_total"] == 10.0
+    assert coord.data["meter_consumption_prev_day_close"] == 1000.0
+    reg = ir.async_get(hass)
+    assert reg.async_get_issue(DOMAIN, coord._no_data_issue_id) is not None
+    await coord.async_unload()
+
+
+async def test_zone_change_withholds_stale_zone_values_on_connection_error(
+    hass: HomeAssistant, hass_storage: dict
+):
+    yesterday = (dt_util.now().date() - timedelta(days=1)).isoformat()
+    stub = _FetchStub(exc=SmgwConnectionError("down"))
+    coord = _coordinator_with_store(
+        hass, hass_storage, stub, NEW_ZONES, _stored_day(OLD_ZONES, yesterday)
+    )
+
+    # Cached (stripped) data exists -> setup must NOT raise; the nightly
+    # fetch retries.
+    await coord.async_setup()
+
+    assert "daily_consumption_slot_1" not in coord.data
+    assert coord.data["daily_consumption_total"] == 10.0
+    await coord.async_unload()
+
+
+async def test_zone_change_withholds_stale_zone_values_on_auth_error(
+    hass: HomeAssistant, hass_storage: dict
+):
+    yesterday = (dt_util.now().date() - timedelta(days=1)).isoformat()
+    stub = _FetchStub(exc=SmgwAuthError("bad"))
+    coord = _coordinator_with_store(
+        hass, hass_storage, stub, NEW_ZONES, _stored_day(OLD_ZONES, yesterday)
+    )
+
+    with pytest.raises(ConfigEntryAuthFailed):
+        await coord.async_setup()
+
+    # The stripped cache was published before the fetch attempt.
+    assert "daily_consumption_slot_1" not in coord.data
+    assert coord.data["daily_consumption_total"] == 10.0
+    await coord.async_unload()
+
+
+async def test_matching_zones_keep_cached_slot_values(
+    hass: HomeAssistant, hass_storage: dict
+):
+    yesterday = (dt_util.now().date() - timedelta(days=1)).isoformat()
+    stub = _FetchStub(result=None)
+    coord = _coordinator_with_store(
+        hass, hass_storage, stub, OLD_ZONES, _stored_day(OLD_ZONES, yesterday)
+    )
+
+    await coord.async_setup()
+
+    assert coord.data["daily_consumption_slot_1"] == 2.5
+    assert coord.data["daily_consumption_slot_2"] == 7.5
+    assert stub.calls == 0  # nothing changed -> no fetch
+    await coord.async_unload()
+
+
+async def test_no_cache_and_connection_error_raises_not_ready(
+    hass: HomeAssistant, hass_storage: dict
+):
+    # Fresh install, SMGW temporarily unreachable: fail setup so HA retries
+    # with backoff instead of leaving empty sensors until the nightly fetch.
+    stub = _FetchStub(exc=SmgwConnectionError("down"))
+    coord = _coordinator_with_store(hass, hass_storage, stub, OLD_ZONES, None)
+
+    with pytest.raises(ConfigEntryNotReady):
+        await coord.async_setup()
+    await coord.async_unload()
+
+
+async def test_no_cache_and_no_data_loads_with_repair_issue(
+    hass: HomeAssistant, hass_storage: dict
+):
+    # Fresh install against a gateway without daily values: NOT a setup
+    # failure — the integration loads and the repair issue explains why.
+    stub = _FetchStub(exc=SmgwNoDataError("empty"))
+    coord = _coordinator_with_store(hass, hass_storage, stub, OLD_ZONES, None)
+
+    await coord.async_setup()
+
+    reg = ir.async_get(hass)
+    assert reg.async_get_issue(DOMAIN, coord._no_data_issue_id) is not None
+    await coord.async_unload()
+
+
+# ---------------------------------------------------------------------------
+# Gateway-wide session lock
+# ---------------------------------------------------------------------------
+
+
+async def test_gateway_lock_shared_per_gateway_and_login(hass: HomeAssistant):
+    lock_a = gateway_lock(hass, "https://gw/cgi-bin/hanservice.cgi", "user")
+    lock_b = gateway_lock(hass, "https://gw/cgi-bin/hanservice.cgi/", "user")
+    lock_c = gateway_lock(hass, "https://gw/cgi-bin/hanservice.cgi", "other")
+    assert lock_a is lock_b  # trailing slash normalized -> same gateway
+    assert lock_a is not lock_c  # different login -> own lock
+
+
+async def test_shared_lock_serializes_two_clients():
+    # Two config entries on the same gateway share one injected lock: their
+    # SMGW sessions must never overlap.
+    lock = asyncio.Lock()
+    client_1 = SmgwClient("https://gw", "user", "pw", lock=lock)
+    client_2 = SmgwClient("https://gw", "user", "pw", lock=lock)
+
+    active = 0
+    overlap = False
+
+    async def fake_locked(*args, **kwargs):
+        nonlocal active, overlap
+        active += 1
+        if active > 1:
+            overlap = True
+        await asyncio.sleep(0)
+        active -= 1
+        return None
+
+    client_1._fetch_daily_data_locked = fake_locked
+    client_2._fetch_daily_data_locked = fake_locked
+
+    zones = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
+    await asyncio.gather(
+        client_1.async_fetch_daily_data(date(2026, 5, 15), zones),
+        client_2.async_fetch_daily_data(date(2026, 5, 15), zones),
+    )
+    assert not overlap
 
 
 async def test_server_error_maps_to_no_data(hass: HomeAssistant):

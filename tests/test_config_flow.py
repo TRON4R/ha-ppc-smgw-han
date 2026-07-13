@@ -596,6 +596,37 @@ async def test_migrate_entry_v1_without_switch_time_uses_default(
     ]
 
 
+async def test_migrate_entry_v1_midnight_switch_documented_degenerate(
+    hass: HomeAssistant,
+):
+    # Legacy switch time 00:00 (always meant "slot 1 = 0") migrates to two
+    # zones with the same 00:00 boundary. That is deliberately degenerate:
+    # the calculation reproduces the v2 behaviour (covered by
+    # test_degenerate_midnight_switch_computes_like_v2); only a later manual
+    # edit in the settings form forces the user to enter a sane definition.
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="M:user",
+        version=1,
+        data={
+            CONF_URL: URL,
+            CONF_USERNAME: "user",
+            CONF_PASSWORD: "pw",
+            CONF_METER_ID: "M",
+            CONF_TARIFF_SWITCH_HOUR: 0,
+            CONF_TARIFF_SWITCH_MINUTE: 0,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry) is True
+    assert entry.version == 2
+    assert entry.data[CONF_TARIFF_ZONES] == [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Zeitfenster 1"},
+        {ZONE_TIME: "00:00", ZONE_NAME: "Zeitfenster 2"},
+    ]
+
+
 async def test_migrate_entry_v2_is_noop(hass: HomeAssistant):
     entry = _entry("M", instance_id=1)
     entry.add_to_hass(hass)

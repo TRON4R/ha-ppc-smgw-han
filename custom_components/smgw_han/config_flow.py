@@ -54,6 +54,7 @@ from .const import (
     ZONE_NAME,
     ZONE_TIME,
 )
+from . import gateway_lock
 from .services import (
     PERIOD_PRESETS,
     _period_range,
@@ -254,6 +255,11 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
                     base_url=user_input[CONF_URL],
                     username=user_input[CONF_USERNAME],
                     password=user_input[CONF_PASSWORD],
+                    lock=gateway_lock(
+                        self.hass,
+                        user_input[CONF_URL],
+                        user_input[CONF_USERNAME],
+                    ),
                 )
 
                 try:
@@ -388,6 +394,9 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
                 base_url=new_data[CONF_URL],
                 username=new_data[CONF_USERNAME],
                 password=new_data[CONF_PASSWORD],
+                lock=gateway_lock(
+                    self.hass, new_data[CONF_URL], new_data[CONF_USERNAME]
+                ),
             )
 
             try:
@@ -646,6 +655,9 @@ class SmgwTafOptionsFlow(OptionsFlow):
                 base_url=new_data[CONF_URL],
                 username=new_data[CONF_USERNAME],
                 password=new_data[CONF_PASSWORD],
+                lock=gateway_lock(
+                    self.hass, new_data[CONF_URL], new_data[CONF_USERNAME]
+                ),
             )
 
             old_meter_id = self.config_entry.data.get(CONF_METER_ID)

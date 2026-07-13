@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -43,6 +44,27 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 type SmgwTafConfigEntry = ConfigEntry[SmgwTafCoordinator]
+
+
+def gateway_lock(
+    hass: HomeAssistant, base_url: str, username: str
+) -> asyncio.Lock:
+    """One shared lock per SMGW gateway + login, across all config entries.
+
+    The SMGW allows only one active session per account. A per-client lock
+    only serializes one config entry with itself — two entries on the same
+    gateway (multi-meter SMGW, or separate import/feed-in logins pointing at
+    the same account) would still log in concurrently and invalidate each
+    other's session. Every ``SmgwClient`` for the same ``(URL, username)``
+    must therefore share this lock; the config flow and reauth use it too.
+    """
+    locks: dict[tuple[str, str], asyncio.Lock] = hass.data.setdefault(
+        DOMAIN, {}
+    ).setdefault("gateway_locks", {})
+    key = (base_url.rstrip("/"), username)
+    if key not in locks:
+        locks[key] = asyncio.Lock()
+    return locks[key]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -120,6 +142,9 @@ async def async_setup_entry(
         base_url=entry.data[CONF_URL],
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
+        lock=gateway_lock(
+            hass, entry.data[CONF_URL], entry.data[CONF_USERNAME]
+        ),
     )
 
     coordinator = SmgwTafCoordinator(hass, entry, client)

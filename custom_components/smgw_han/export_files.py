@@ -35,6 +35,17 @@ def _fmt_dt(dt: datetime | None) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S") if dt else ""
 
 
+def _safe_text(value: str) -> str:
+    """Neutralize spreadsheet formula injection in cell-leading text.
+
+    User-defined zone names and gateway-supplied strings (unit, quality) end
+    up in cells; Excel (and openpyxl itself) interprets leading '=', '+',
+    '-' or '@' as a formula. The conventional apostrophe prefix forces the
+    cell to stay text. Only applied to text fields, never to numbers.
+    """
+    return "'" + value if value[:1] in ("=", "+", "-", "@") else value
+
+
 def _pivot_by_timestamp(
     readings: list[MeterReading],
 ) -> list[tuple[datetime, float | None, float | None, str]]:
@@ -77,7 +88,7 @@ def write_readings_csv(path: Path, readings: list[MeterReading]) -> None:
                     _fmt_dt(ts),
                     f"{imp:.4f}" if imp is not None else "",
                     f"{exp:.4f}" if exp is not None else "",
-                    quality,
+                    _safe_text(quality),
                 ]
             )
 
@@ -121,8 +132,8 @@ def write_xlsx(
     raw.title = "Rohdaten"
     raw.append(["Zeitstempel", "OBIS", "Wert (kWh)", "Einheit", "Qualitaet"])
     for r in readings:
-        raw.append([_fmt_dt(r.timestamp), r.obis_code, r.value, r.unit,
-                    r.quality])
+        raw.append([_fmt_dt(r.timestamp), _safe_text(r.obis_code), r.value,
+                    _safe_text(r.unit), _safe_text(r.quality)])
     for row in raw.iter_rows(min_row=2, min_col=3, max_col=3):
         for cell in row:
             cell.number_format = "0.0000"
@@ -189,7 +200,7 @@ def write_xlsx(
     info["A9"].font = bold
     row = 10
     for name in zone_names:
-        info[f"A{row}"] = f"{name}: {' + '.join(zone_windows[name])}"
+        info[f"A{row}"] = _safe_text(f"{name}: {' + '.join(zone_windows[name])}")
         row += 1
     row += 1
     info[f"A{row}"] = "Berechnung Bezug"

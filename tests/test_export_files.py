@@ -98,6 +98,52 @@ def test_write_xlsx_sheets_and_rowcount(tmp_path):
     ]
 
 
+def test_formula_injection_is_neutralized(tmp_path):
+    # User-defined zone names and gateway-supplied text must not become
+    # spreadsheet formulas (leading '=', '+', '-', '@').
+    evil_readings = [
+        MeterReading(
+            datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0, "kWh", "=2+2"
+        ),
+        MeterReading(
+            datetime(2026, 5, 16, 0, 0, 1), OBIS_IMPORT, 1010.0, "kWh", "valid"
+        ),
+    ]
+
+    csv_path = tmp_path / "out.csv"
+    write_readings_csv(csv_path, evil_readings)
+    row = next(
+        line
+        for line in csv_path.read_text(encoding="utf-8-sig").splitlines()
+        if line.startswith("2026-05-15 00:00:01")
+    )
+    assert row.split(";")[3] == "'=2+2"  # apostrophe forces text
+
+    zones = [(time(0, 0), "=EVIL"), (time(5, 0), "Standard")]
+    summary = build_daily_summary(evil_readings, zones)
+    meta = {
+        "meter_id": "m",
+        "from": "x",
+        "to": "y",
+        "zones": [("00:00", "=EVIL"), ("05:00", "Standard")],
+    }
+    xlsx_path = tmp_path / "out.xlsx"
+    write_xlsx(xlsx_path, evil_readings, summary, meta)
+
+    wb = load_workbook(xlsx_path)
+    # Rohdaten: gateway quality text neutralized, no formula cells.
+    qualities = [row[4].value for row in wb["Rohdaten"].iter_rows(min_row=2)]
+    assert "'=2+2" in qualities
+    # Definition: zone-name-led line neutralized.
+    definition_texts = [
+        c.value for row in wb["Definition"].iter_rows() for c in row if c.value
+    ]
+    assert any(str(v).startswith("'=EVIL:") for v in definition_texts)
+    assert not any(
+        str(v).startswith("=") for v in definition_texts
+    )
+
+
 def test_write_xlsx_multi_window_zone_definition(tmp_path):
     # A zone spanning several windows (Heat-style) must be listed with all
     # its windows on the Definition sheet and get exactly one consumption
