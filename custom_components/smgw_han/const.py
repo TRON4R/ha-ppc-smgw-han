@@ -52,7 +52,10 @@ EXPORT_WWW_SUBDIR = "smgw_han_exports"
 ISSUE_NO_RECENT_DATA = "no_recent_data"
 
 # Store
-STORE_VERSION = 4
+# v5: "Endstand Vortag" sensors switched from anchor A to anchor C (issue
+# #35) — the bump forces one refetch so the corrected value appears
+# immediately after the update instead of after the next nightly fetch.
+STORE_VERSION = 5
 
 # Sensor keys (used in coordinator.data dict)
 SENSOR_DAILY_CONSUMPTION_TOTAL = "daily_consumption_total"

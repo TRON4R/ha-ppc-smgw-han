@@ -114,9 +114,9 @@ When your metering point operator swaps the physical meter in your basement, you
 | Daily consumption slot 1 | Consumption during slot 1 (midnight → tariff switch) | `energy` | `total` |
 | Daily consumption slot 2 | Consumption during slot 2 (tariff switch → midnight) | `energy` | `total` |
 | Daily feed-in total | Yesterday's total feed-in | `energy` | `total` |
-| Meter consumption previous day closing | Absolute reading at start of day (00:00) | `energy` | `total_increasing` |
+| Meter consumption previous day closing | Absolute reading at the end of the previous day (midnight) | `energy` | `total_increasing` |
 | Meter consumption tariff switch 1 | Absolute reading at tariff switch time | `energy` | `total_increasing` |
-| Meter feed-in previous day closing | Absolute export reading at start of day (00:00) | `energy` | `total_increasing` |
+| Meter feed-in previous day closing | Absolute export reading at the end of the previous day (midnight) | `energy` | `total_increasing` |
 | Daily date | Date of the last fetched data | `date` | — |
 
 

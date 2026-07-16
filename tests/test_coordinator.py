@@ -17,7 +17,14 @@ from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smgw_han import async_remove_entry
-from custom_components.smgw_han.const import CONF_METER_ID, DOMAIN, SENSOR_DATE
+from custom_components.smgw_han.const import (
+    CONF_METER_ID,
+    DOMAIN,
+    SENSOR_DATE,
+    SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
+    SENSOR_METER_CONSUMPTION_SWITCH_1,
+    SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
+)
 from custom_components.smgw_han.coordinator import (
     SmgwTafCoordinator,
     no_data_issue_id,
@@ -99,6 +106,27 @@ def _daily_data(target_date) -> DailyData:
         daily_import_standard=7.5,
         daily_export_total=3.0,
     )
+
+
+async def test_prev_day_close_sensors_report_day_end(hass: HomeAssistant):
+    """Endstand Vortag = closing reading C of the fetched day, not opening A.
+
+    Regression test for issue #35: the sensors published anchor A (midnight
+    at the START of the fetched day = close of the day before), making the
+    value 24 h staler than the entity name promises.
+    """
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    coord = _fetch_coordinator(
+        hass, _FetchStub(result=_daily_data(yesterday))
+    )
+
+    await coord._async_do_daily_fetch()
+
+    assert coord.data[SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE] == 1010.0
+    assert coord.data[SENSOR_METER_FEEDIN_PREV_DAY_CLOSE] == 503.0
+    # The tariff-switch reading belongs to the fetched day itself and was
+    # never affected — it must stay anchor B.
+    assert coord.data[SENSOR_METER_CONSUMPTION_SWITCH_1] == 1002.5
 
 
 async def test_no_data_creates_repair_issue_and_keeps_data(hass: HomeAssistant):
