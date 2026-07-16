@@ -24,6 +24,8 @@ from custom_components.smgw_han.const import (
     CONF_TARIFF_ZONES,
     DOMAIN,
     SENSOR_DATE,
+    SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
+    SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
     STORE_VERSION,
 )
 from custom_components.smgw_han.coordinator import (
@@ -123,13 +125,34 @@ def test_daily_data_to_dict_generates_slot_and_switch_keys():
     assert data["daily_consumption_slot_2"] == 2.0  # Niedrig
     assert data["daily_consumption_slot_3"] == 2.0  # Hoch
     assert "daily_consumption_slot_4" not in data
-    assert data["meter_consumption_prev_day_close"] == 1000.0
+    assert data["meter_consumption_prev_day_close"] == 1010.0  # closing (#35)
     assert data["meter_consumption_switch_1"] == 1001.0
     assert data["meter_consumption_switch_2"] == 1003.0
     assert data["meter_consumption_switch_3"] == 1006.0
     assert "meter_consumption_switch_4" not in data
     assert data["daily_consumption_total"] == 10.0
     assert data["daily_feedin_total"] == 3.0
+
+
+async def test_prev_day_close_sensors_report_day_end(hass: HomeAssistant):
+    """Endstand Vortag = closing reading of the fetched day, not opening.
+
+    Regression test for issue #35: the sensors published the opening
+    boundary (midnight at the START of the fetched day = close of the day
+    before), making the value 24 h staler than the entity name promises.
+    """
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    coord = _fetch_coordinator(
+        hass, _FetchStub(result=_daily_data(yesterday))
+    )
+
+    await coord._async_do_daily_fetch()
+
+    assert coord.data[SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE] == 1010.0
+    assert coord.data[SENSOR_METER_FEEDIN_PREV_DAY_CLOSE] == 503.0
+    # The tariff-switch reading belongs to the fetched day itself and was
+    # never affected — it must stay the inner boundary.
+    assert coord.data["meter_consumption_switch_1"] == 1002.5
 
 
 async def test_no_data_creates_repair_issue_and_keeps_data(hass: HomeAssistant):

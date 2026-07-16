@@ -66,7 +66,12 @@ EXPORT_WWW_SUBDIR = "smgw_han_exports"
 ISSUE_NO_RECENT_DATA = "no_recent_data"
 
 # Store
-STORE_VERSION = 5
+# v5: configurable tariff zones (slot/switch keys depend on the zone config).
+# v6: "Endstand Vortag" sensors switched from anchor A to anchor C (issue
+# #35, fixed on main as v2.6.0 with store v5) — the bump forces one refetch
+# so the corrected value appears immediately after the update, including on
+# the upgrade path v2.6.0 (store 5) -> v3.0.0 (store 6).
+STORE_VERSION = 6
 
 # Sensor keys (used in coordinator.data dict)
 SENSOR_DAILY_CONSUMPTION_TOTAL = "daily_consumption_total"
