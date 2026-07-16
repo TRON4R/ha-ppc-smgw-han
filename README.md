@@ -114,9 +114,9 @@ Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst d
 | Tagesverbrauch Zeitfenster 1 | Verbrauch Zeitfenster 1 (Mitternacht → Tarifwechsel) | `energy` | `total` |
 | Tagesverbrauch Zeitfenster 2 | Verbrauch Zeitfenster 2 (Tarifwechsel → Mitternacht) | `energy` | `total` |
 | Tageseinspeisung gesamt | Gesamteinspeisung des Vortags | `energy` | `total` |
-| Zählerstand Verbrauch Endstand Vortag | Absoluter Zählerstand zu Tagesbeginn (00:00) | `energy` | `total_increasing` |
+| Zählerstand Verbrauch Endstand Vortag | Absoluter Zählerstand am Ende des Vortags (Mitternacht) | `energy` | `total_increasing` |
 | Zählerstand Verbrauch Tarifwechsel 1 | Absoluter Zählerstand zum Tarifwechselzeitpunkt | `energy` | `total_increasing` |
-| Zählerstand Einspeisung Endstand Vortag | Absoluter Einspeise-Zählerstand zu Tagesbeginn (00:00) | `energy` | `total_increasing` |
+| Zählerstand Einspeisung Endstand Vortag | Absoluter Einspeise-Zählerstand am Ende des Vortags (Mitternacht) | `energy` | `total_increasing` |
 | Tagesdatum | Datum der zuletzt abgerufenen Daten | `date` | — |
 
 ## Datenexport für beliebige Zeiträume

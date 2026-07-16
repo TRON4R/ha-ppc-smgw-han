@@ -375,9 +375,16 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             SENSOR_DAILY_CONSUMPTION_SLOT_1: daily_data.daily_import_go,
             SENSOR_DAILY_CONSUMPTION_SLOT_2: daily_data.daily_import_standard,
             SENSOR_DAILY_FEEDIN_TOTAL: daily_data.daily_export_total,
-            SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE: daily_data.import_midnight,
+            # "Endstand Vortag" is the CLOSING reading of the fetched day
+            # (next-day midnight anchor C), not its opening reading A — A is
+            # the close of the day BEFORE the fetched day (issue #35).
+            SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE: (
+                daily_data.import_next_midnight
+            ),
             SENSOR_METER_CONSUMPTION_SWITCH_1: daily_data.import_tariff_switch,
-            SENSOR_METER_FEEDIN_PREV_DAY_CLOSE: daily_data.export_midnight,
+            SENSOR_METER_FEEDIN_PREV_DAY_CLOSE: (
+                daily_data.export_next_midnight
+            ),
         }
 
     async def async_unload(self) -> None:
