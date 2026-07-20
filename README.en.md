@@ -23,8 +23,7 @@ This integration connects to your PPC SMGW once per day and retrieves the offici
 
 All sensors are compatible with the **Home Assistant Energy Dashboard**.
 
-> [!TIP]
-> **📤 Export meter data for user-defined time ranges** — as CSV, Excel or the **signed CMS original** (legally sound, e.g. for disputing your electricity bill), straight from Home Assistant. → [Go to data export](#-data-export-for-user-defined-time-ranges)
+**Since v2.1.0** you can also **export meter data for user-defined time ranges** – as CSV, Excel and the signed CMS original, straight from Home Assistant. See [Data export for user-defined time ranges](#-data-export-for-user-defined-time-ranges).
 
 ## How does this differ from other SMGW integrations?
 

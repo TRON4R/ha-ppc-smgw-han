@@ -23,8 +23,7 @@ Die Integration verbindet sich einmal täglich mit dem PPC SMGW und ruft die off
 
 Alle Sensoren sind kompatibel mit dem **Home Assistant Energie-Dashboard**.
 
-> [!TIP]
-> **📤 Zählerdaten für beliebige Zeiträume exportieren** — als CSV, Excel oder **signiertes CMS-Original** (rechtssicher, z. B. für Einwände gegen die Stromrechnung), direkt aus Home Assistant. → [Zum Datenexport](#-datenexport-für-beliebige-zeiträume)
+**Seit v2.1.0** kannst du außerdem **Zählerdaten für beliebige Zeiträume exportieren** – als CSV, Excel und als signiertes CMS-Original, direkt aus Home Assistant. Siehe [Datenexport für beliebige Zeiträume](#-datenexport-für-beliebige-zeiträume).
 
 ## Unterschied zu anderen SMGW-Integrationen
 
