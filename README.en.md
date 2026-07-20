@@ -27,7 +27,7 @@ All sensors are compatible with the **Home Assistant Energy Dashboard**.
 
 ## How does this differ from ha-ppc-smgw?
 
-The existing [ha-ppc-smgw](https://github.com/jannickfahlbusch/ha-ppc-smgw) integration polls current meter readings at fixed 10 minute intervals (ignoring the respective user setting during setup). Some users have reported being locked out of their SMGW, because the frequency of requests was deemed as too high by the SMGW. So this integration takes a different approach:
+Another SMGW integration polls current meter readings at fixed 10 minute intervals. Some users have reported being locked out of their SMGW as a result, because the frequency of requests was deemed as too high by the SMGW. So this integration takes a different approach:
 
 - **One fetch per day** (5 HTTP requests total, at a configurable time - eliminating any risk of being locked out by the SMGW due to excessive polling)
 - **Certified values** from the SMGW's Zählerstand endpoint (not live meter snapshots)
@@ -90,7 +90,7 @@ Your existing configuration remains untouched — all entities and the Energy Da
    - **Device name** (optional, see next section)
 
 > [!NOTE]
-> **Upgrading from v2.x:** Existing entries are migrated to the tariff-zone model automatically on first start — entities, names and the Energy Dashboard history are preserved. The migration is **one-way** (downgrading below 3.0.0 requires a backup or re-adding the entry).
+> **Upgrading from v2.x:** Existing entries are migrated to the tariff-zone model automatically on first start. That means your entities, names and the Energy Dashboard history are preserved. The migration is **one-way** (downgrading below 3.0.0 requires a backup or re-adding the entry).
 
 ## Multiple SMGWs / multiple logins
 
