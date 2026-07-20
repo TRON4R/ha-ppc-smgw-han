@@ -15,13 +15,13 @@
 
 ## What it does
 
-This integration connects to your PPC SMGW once per day and retrieves the official, calibration-grade daily meter readings from the Zählerstand (meter readings) endpoint. It provides:
+This integration automatically connects to your PPC SMGW once per day and retrieves the official, calibration-grade daily meter readings from the Zählerstand (meter readings) endpoint. It provides:
 
 - **Daily consumption (total)** - total electricity consumed
 - **Daily consumption per tariff zone** - with **freely configurable tariff zones** (since v3.0.0): from simple two-zone tariffs like Octopus Go (default: 00:00–04:59 / 05:00–23:59) up to tariffs with several time windows per zone like Octopus Heat
 - **Daily feed-in (total)** - total electricity fed back to grid
 - **Energy Dashboard compatible** - all sensors can be used directly in the Home Assistant Energy Dashboard
-- **Data export for user-defined time ranges** - as CSV, Excel and the signed CMS original, straight from Home Assistant. See [Data export for user-defined time ranges](#-data-export-for-user-defined-time-ranges)
+- **Separate data export for arbitrary time ranges** - on demand and independent of the sensors: the data comes straight from the SMGW's own storage (15–24 months of history depending on the device, i.e. also from **before** the integration was installed) — conveniently from the Home Assistant UI, without cumbersome manual logins to the SMGW web interface. Output as CSV, Excel or the **signed CMS original**. See [Data export for user-defined time ranges](#-data-export-for-user-defined-time-ranges)
 
 ## How does this differ from other SMGW integrations?
 
