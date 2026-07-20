@@ -15,15 +15,13 @@
 
 ## Was macht diese Integration?
 
-Die Integration verbindet sich einmal täglich mit dem PPC SMGW und ruft die offiziellen, eichrechtskonformen Tagesendwerte vom Zählerstand-Endpunkt ab. Sie berechnet:
+Die Integration verbindet sich einmal täglich mit dem PPC SMGW und ruft die offiziellen, eichrechtskonformen Tagesendwerte vom Zählerstand-Endpunkt ab. Sie liefert:
 
 - **Tagesverbrauch (gesamt)** - gesamter Stromverbrauch des Vortags
 - **Tagesverbrauch pro Tarifzone** - mit **frei konfigurierbaren Tarifzonen** (seit v3.0.0): von einfachen Zwei-Zonen-Tarifen wie Octopus Go (Standard: 00:00–04:59 / 05:00–23:59) bis zu Tarifen mit mehreren Zeitfenstern pro Zone wie Octopus Heat
 - **Tageseinspeisung (gesamt)** - gesamte Netzeinspeisung des Vortags
-
-Alle Sensoren sind kompatibel mit dem **Home Assistant Energie-Dashboard**.
-
-**Seit v2.1.0** kannst du außerdem **Zählerdaten für beliebige Zeiträume exportieren** – als CSV, Excel und als signiertes CMS-Original, direkt aus Home Assistant. Siehe [Datenexport für beliebige Zeiträume](#-datenexport-für-beliebige-zeiträume).
+- **Energie-Dashboard-kompatibel** - alle Sensoren lassen sich direkt im Home Assistant Energie-Dashboard verwenden
+- **Datenexport für beliebige Zeiträume** - als CSV, Excel und als signiertes CMS-Original, direkt aus Home Assistant. Siehe [Datenexport für beliebige Zeiträume](#-datenexport-für-beliebige-zeiträume)
 
 ## Unterschied zu anderen SMGW-Integrationen
 
