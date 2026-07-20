@@ -23,9 +23,10 @@ This integration connects to your PPC SMGW once per day and retrieves the offici
 
 All sensors are compatible with the **Home Assistant Energy Dashboard**.
 
-**Since v2.1.0** you can also **export meter data for user-defined time ranges** – as CSV, Excel and the signed CMS original, straight from Home Assistant. See [Data export for user-defined time ranges](#data-export-for-user-defined-time-ranges).
+> [!TIP]
+> **📤 Export meter data for user-defined time ranges** — as CSV, Excel or the **signed CMS original** (legally sound, e.g. for disputing your electricity bill), straight from Home Assistant. → [Go to data export](#-data-export-for-user-defined-time-ranges)
 
-## How does this differ from ha-ppc-smgw?
+## How does this differ from other SMGW integrations?
 
 Another SMGW integration polls current meter readings at fixed 10 minute intervals. Some users have reported being locked out of their SMGW as a result, because the frequency of requests was deemed as too high by the SMGW. So this integration takes a different approach:
 
@@ -34,7 +35,7 @@ Another SMGW integration polls current meter readings at fixed 10 minute interva
 - **Accurate tariff split** using the second-precise meter readings at the configured tariff switch points
 - **No timing issues** - values are based on the SMGW's official daily boundaries, not the local clock of the Home Assistant server
 - **Multiple meters and SMGWs in parallel** - supports both several SMGWs and several meters on a single SMGW (Modul-2 setups, separate logins for import and feed-in). Details under [Multiple SMGWs / multiple logins](#multiple-smgws--multiple-logins).
-- **Export of certified CMS files** - the integration allows exporting legally sound CMS files in their certified original straight from the SMGW (e.g. to prove billing errors by the electricity supplier), plus generating CSV and Excel files for further processing of the consumption and feed-in data. Details under [Data export for user-defined time ranges](#data-export-for-user-defined-time-ranges).
+- **Export of certified CMS files** - the integration allows exporting legally sound CMS files in their certified original straight from the SMGW (e.g. to prove billing errors by the electricity supplier), plus generating CSV and Excel files for further processing of the consumption and feed-in data. Details under [Data export for user-defined time ranges](#-data-export-for-user-defined-time-ranges).
 
 ## Requirements
 
@@ -121,7 +122,7 @@ When your metering point operator swaps the physical meter in your basement, you
 | Daily date | Date of the last fetched data | `date` | — |
 
 
-## Data export for user-defined time ranges
+## 📤 Data export for user-defined time ranges
 
 Meter readings can be fetched for an **arbitrary time range** straight from Home Assistant — no detour via the SMGW web interface. Output as **CSV**, **Excel** and/or the **signed CMS original**.
 
@@ -258,7 +259,7 @@ You can find your entity IDs under **Settings → Devices & Services → Entitie
 
 This integration was initially developed for the **Octopus Energy (Intelligent) Go tariff** in Germany, which offers a reduced electricity rate between **00:00 and 04:59:59** (Go tariff) and a standard rate from **05:00 to 23:59:59** (standard tariff). It has since been extended, so it can now also model e.g. the **Octopus Heat tariff** — and of course tariffs from other electricity suppliers as well.
 
-The **tariff split time** can however be **freely adjusted** via the GUI for other tariffs.
+The **tariff zones** are **freely configurable** for other tariffs — any number of switch points per day, straight from the GUI.
 
 If you are using a completely different tariff structure, please [open an issue](https://github.com/TRON4R/ha-ppc-smgw-han/issues) or ideally a [pull request](https://github.com/TRON4R/ha-ppc-smgw-han/pulls) to discuss how to make this work for your setup.
 

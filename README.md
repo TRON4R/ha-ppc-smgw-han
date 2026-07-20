@@ -23,9 +23,10 @@ Die Integration verbindet sich einmal täglich mit dem PPC SMGW und ruft die off
 
 Alle Sensoren sind kompatibel mit dem **Home Assistant Energie-Dashboard**.
 
-**Seit v2.1.0** kannst du außerdem **Zählerdaten für beliebige Zeiträume exportieren** – als CSV, Excel und als signiertes CMS-Original, direkt aus Home Assistant. Siehe [Datenexport für beliebige Zeiträume](#datenexport-für-beliebige-zeiträume).
+> [!TIP]
+> **📤 Zählerdaten für beliebige Zeiträume exportieren** — als CSV, Excel oder **signiertes CMS-Original** (rechtssicher, z. B. für Einwände gegen die Stromrechnung), direkt aus Home Assistant. → [Zum Datenexport](#-datenexport-für-beliebige-zeiträume)
 
-## Unterschied zu ha-ppc-smgw
+## Unterschied zu anderen SMGW-Integrationen
 
 Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Minuten-Intervallen ab. Einige Nutzer berichten, dass sie deswegen von ihrem SMGW ausgesperrt wurden, weil die Abfragehäufigkeit als zu hoch eingestuft wurde. Diese Integration verfolgt einen anderen Ansatz:
 
@@ -34,7 +35,7 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 - **Exakte Tarifaufteilung** anhand der sekundengenauen Zählerstände an den konfigurierten Tarif-Umschaltpunkten
 - **Keine Timing-Probleme** - die Werte basieren auf den offiziellen Tagesgrenzen des SMGW, nicht auf der lokalen Uhrzeit des „Home Assistant"-Servers
 - **Mehrere Zähler und SMGWs parallel** - die Integration unterstützt sowohl mehrere SMGWs als auch mehrere Zähler an einem SMGW (Modul-2-Konstellationen, getrennte Logins für Verbrauch und Einspeisung). Details unter [Mehrere SMGWs / mehrere Zugänge](#mehrere-smgws--mehrere-zugänge).
-- **Export der zertifizierten CMS-Dateien** - die Integration erlaubt den Export von rechtssicheren CMS-Dateien im zertifizierten Original direkt aus dem SMGW (z.B. für den Nachweis von Rechnungsfehlern durch den Stromlieferanten) sowie die Erzeugung von CSV- und Excel-Dateien für die Weiterverarbeitung der Verbrauchs- und Einspeisedaten. Details unter [Datenexport für beliebige Zeiträume](#datenexport-für-beliebige-zeiträume).
+- **Export der zertifizierten CMS-Dateien** - die Integration erlaubt den Export von rechtssicheren CMS-Dateien im zertifizierten Original direkt aus dem SMGW (z.B. für den Nachweis von Rechnungsfehlern durch den Stromlieferanten) sowie die Erzeugung von CSV- und Excel-Dateien für die Weiterverarbeitung der Verbrauchs- und Einspeisedaten. Details unter [Datenexport für beliebige Zeiträume](#-datenexport-für-beliebige-zeiträume).
 
 ## Voraussetzungen
 
@@ -120,7 +121,7 @@ Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst d
 | Zählerstand Einspeisung Endstand Vortag | Absoluter Einspeise-Zählerstand am Ende des Vortags (Mitternacht) | `energy` | `total_increasing` |
 | Tagesdatum | Datum der zuletzt abgerufenen Daten | `date` | — |
 
-## Datenexport für beliebige Zeiträume
+## 📤 Datenexport für beliebige Zeiträume
 
 Die Zählerdaten lassen sich für einen **frei wählbaren Zeitraum** direkt aus Home Assistant abrufen — ohne Umweg über das SMGW-Webinterface. Ausgabe als **CSV**, **Excel** und/oder als **signiertes CMS-Original**.
 
@@ -257,7 +258,7 @@ Die Entity-IDs findest du unter **Einstellungen → Geräte & Dienste → Entit�
 
 Diese Integration wurde anfangs für den **Octopus Energy (Intelligent) Go-Tarif** in Deutschland entwickelt, der einen vergünstigten Strompreis zwischen **00:00 und 04:59:59** (Go-Tarif) und einen Normalpreis von **05:00 bis 23:59:59** (Standard-Tarif) bietet. Inzwischen wurde sie erweitert, sodass sie z.B. auch den Octopus Heat Tarif abbilden kann, aber natürlich auch Tarife von anderen Stromanbietern. 
 
-Der **Tarifwechselzeitpunkt** ist aber für andere Tarife problemlos über das GUI **frei einstellbar**. 
+Die **Tarifzonen** sind für andere Tarife **frei konfigurierbar** — beliebig viele Umschaltpunkte pro Tag, direkt über das GUI.
 
 Falls du eine völlig andere Tarifstruktur nutzen solltest, eröffne bitte ein [Issue](https://github.com/TRON4R/ha-ppc-smgw-han/issues) oder idealerweise gleich einen [Pull Request](https://github.com/TRON4R/ha-ppc-smgw-han/pulls), damit wir gemeinsam die Integration entsprechend erweitern können.
 
