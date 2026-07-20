@@ -18,8 +18,7 @@
 This integration connects to your PPC SMGW once per day and retrieves the official, calibration-grade daily meter readings from the Zählerstand (meter readings) endpoint. It calculates:
 
 - **Daily consumption (total)** - total electricity consumed
-- **Daily consumption (slot 1)** - consumption during the first tariff period (default: 00:00–04:59)
-- **Daily consumption (slot 2)** - consumption during the second tariff period (default: 05:00–23:59)
+- **Daily consumption per tariff zone** - with **freely configurable tariff zones** (since v3.0.0): from simple two-zone tariffs like Octopus Go (default: 00:00–04:59 / 05:00–23:59) up to tariffs with several time windows per zone like Octopus Heat
 - **Daily feed-in (total)** - total electricity fed back to grid
 
 All sensors are compatible with the **Home Assistant Energy Dashboard**.
@@ -32,7 +31,7 @@ The existing [ha-ppc-smgw](https://github.com/jannickfahlbusch/ha-ppc-smgw) inte
 
 - **One fetch per day** (5 HTTP requests total, at a configurable time - eliminating any risk of being locked out by the SMGW due to excessive polling)
 - **Certified values** from the SMGW's Zählerstand endpoint (not live meter snapshots)
-- **Accurate tariff split** using the second-precise meter reading at the configured tariff switch time
+- **Accurate tariff split** using the second-precise meter readings at the configured tariff switch points
 - **No timing issues** - values are based on the SMGW's official daily boundaries, not the local clock of the Home Assistant server
 - **Multiple meters and SMGWs in parallel** - supports both several SMGWs and several meters on a single SMGW (Modul-2 setups, separate logins for import and feed-in). Details under [Multiple SMGWs / multiple logins](#multiple-smgws--multiple-logins).
 - **Export of certified CMS files** - the integration allows exporting legally sound CMS files in their certified original straight from the SMGW (e.g. to prove billing errors by the electricity supplier), plus generating CSV and Excel files for further processing of the consumption and feed-in data. Details under [Data export for user-defined time ranges](#data-export-for-user-defined-time-ranges).
@@ -86,9 +85,12 @@ Your existing configuration remains untouched — all entities and the Energy Da
 3. Enter:
    - **URL**: Your SMGW HAN interface URL (default: `https://192.168.100.100/cgi-bin/hanservice.cgi`)
    - **Username** and **Password**: Your HAN credentials
-   - **Standard tariff start time**: When the standard tariff begins (default: 05:00, configurable)
+   - **Tariff zones (switch points)**: one entry per switch point in the format `HH:MM zone name`, starting at `00:00`; the last entry runs until midnight (default: `00:00 Zeitfenster 1` and `05:00 Zeitfenster 2`, matching Octopus Go). Entries sharing a zone name are summed into **one** sensor — this also covers tariffs with several time windows per zone, e.g. Octopus Heat: `00:00 Standard`, `02:00 Heat`, `06:00 Standard`, `12:00 Heat`, `16:00 Standard`. If you prefer to **track every time window separately** — even when it carries the same name and price at your supplier — simply use distinct names (e.g. `Standard1`/`Standard2` or `Night-Low`/`Noon-Low`): each window then gets its own sensor. Minutes on the 00/15/30/45 grid
    - **Fetch time**: Time of the daily data fetch (default: 00:15)
    - **Device name** (optional, see next section)
+
+> [!NOTE]
+> **Upgrading from v2.x:** Existing entries are migrated to the tariff-zone model automatically on first start — entities, names and the Energy Dashboard history are preserved. The migration is **one-way** (downgrading below 3.0.0 requires a backup or re-adding the entry).
 
 ## Multiple SMGWs / multiple logins
 
@@ -111,11 +113,10 @@ When your metering point operator swaps the physical meter in your basement, you
 | Sensor | Description | Device Class | State Class |
 |---|---|---|---|
 | Daily consumption total | Yesterday's total consumption | `energy` | `total` |
-| Daily consumption slot 1 | Consumption during slot 1 (midnight → tariff switch) | `energy` | `total` |
-| Daily consumption slot 2 | Consumption during slot 2 (tariff switch → midnight) | `energy` | `total` |
+| Daily consumption *{zone name}* | Consumption per configured tariff zone (one sensor per zone name; segments sharing a name are summed) | `energy` | `total` |
 | Daily feed-in total | Yesterday's total feed-in | `energy` | `total` |
 | Meter consumption previous day closing | Absolute reading at the end of the previous day (midnight) | `energy` | `total_increasing` |
-| Meter consumption tariff switch 1 | Absolute reading at tariff switch time | `energy` | `total_increasing` |
+| Meter consumption tariff switch *N* | Absolute reading at each inner switch point (one sensor per switch point) | `energy` | `total_increasing` |
 | Meter feed-in previous day closing | Absolute export reading at the end of the previous day (midnight) | `energy` | `total_increasing` |
 | Daily date | Date of the last fetched data | `date` | — |
 
