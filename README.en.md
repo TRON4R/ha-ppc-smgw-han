@@ -85,7 +85,7 @@ Your existing configuration remains untouched — all entities and the Energy Da
 3. Enter:
    - **URL**: Your SMGW HAN interface URL (default: `https://192.168.100.100/cgi-bin/hanservice.cgi`)
    - **Username** and **Password**: Your HAN credentials
-   - **Tariff zones (switch points)**: one entry per switch point in the format `HH:MM zone name`, starting at `00:00`; the last entry runs until midnight (default: `00:00 Zeitfenster 1` and `05:00 Zeitfenster 2`, matching Octopus Go). Entries sharing a zone name are summed into **one** sensor — this also covers tariffs with several time windows per zone, e.g. Octopus Heat: `00:00 Standard`, `02:00 Heat`, `06:00 Standard`, `12:00 Heat`, `16:00 Standard`. If you prefer to **track every time window separately** — even when it carries the same name and price at your supplier — simply use distinct names (e.g. `Standard1`/`Standard2` or `Night-Low`/`Noon-Low`): each window then gets its own sensor. Minutes on the 00/15/30/45 grid
+   - **Tariff zones (switch points)**: one entry per switch point in the format `HH:MM zone name`, starting at `00:00`; the last entry runs until midnight (default: `00:00 Zeitfenster 1` and `05:00 Zeitfenster 2`, matching Octopus Go). Entries sharing a zone name are summed into **one** sensor — this also covers tariffs with several time windows per zone, e.g. Octopus Heat: `00:00 Standard`, `02:00 Heat`, `06:00 Standard`, `12:00 Heat`, `16:00 Standard`. If you prefer to **track every time window separately** — even when it carries the same name and price at your supplier — simply use distinct names (e.g. `Standard1`/`Standard2` or `Night-Low`/`Noon-Low`): each window then gets its own sensor. Switch times must sit on the SMGW's 15-minute measurement grid (minutes `00`, `15`, `30` or `45`) — other times are rejected with an error message right at input, nothing is rounded automatically
    - **Fetch time**: Time of the daily data fetch (default: 00:15)
    - **Device name** (optional, see next section)
 
@@ -256,7 +256,7 @@ You can find your entity IDs under **Settings → Devices & Services → Entitie
 
 ## Intended use case
 
-This integration was developed for the **Octopus Energy (Intelligent) Go tariff** in Germany, which offers a reduced electricity rate between **00:00 and 04:59:59** (Go tariff) and a standard rate from **05:00 to 23:59:59** (standard tariff).
+This integration was initially developed for the **Octopus Energy (Intelligent) Go tariff** in Germany, which offers a reduced electricity rate between **00:00 and 04:59:59** (Go tariff) and a standard rate from **05:00 to 23:59:59** (standard tariff). It has since been extended, so it can now also model e.g. the **Octopus Heat tariff** — and of course tariffs from other electricity suppliers as well.
 
 The **tariff split time** can however be **freely adjusted** via the GUI for other tariffs.
 
