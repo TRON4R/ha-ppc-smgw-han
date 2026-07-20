@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pathlib import Path
 
 import pytest
@@ -57,11 +57,11 @@ def test_utc_is_converted_to_berlin_local():
 
 
 def test_end_to_end_daily_summary():
-    summary = build_daily_summary(_readings(), 5, 0)
+    zones = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
+    summary = build_daily_summary(_readings(), zones)
     assert [s.day for s in summary] == [date(2026, 5, 15)]
     s = summary[0]
-    assert s.consumption_go == 2.5
-    assert s.consumption_standard == 7.5
+    assert s.zone_consumptions == {"Go": 2.5, "Standard": 7.5}
     assert s.consumption_total == 10.0
     assert s.feedin_total == 3.0
 

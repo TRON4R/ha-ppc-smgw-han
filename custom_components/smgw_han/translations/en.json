@@ -8,15 +8,13 @@
           "url": "URL",
           "username": "Username",
           "password": "Password",
-          "tariff_switch_hour": "Standard tariff start (hour)",
-          "tariff_switch_minute": "Standard tariff start (minute)",
+          "tariff_zones": "Tariff zones (switch points)",
           "update_time": "Fetch time",
           "device_name": "Device name (optional)"
         },
         "data_description": {
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
-          "tariff_switch_hour": "Hour when the standard tariff begins",
-          "tariff_switch_minute": "Minute of the tariff switch (0, 15, 30 or 45)",
+          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\". Equal zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00. Minutes must be 00, 15, 30 or 45.",
           "update_time": "Time of day for the automatic daily data fetch",
           "device_name": "Leave empty unless you set this integration up multiple times against the same SMGW (e.g. separate logins for grid import and feed-in). In that case enter a distinct name to tell the devices apart."
         }
@@ -42,7 +40,12 @@
       "invalid_auth": "Invalid username or password.",
       "duplicate_login": "Another configured entry already uses this meter and username combination.",
       "parse_error": "Could not parse the SMGW response. Please double-check the username and password. If the credentials are correct, wait up to 15 minutes and try again.",
-      "unknown": "An unexpected error occurred."
+      "unknown": "An unexpected error occurred.",
+      "invalid_zone_entry": "Each entry must have the format \"HH:MM\u00a0zone\u00a0name\", e.g.\u00a0\"05:00\u00a0Standard\".",
+      "zone_too_few": "Define at least two entries (00:00 plus one switch point).",
+      "zone_first_not_midnight": "The first entry must start at 00:00.",
+      "zone_times_not_ascending": "The switch times must be strictly ascending within the day.",
+      "zone_minute_grid": "Minutes must be 00, 15, 30 or 45 (the SMGW records on a 15-minute grid)."
     },
     "abort": {
       "already_configured": "This meter is already configured.",
@@ -65,15 +68,13 @@
           "url": "URL",
           "username": "Username",
           "password": "Password",
-          "tariff_switch_hour": "Standard tariff start (hour)",
-          "tariff_switch_minute": "Standard tariff start (minute)",
+          "tariff_zones": "Tariff zones (switch points)",
           "update_time": "Fetch time",
           "device_name": "Device name (optional)"
         },
         "data_description": {
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
-          "tariff_switch_hour": "Hour when the standard tariff begins",
-          "tariff_switch_minute": "Minute of the tariff switch (0, 15, 30 or 45)",
+          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\". Equal zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00. Minutes must be 00, 15, 30 or 45. Note: sensor n belongs to the n-th newly appearing zone in the list. If a change puts a different zone at position n, its sensor takes over the recorded history of the old zone (the statistics mix two tariffs). Changing times or appending zones at the end is safe.",
           "update_time": "Time of day for the automatic daily data fetch",
           "device_name": "Custom name (e.g. \"SMGW Import\" / \"SMGW Export\") for the case where you run multiple logins against the same SMGW as separate entries. Otherwise leave empty."
         }
@@ -113,7 +114,12 @@
       "no_data_in_range": "No meter data is available for the selected time range (e.g. before the meter was commissioned).",
       "from_after_to": "The start ('From') must be before the end ('To').",
       "to_in_future": "The end of the range ('To') must not be in the future.",
-      "from_too_old": "The start of the range ('From') is older than the SMGW's maximum 760-day history."
+      "from_too_old": "The start of the range ('From') is older than the SMGW's maximum 760-day history.",
+      "invalid_zone_entry": "Each entry must have the format \"HH:MM\u00a0zone\u00a0name\", e.g.\u00a0\"05:00\u00a0Standard\".",
+      "zone_too_few": "Define at least two entries (00:00 plus one switch point).",
+      "zone_first_not_midnight": "The first entry must start at 00:00.",
+      "zone_times_not_ascending": "The switch times must be strictly ascending within the day.",
+      "zone_minute_grid": "Minutes must be 00, 15, 30 or 45 (the SMGW records on a 15-minute grid)."
     },
     "abort": {
       "export_done": "Export created.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
@@ -124,11 +130,8 @@
       "daily_consumption_total": {
         "name": "Daily consumption total"
       },
-      "daily_consumption_slot_1": {
-        "name": "Daily consumption slot 1"
-      },
-      "daily_consumption_slot_2": {
-        "name": "Daily consumption slot 2"
+      "daily_consumption_zone": {
+        "name": "Daily consumption {zone_name}"
       },
       "daily_feedin_total": {
         "name": "Daily feed-in total"
@@ -136,8 +139,8 @@
       "meter_consumption_prev_day_close": {
         "name": "Meter consumption previous day closing"
       },
-      "meter_consumption_switch_1": {
-        "name": "Meter consumption tariff switch 1"
+      "meter_consumption_switch": {
+        "name": "Meter consumption tariff switch {index}"
       },
       "meter_feedin_prev_day_close": {
         "name": "Meter feed-in previous day closing"

@@ -16,16 +16,24 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.smgw_han import async_migrate_entry
+from custom_components.smgw_han.config_flow import (
+    ZoneDefinitionError,
+    _parse_tariff_zones,
+)
 from custom_components.smgw_han.const import (
     CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_PASSWORD,
     CONF_TARIFF_SWITCH_HOUR,
     CONF_TARIFF_SWITCH_MINUTE,
+    CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
     CONF_URL,
     CONF_USERNAME,
     DOMAIN,
+    ZONE_NAME,
+    ZONE_TIME,
 )
 from custom_components.smgw_han.smgw_client import SmgwAuthError, SmgwDeviceInfo
 
@@ -37,12 +45,16 @@ CLOSE = "custom_components.smgw_han.config_flow.SmgwClient.close"
 SETUP_ENTRY = "custom_components.smgw_han.async_setup_entry"
 
 URL = "https://192.168.100.100/cgi-bin/hanservice.cgi"
+GO_ZONE_ENTRIES = ["00:00 Go", "05:00 Standard"]
+GO_ZONES_STORED = [
+    {ZONE_TIME: "00:00", ZONE_NAME: "Go"},
+    {ZONE_TIME: "05:00", ZONE_NAME: "Standard"},
+]
 USER_INPUT = {
     CONF_URL: URL,
     CONF_USERNAME: "user",
     CONF_PASSWORD: "pw",
-    CONF_TARIFF_SWITCH_HOUR: "5",
-    CONF_TARIFF_SWITCH_MINUTE: "0",
+    CONF_TARIFF_ZONES: GO_ZONE_ENTRIES,
     CONF_UPDATE_TIME: "00:15:00",
 }
 
@@ -67,13 +79,12 @@ def _entry(meter_id: str, instance_id: int = 1, **extra) -> MockConfigEntry:
         CONF_PASSWORD: "pw",
         CONF_METER_ID: meter_id,
         CONF_INSTANCE_ID: instance_id,
-        CONF_TARIFF_SWITCH_HOUR: 5,
-        CONF_TARIFF_SWITCH_MINUTE: 0,
+        CONF_TARIFF_ZONES: [dict(z) for z in GO_ZONES_STORED],
         CONF_UPDATE_TIME: "00:15:00",
         **extra,
     }
     return MockConfigEntry(
-        domain=DOMAIN, unique_id=f"{meter_id}:user", data=data
+        domain=DOMAIN, unique_id=f"{meter_id}:user", data=data, version=2
     )
 
 
@@ -95,6 +106,8 @@ async def test_user_flow_single_meter_creates_entry(hass: HomeAssistant):
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_METER_ID] == "1lgz0072999211"
     assert result["data"][CONF_INSTANCE_ID] == 1
+    # Chip entries are stored in their parsed JSON shape.
+    assert result["data"][CONF_TARIFF_ZONES] == GO_ZONES_STORED
 
 
 async def test_user_flow_multi_meter_goes_through_select_step(
@@ -394,3 +407,231 @@ async def test_options_export_rejects_too_old(hass: HomeAssistant):
     )
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "from_too_old"
+
+
+# ---------------------------------------------------------------------------
+# Tariff-zone parsing / validation
+# ---------------------------------------------------------------------------
+
+
+def test_parse_tariff_zones_go():
+    assert _parse_tariff_zones(["00:00 Go", "05:00 Standard"]) == [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Go"},
+        {ZONE_TIME: "05:00", ZONE_NAME: "Standard"},
+    ]
+
+
+def test_parse_tariff_zones_heat_and_normalization():
+    # Single-digit hours and surrounding whitespace are normalized; zone
+    # names may contain blanks and may repeat (grouped zones).
+    parsed = _parse_tariff_zones(
+        [
+            "0:00 Standard",
+            "  02:00  Niedrig ",
+            "6:00 Standard",
+            "12:00 Niedrig",
+            "16:00 Standard",
+            "18:00 Hoch Tarif",
+            "21:00 Standard",
+        ]
+    )
+    assert parsed[0] == {ZONE_TIME: "00:00", ZONE_NAME: "Standard"}
+    assert parsed[1] == {ZONE_TIME: "02:00", ZONE_NAME: "Niedrig"}
+    assert parsed[5] == {ZONE_TIME: "18:00", ZONE_NAME: "Hoch Tarif"}
+
+
+@pytest.mark.parametrize(
+    ("entries", "error_key"),
+    [
+        ([], "zone_too_few"),
+        (["00:00 Nur eine Zone"], "zone_too_few"),
+        (["00:00 A", "5 Uhr B"], "invalid_zone_entry"),
+        (["00:00 A", "25:00 B"], "invalid_zone_entry"),
+        (["00:00 A", "05:00"], "invalid_zone_entry"),
+        (["01:00 A", "05:00 B"], "zone_first_not_midnight"),
+        (["00:00 A", "06:00 B", "05:00 C"], "zone_times_not_ascending"),
+        (["00:00 A", "05:00 B", "05:00 C"], "zone_times_not_ascending"),
+        (["00:00 A", "05:10 B"], "zone_minute_grid"),
+    ],
+)
+def test_parse_tariff_zones_rejects(entries, error_key):
+    with pytest.raises(ZoneDefinitionError) as ei:
+        _parse_tariff_zones(entries)
+    assert ei.value.error_key == error_key
+
+
+async def test_user_flow_invalid_zones_shows_field_error(hass: HomeAssistant):
+    # A malformed zone list fails locally — the SMGW is never contacted.
+    with patch(VALIDATE) as mock_validate:
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {**USER_INPUT, CONF_TARIFF_ZONES: ["05:00 Standard"]},
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"][CONF_TARIFF_ZONES] == "zone_too_few"
+    assert not mock_validate.called
+
+
+async def test_settings_invalid_zones_shows_field_error(hass: HomeAssistant):
+    entry = _entry("M", instance_id=1)
+    entry.add_to_hass(hass)
+
+    result = await _open_settings(hass, entry)
+    with patch(VALIDATE) as mock_validate:
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {**USER_INPUT, CONF_TARIFF_ZONES: ["00:00 A", "05:10 B"]},
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"][CONF_TARIFF_ZONES] == "zone_minute_grid"
+    assert not mock_validate.called
+    assert entry.data[CONF_TARIFF_ZONES] == GO_ZONES_STORED  # nothing saved
+
+
+async def test_settings_stores_parsed_zones(hass: HomeAssistant):
+    entry = _entry("M", instance_id=1)
+    entry.add_to_hass(hass)
+
+    heat_entries = [
+        "00:00 Standard",
+        "02:00 Niedrig",
+        "06:00 Standard",
+        "12:00 Niedrig",
+        "16:00 Standard",
+        "18:00 Hoch",
+        "21:00 Standard",
+    ]
+    result = await _open_settings(hass, entry)
+    with (
+        patch(VALIDATE, return_value=_info("M", ["M"])),
+        patch(CLOSE, return_value=None),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ),
+    ):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {**USER_INPUT, CONF_TARIFF_ZONES: heat_entries},
+        )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.data[CONF_TARIFF_ZONES] == [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Standard"},
+        {ZONE_TIME: "02:00", ZONE_NAME: "Niedrig"},
+        {ZONE_TIME: "06:00", ZONE_NAME: "Standard"},
+        {ZONE_TIME: "12:00", ZONE_NAME: "Niedrig"},
+        {ZONE_TIME: "16:00", ZONE_NAME: "Standard"},
+        {ZONE_TIME: "18:00", ZONE_NAME: "Hoch"},
+        {ZONE_TIME: "21:00", ZONE_NAME: "Standard"},
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Config-entry migration v1 -> v2
+# ---------------------------------------------------------------------------
+
+
+async def test_migrate_entry_v1_builds_zones_from_switch_time(
+    hass: HomeAssistant,
+):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="M:user",
+        version=1,
+        data={
+            CONF_URL: URL,
+            CONF_USERNAME: "user",
+            CONF_PASSWORD: "pw",
+            CONF_METER_ID: "M",
+            CONF_INSTANCE_ID: 1,
+            CONF_TARIFF_SWITCH_HOUR: 7,
+            CONF_TARIFF_SWITCH_MINUTE: 30,
+            CONF_UPDATE_TIME: "00:15:00",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry) is True
+
+    assert entry.version == 2
+    # Fallback names reproduce the pre-3.0 entity display names.
+    assert entry.data[CONF_TARIFF_ZONES] == [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Zeitfenster 1"},
+        {ZONE_TIME: "07:30", ZONE_NAME: "Zeitfenster 2"},
+    ]
+    assert CONF_TARIFF_SWITCH_HOUR not in entry.data
+    assert CONF_TARIFF_SWITCH_MINUTE not in entry.data
+    # Everything else is untouched.
+    assert entry.data[CONF_METER_ID] == "M"
+    assert entry.data[CONF_INSTANCE_ID] == 1
+
+
+async def test_migrate_entry_v1_without_switch_time_uses_default(
+    hass: HomeAssistant,
+):
+    # Very old entries may lack the switch-time keys entirely -> default 05:00.
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="M:user",
+        version=1,
+        data={
+            CONF_URL: URL,
+            CONF_USERNAME: "user",
+            CONF_PASSWORD: "pw",
+            CONF_METER_ID: "M",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry) is True
+    assert entry.version == 2
+    assert entry.data[CONF_TARIFF_ZONES] == [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Zeitfenster 1"},
+        {ZONE_TIME: "05:00", ZONE_NAME: "Zeitfenster 2"},
+    ]
+
+
+async def test_migrate_entry_v1_midnight_switch_documented_degenerate(
+    hass: HomeAssistant,
+):
+    # Legacy switch time 00:00 (always meant "slot 1 = 0") migrates to two
+    # zones with the same 00:00 boundary. That is deliberately degenerate:
+    # the calculation reproduces the v2 behaviour (covered by
+    # test_degenerate_midnight_switch_computes_like_v2); only a later manual
+    # edit in the settings form forces the user to enter a sane definition.
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="M:user",
+        version=1,
+        data={
+            CONF_URL: URL,
+            CONF_USERNAME: "user",
+            CONF_PASSWORD: "pw",
+            CONF_METER_ID: "M",
+            CONF_TARIFF_SWITCH_HOUR: 0,
+            CONF_TARIFF_SWITCH_MINUTE: 0,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry) is True
+    assert entry.version == 2
+    assert entry.data[CONF_TARIFF_ZONES] == [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Zeitfenster 1"},
+        {ZONE_TIME: "00:00", ZONE_NAME: "Zeitfenster 2"},
+    ]
+
+
+async def test_migrate_entry_v2_is_noop(hass: HomeAssistant):
+    entry = _entry("M", instance_id=1)
+    entry.add_to_hass(hass)
+    before = dict(entry.data)
+
+    assert await async_migrate_entry(hass, entry) is True
+    assert entry.version == 2
+    assert dict(entry.data) == before

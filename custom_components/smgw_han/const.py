@@ -7,17 +7,31 @@ CONF_URL = "url"
 CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 CONF_UPDATE_TIME = "update_time"
+CONF_TARIFF_ZONES = "tariff_zones"  # Ordered list of {"time": "HH:MM", "name": str}
+# Legacy single-switch-time keys (config entry version 1). Only referenced by
+# the v1 -> v2 entry migration in __init__.py; new entries store CONF_TARIFF_ZONES.
 CONF_TARIFF_SWITCH_HOUR = "tariff_switch_hour"
 CONF_TARIFF_SWITCH_MINUTE = "tariff_switch_minute"
 CONF_METER_ID = "meter_id"  # Parsed from SMGW during setup
 CONF_INSTANCE_ID = "instance_id"  # Per-entry counter (1, 2, ...) for stable entity / device slug
 CONF_DEVICE_NAME = "device_name"  # Optional user-defined device label, overrides default
 
+# Keys of one tariff-zone dict in CONF_TARIFF_ZONES
+ZONE_TIME = "time"
+ZONE_NAME = "name"
+
 # Defaults
 DEFAULT_URL = "https://192.168.100.100/cgi-bin/hanservice.cgi"
 DEFAULT_UPDATE_TIME = "00:15:00"
 DEFAULT_TARIFF_SWITCH_HOUR = 5
 DEFAULT_TARIFF_SWITCH_MINUTE = 0
+# Two-zone default equivalent to the historical Octopus-Go setup. The zone
+# names double as entity display names ("Tagesverbrauch Zeitfenster 1/2"),
+# matching what pre-3.0 installations showed.
+DEFAULT_TARIFF_ZONES = [
+    {ZONE_TIME: "00:00", ZONE_NAME: "Zeitfenster 1"},
+    {ZONE_TIME: "05:00", ZONE_NAME: "Zeitfenster 2"},
+]
 
 # OBIS codes
 OBIS_IMPORT = "1-0:1.8.0"  # Verbrauch / Grid import
@@ -52,17 +66,30 @@ EXPORT_WWW_SUBDIR = "smgw_han_exports"
 ISSUE_NO_RECENT_DATA = "no_recent_data"
 
 # Store
-# v5: "Endstand Vortag" sensors switched from anchor A to anchor C (issue
-# #35) — the bump forces one refetch so the corrected value appears
-# immediately after the update instead of after the next nightly fetch.
-STORE_VERSION = 5
+# v5: configurable tariff zones (slot/switch keys depend on the zone config).
+# v6: "Endstand Vortag" sensors switched from anchor A to anchor C (issue
+# #35, fixed on main as v2.6.0 with store v5) — the bump forces one refetch
+# so the corrected value appears immediately after the update, including on
+# the upgrade path v2.6.0 (store 5) -> v3.0.0 (store 6).
+STORE_VERSION = 6
 
 # Sensor keys (used in coordinator.data dict)
 SENSOR_DAILY_CONSUMPTION_TOTAL = "daily_consumption_total"
-SENSOR_DAILY_CONSUMPTION_SLOT_1 = "daily_consumption_slot_1"
-SENSOR_DAILY_CONSUMPTION_SLOT_2 = "daily_consumption_slot_2"
 SENSOR_DAILY_FEEDIN_TOTAL = "daily_feedin_total"
 SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE = "meter_consumption_prev_day_close"
-SENSOR_METER_CONSUMPTION_SWITCH_1 = "meter_consumption_switch_1"
 SENSOR_METER_FEEDIN_PREV_DAY_CLOSE = "meter_feedin_prev_day_close"
 SENSOR_DATE = "date"
+
+
+def slot_key(n: int) -> str:
+    """Sensor key of the daily consumption value for tariff zone ``n`` (1-based).
+
+    ``n`` is the zone's position by first appearance in the configured zone
+    list, so existing 2-zone installations keep their slot_1/slot_2 history.
+    """
+    return f"daily_consumption_slot_{n}"
+
+
+def switch_key(n: int) -> str:
+    """Sensor key of the absolute meter reading at inner boundary ``n`` (1-based)."""
+    return f"meter_consumption_switch_{n}"

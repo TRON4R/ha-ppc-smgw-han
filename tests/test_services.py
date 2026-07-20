@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -40,7 +40,7 @@ class FakeCoordinator:
     """
 
     target_meter_id = "1lgz0072999211"
-    tariff_switch = (5, 0)
+    tariff_zones = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
 
     async def async_download_cms(self, from_dt, to_dt):
         return FIXTURE.read_bytes(), "export.sm_data.xml.cms"

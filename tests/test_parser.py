@@ -110,6 +110,64 @@ def test_table_without_rows_returns_empty():
     assert _client()._parse_meter_values_table('<table id="metervalue"></table>') == []
 
 
+def test_broken_timestamp_invalidates_whole_group():
+    # A non-empty but unparseable timestamp must reset the running timestamp:
+    # the broken row AND its paired export continuation line must be dropped
+    # instead of being attributed to the PREVIOUS timestamp. A later valid
+    # pair must parse normally again.
+    html = (
+        '<table id="metervalue">'
+        # valid pair @ 00:00
+        '<tr id="table_metervalues_line1">'
+        '<td id="table_metervalues_col_timestamp">2026-05-15 00:00:01</td>'
+        '<td id="table_metervalues_col_obis">1-0:1.8.0</td>'
+        '<td id="table_metervalues_col_wert">1000.0</td>'
+        '<td id="table_metervalues_col_einheit">kWh</td>'
+        '<td id="table_metervalues_col_istvalide">1</td>'
+        "</tr>"
+        '<tr id="table_metervalues_line2">'
+        '<td id="table_metervalues_col_timestamp"></td>'
+        '<td id="table_metervalues_col_obis">1-0:2.8.0</td>'
+        '<td id="table_metervalues_col_wert">500.0</td>'
+        '<td id="table_metervalues_col_einheit">kWh</td>'
+        '<td id="table_metervalues_col_istvalide"></td>'
+        "</tr>"
+        # broken timestamp -> this row and its continuation must be dropped
+        '<tr id="table_metervalues_line3">'
+        '<td id="table_metervalues_col_timestamp">garbage</td>'
+        '<td id="table_metervalues_col_obis">1-0:1.8.0</td>'
+        '<td id="table_metervalues_col_wert">9999.0</td>'
+        '<td id="table_metervalues_col_einheit">kWh</td>'
+        '<td id="table_metervalues_col_istvalide">1</td>'
+        "</tr>"
+        '<tr id="table_metervalues_line4">'
+        '<td id="table_metervalues_col_timestamp"></td>'
+        '<td id="table_metervalues_col_obis">1-0:2.8.0</td>'
+        '<td id="table_metervalues_col_wert">8888.0</td>'
+        '<td id="table_metervalues_col_einheit">kWh</td>'
+        '<td id="table_metervalues_col_istvalide"></td>'
+        "</tr>"
+        # later valid pair @ 05:00
+        '<tr id="table_metervalues_line5">'
+        '<td id="table_metervalues_col_timestamp">2026-05-15 05:00:01</td>'
+        '<td id="table_metervalues_col_obis">1-0:1.8.0</td>'
+        '<td id="table_metervalues_col_wert">1002.5</td>'
+        '<td id="table_metervalues_col_einheit">kWh</td>'
+        '<td id="table_metervalues_col_istvalide">1</td>'
+        "</tr></table>"
+    )
+    readings = _client()._parse_meter_values_table(html)
+    values = [r.value for r in readings]
+    assert 9999.0 not in values  # broken row dropped
+    assert 8888.0 not in values  # its continuation line dropped too
+    assert values == [1000.0, 500.0, 1002.5]
+    # And nothing got attributed to the previous timestamp.
+    at_midnight = [
+        r for r in readings if r.timestamp == datetime(2026, 5, 15, 0, 0, 1)
+    ]
+    assert len(at_midnight) == 2
+
+
 def test_non_target_obis_rows_are_skipped():
     html = (
         '<table id="metervalue">'

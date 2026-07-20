@@ -52,7 +52,7 @@ from .const import (
     SMGW_HISTORY_DAYS,
 )
 from .export_files import write_readings_csv, write_xlsx
-from .smgw_client import MeterReading
+from .smgw_client import MeterReading, TariffZones
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -235,7 +235,7 @@ def _write_export_files(
 
 
 def _parse_and_aggregate(
-    cms_bytes: bytes, tariff_hour: int, tariff_minute: int
+    cms_bytes: bytes, zones: TariffZones
 ) -> tuple[list[MeterReading], list[DailySummary]]:
     """Parse CMS bytes and build the daily summary (blocking; run in executor).
 
@@ -243,7 +243,7 @@ def _parse_and_aggregate(
     scans), so they belong off the event loop.
     """
     readings = parse_cms_readings(cms_bytes)
-    daily_summary = build_daily_summary(readings, tariff_hour, tariff_minute)
+    daily_summary = build_daily_summary(readings, zones)
     return readings, daily_summary
 
 
@@ -262,7 +262,7 @@ async def run_export(
     ``coordinator`` is a loaded :class:`SmgwTafCoordinator`. Returns the
     response dict (download links first, then meter data).
     """
-    tariff_hour, tariff_minute = coordinator.tariff_switch
+    zones = coordinator.tariff_zones
 
     # The signed CMS export delivers the whole range in a single request and is
     # the authoritative source. Download once, then parse + aggregate off the
@@ -276,7 +276,7 @@ async def run_export(
             translation_domain=DOMAIN, translation_key="no_data_in_range"
         )
     readings, daily_summary = await hass.async_add_executor_job(
-        _parse_and_aggregate, cms_bytes, tariff_hour, tariff_minute
+        _parse_and_aggregate, cms_bytes, zones
     )
     if not readings:
         raise ServiceValidationError(
@@ -299,7 +299,9 @@ async def run_export(
             "meter_id": meter_id or "",
             "from": from_str,
             "to": to_str,
-            "tariff_switch": f"{tariff_hour:02d}:{tariff_minute:02d}",
+            "zones": [
+                (t.strftime("%H:%M"), name) for t, name in zones
+            ],
         }
 
         # The CMS bytes are already in hand; save the file only if requested.

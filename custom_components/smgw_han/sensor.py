@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date as date_type, datetime
 from typing import Any
@@ -14,6 +15,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import EntityCategory, UnitOfEnergy
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -23,20 +25,27 @@ from .const import (
     CONF_DEVICE_NAME,
     CONF_INSTANCE_ID,
     CONF_METER_ID,
+    CONF_TARIFF_ZONES,
+    DEFAULT_TARIFF_ZONES,
     DOMAIN,
-    SENSOR_DAILY_CONSUMPTION_SLOT_1,
-    SENSOR_DAILY_CONSUMPTION_SLOT_2,
     SENSOR_DAILY_CONSUMPTION_TOTAL,
     SENSOR_DAILY_FEEDIN_TOTAL,
     SENSOR_DATE,
     SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
-    SENSOR_METER_CONSUMPTION_SWITCH_1,
     SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
+    ZONE_NAME,
+    slot_key,
+    switch_key,
 )
 from . import SmgwTafConfigEntry
 from .coordinator import SmgwTafCoordinator
 
 DEFAULT_DEVICE_NAME = "PPC SMGW"
+
+# unique_id suffixes of the config-dependent (dynamic) sensors, used to
+# detect entities orphaned by a shrunk zone definition.
+_SLOT_UID_RE = re.compile(r"_daily_consumption_slot_(\d+)$")
+_SWITCH_UID_RE = re.compile(r"_meter_consumption_switch_(\d+)$")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -45,6 +54,9 @@ class SmgwTafSensorEntityDescription(SensorEntityDescription):
 
     data_key: str
     is_daily_value: bool = False
+    # Filled for the dynamic per-zone / per-switch sensors, whose translated
+    # names carry a {zone_name} / {index} placeholder.
+    translation_placeholders: dict[str, str] | None = None
 
 
 SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
@@ -53,28 +65,6 @@ SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
         key="daily_consumption_total",
         translation_key="daily_consumption_total",
         data_key=SENSOR_DAILY_CONSUMPTION_TOTAL,
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL,
-        suggested_display_precision=4,
-        is_daily_value=True,
-        icon="mdi:home-lightning-bolt",
-    ),
-    SmgwTafSensorEntityDescription(
-        key="daily_consumption_slot_1",
-        translation_key="daily_consumption_slot_1",
-        data_key=SENSOR_DAILY_CONSUMPTION_SLOT_1,
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL,
-        suggested_display_precision=4,
-        is_daily_value=True,
-        icon="mdi:home-lightning-bolt",
-    ),
-    SmgwTafSensorEntityDescription(
-        key="daily_consumption_slot_2",
-        translation_key="daily_consumption_slot_2",
-        data_key=SENSOR_DAILY_CONSUMPTION_SLOT_2,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL,
@@ -105,16 +95,6 @@ SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
         icon="mdi:meter-electric",
     ),
     SmgwTafSensorEntityDescription(
-        key="meter_consumption_switch_1",
-        translation_key="meter_consumption_switch_1",
-        data_key=SENSOR_METER_CONSUMPTION_SWITCH_1,
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        suggested_display_precision=4,
-        icon="mdi:meter-electric",
-    ),
-    SmgwTafSensorEntityDescription(
         key="meter_feedin_prev_day_close",
         translation_key="meter_feedin_prev_day_close",
         data_key=SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
@@ -136,6 +116,75 @@ SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
 )
 
 
+def _dynamic_descriptions(
+    zones_config: list[dict[str, str]],
+) -> list[SmgwTafSensorEntityDescription]:
+    """Build the config-dependent sensor descriptions from the zone list.
+
+    One daily-consumption sensor per distinct zone name (slot index = order
+    of first appearance, so 2-zone installations keep slot_1/slot_2) and one
+    absolute meter-reading sensor per inner segment boundary.
+    """
+    descriptions: list[SmgwTafSensorEntityDescription] = []
+    zone_names = list(
+        dict.fromkeys(zone[ZONE_NAME] for zone in zones_config)
+    )
+    for n, name in enumerate(zone_names, 1):
+        descriptions.append(
+            SmgwTafSensorEntityDescription(
+                key=slot_key(n),
+                translation_key="daily_consumption_zone",
+                translation_placeholders={"zone_name": name},
+                data_key=slot_key(n),
+                native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+                device_class=SensorDeviceClass.ENERGY,
+                state_class=SensorStateClass.TOTAL,
+                suggested_display_precision=4,
+                is_daily_value=True,
+                icon="mdi:home-lightning-bolt",
+            )
+        )
+    for n in range(1, len(zones_config)):
+        descriptions.append(
+            SmgwTafSensorEntityDescription(
+                key=switch_key(n),
+                translation_key="meter_consumption_switch",
+                translation_placeholders={"index": str(n)},
+                data_key=switch_key(n),
+                native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+                device_class=SensorDeviceClass.ENERGY,
+                state_class=SensorStateClass.TOTAL_INCREASING,
+                suggested_display_precision=4,
+                icon="mdi:meter-electric",
+            )
+        )
+    return descriptions
+
+
+def _remove_stale_dynamic_entities(
+    hass: HomeAssistant,
+    config_entry: SmgwTafConfigEntry,
+    zone_count: int,
+    switch_count: int,
+) -> None:
+    """Drop registry entries orphaned by a shrunk tariff-zone definition.
+
+    Without this, reducing the zone count would leave dead slot_{n} /
+    switch_{n} entities behind as permanently "unavailable".
+    """
+    registry = er.async_get(hass)
+    for reg_entry in er.async_entries_for_config_entry(
+        registry, config_entry.entry_id
+    ):
+        for pattern, limit in (
+            (_SLOT_UID_RE, zone_count),
+            (_SWITCH_UID_RE, switch_count),
+        ):
+            match = pattern.search(reg_entry.unique_id)
+            if match and int(match.group(1)) > limit:
+                registry.async_remove(reg_entry.entity_id)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: SmgwTafConfigEntry,
@@ -144,9 +193,16 @@ async def async_setup_entry(
     """Set up SMGW HAN sensors from a config entry."""
     coordinator: SmgwTafCoordinator = config_entry.runtime_data
 
+    zones_config = config_entry.data.get(CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES)
+    dynamic = _dynamic_descriptions(zones_config)
+    zone_count = len(dict.fromkeys(z[ZONE_NAME] for z in zones_config))
+    _remove_stale_dynamic_entities(
+        hass, config_entry, zone_count, len(zones_config) - 1
+    )
+
     entities: list[SensorEntity] = [
         SmgwTafSensor(coordinator, description, config_entry)
-        for description in SENSOR_DESCRIPTIONS
+        for description in (*SENSOR_DESCRIPTIONS, *dynamic)
     ]
     entities.append(SmgwDeviceIdSensor(config_entry))
 
@@ -168,6 +224,12 @@ class SmgwTafSensor(CoordinatorEntity[SmgwTafCoordinator], SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_description = description
+        if description.translation_placeholders is not None:
+            # Dynamic sensors: the translated name carries a {zone_name} /
+            # {index} placeholder filled from the user's zone definition.
+            self._attr_translation_placeholders = (
+                description.translation_placeholders
+            )
         # Identity is stable per config entry and independent of physical meter
         # hardware. If the meter is replaced (new meter_id), entities remain
         # unchanged. The instance counter is assigned at entry creation and

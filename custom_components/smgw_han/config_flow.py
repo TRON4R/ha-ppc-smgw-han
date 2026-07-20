@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime
 from typing import Any
 
@@ -42,17 +43,18 @@ from .const import (
     CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_PASSWORD,
-    CONF_TARIFF_SWITCH_HOUR,
-    CONF_TARIFF_SWITCH_MINUTE,
+    CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
     CONF_URL,
     CONF_USERNAME,
-    DEFAULT_TARIFF_SWITCH_HOUR,
-    DEFAULT_TARIFF_SWITCH_MINUTE,
+    DEFAULT_TARIFF_ZONES,
     DEFAULT_UPDATE_TIME,
     DEFAULT_URL,
     DOMAIN,
+    ZONE_NAME,
+    ZONE_TIME,
 )
+from . import gateway_lock
 from .services import (
     PERIOD_PRESETS,
     _period_range,
@@ -69,18 +71,70 @@ from .smgw_client import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Hour options: 0-23
-HOUR_OPTIONS = [
-    {"value": str(h), "label": f"{h:02d}"} for h in range(24)
-]
+# One tariff-zone entry as typed by the user: "HH:MM Zonenname"
+# (time, whitespace, then the zone name = everything after the first blank).
+_ZONE_ENTRY_RE = re.compile(r"^(\d{1,2}):(\d{2})\s+(\S.*)$")
 
-# Minute options: 0, 15, 30, 45 (matching 15-minute meter resolution)
-MINUTE_OPTIONS = [
-    {"value": "0", "label": "00"},
-    {"value": "15", "label": "15"},
-    {"value": "30", "label": "30"},
-    {"value": "45", "label": "45"},
-]
+# Minutes allowed for switch times: the SMGW records on a 15-minute grid and
+# boundary readings are resolved with a +/- 7 minute tolerance.
+_ZONE_MINUTES = (0, 15, 30, 45)
+
+
+class ZoneDefinitionError(ValueError):
+    """A tariff-zone entry list failed validation.
+
+    ``error_key`` matches an ``options.error`` / ``config.error`` translation
+    key so the form can show a localized message at the field.
+    """
+
+    def __init__(self, error_key: str) -> None:
+        super().__init__(error_key)
+        self.error_key = error_key
+
+
+def _parse_tariff_zones(entries: list[str]) -> list[dict[str, str]]:
+    """Parse and validate the "HH:MM Zonenname" chip entries.
+
+    Returns the JSON shape stored in the config entry
+    (``[{"time": "HH:MM", "name": ...}, ...]``). Raises
+    :class:`ZoneDefinitionError` on the first violated rule: at least two
+    entries (one switch point), each entry "HH:MM Name", minutes on the
+    15-minute grid, the first entry at 00:00, times strictly ascending.
+    """
+    if len(entries) < 2:
+        raise ZoneDefinitionError("zone_too_few")
+    zones: list[dict[str, str]] = []
+    prev: tuple[int, int] | None = None
+    for raw in entries:
+        match = _ZONE_ENTRY_RE.match(raw.strip())
+        if not match:
+            raise ZoneDefinitionError("invalid_zone_entry")
+        hour, minute = int(match[1]), int(match[2])
+        if hour > 23 or minute > 59:
+            raise ZoneDefinitionError("invalid_zone_entry")
+        if minute not in _ZONE_MINUTES:
+            raise ZoneDefinitionError("zone_minute_grid")
+        if prev is None and (hour, minute) != (0, 0):
+            raise ZoneDefinitionError("zone_first_not_midnight")
+        if prev is not None and (hour, minute) <= prev:
+            raise ZoneDefinitionError("zone_times_not_ascending")
+        prev = (hour, minute)
+        zones.append(
+            {ZONE_TIME: f"{hour:02d}:{minute:02d}", ZONE_NAME: match[3].strip()}
+        )
+    return zones
+
+
+def _format_tariff_zones(zones: list[Any]) -> list[str]:
+    """Format stored zones back into "HH:MM Zonenname" chip strings.
+
+    Tolerates already-formatted strings (a re-shown form after a validation
+    error passes the raw user input back in as the default).
+    """
+    return [
+        zone if isinstance(zone, str) else f"{zone[ZONE_TIME]} {zone[ZONE_NAME]}"
+        for zone in zones
+    ]
 
 
 def _build_schema(
@@ -106,24 +160,12 @@ def _build_schema(
                     autocomplete="current-password",
                 )
             ),
-            vol.Optional(
-                CONF_TARIFF_SWITCH_HOUR,
-                default=str(d.get(CONF_TARIFF_SWITCH_HOUR, DEFAULT_TARIFF_SWITCH_HOUR)),
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    options=HOUR_OPTIONS,
-                    mode=SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Optional(
-                CONF_TARIFF_SWITCH_MINUTE,
-                default=str(d.get(CONF_TARIFF_SWITCH_MINUTE, DEFAULT_TARIFF_SWITCH_MINUTE)),
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    options=MINUTE_OPTIONS,
-                    mode=SelectSelectorMode.DROPDOWN,
-                )
-            ),
+            vol.Required(
+                CONF_TARIFF_ZONES,
+                default=_format_tariff_zones(
+                    d.get(CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES)
+                ),
+            ): TextSelector(TextSelectorConfig(multiple=True)),
             vol.Optional(
                 CONF_UPDATE_TIME,
                 default=d.get(CONF_UPDATE_TIME, DEFAULT_UPDATE_TIME),
@@ -171,7 +213,10 @@ def _unique_id_collision(
 class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for SMGW HAN."""
 
-    VERSION = 1
+    # Version 2 (v3.0.0): the single tariff switch time (hour/minute) became
+    # the ordered tariff-zone list CONF_TARIFF_ZONES. Migration lives in
+    # __init__.async_migrate_entry.
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the flow."""
@@ -195,35 +240,44 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Convert string values from dropdowns to int for storage
-            user_input[CONF_TARIFF_SWITCH_HOUR] = int(
-                user_input.get(CONF_TARIFF_SWITCH_HOUR, DEFAULT_TARIFF_SWITCH_HOUR)
-            )
-            user_input[CONF_TARIFF_SWITCH_MINUTE] = int(
-                user_input.get(CONF_TARIFF_SWITCH_MINUTE, DEFAULT_TARIFF_SWITCH_MINUTE)
-            )
-
-            client = SmgwClient(
-                base_url=user_input[CONF_URL],
-                username=user_input[CONF_USERNAME],
-                password=user_input[CONF_PASSWORD],
-            )
+            # Validate the tariff-zone definition first (pure local check) so
+            # a malformed entry never triggers a needless SMGW round trip.
+            try:
+                user_input[CONF_TARIFF_ZONES] = _parse_tariff_zones(
+                    user_input.get(CONF_TARIFF_ZONES, [])
+                )
+            except ZoneDefinitionError as err:
+                errors[CONF_TARIFF_ZONES] = err.error_key
 
             device_info = None
-            try:
-                device_info = await client.async_validate_and_get_device_info()
-            except SmgwAuthError:
-                errors["base"] = "invalid_auth"
-            except SmgwConnectionError:
-                errors["base"] = "cannot_connect"
-            except SmgwParseError as err:
-                _LOGGER.error("SMGW validation failed: %s", err)
-                errors["base"] = "parse_error"
-            except Exception:
-                _LOGGER.exception("Unexpected error during connection test")
-                errors["base"] = "unknown"
-            finally:
-                await client.close()
+            if not errors:
+                client = SmgwClient(
+                    base_url=user_input[CONF_URL],
+                    username=user_input[CONF_USERNAME],
+                    password=user_input[CONF_PASSWORD],
+                    lock=gateway_lock(
+                        self.hass,
+                        user_input[CONF_URL],
+                        user_input[CONF_USERNAME],
+                    ),
+                )
+
+                try:
+                    device_info = (
+                        await client.async_validate_and_get_device_info()
+                    )
+                except SmgwAuthError:
+                    errors["base"] = "invalid_auth"
+                except SmgwConnectionError:
+                    errors["base"] = "cannot_connect"
+                except SmgwParseError as err:
+                    _LOGGER.error("SMGW validation failed: %s", err)
+                    errors["base"] = "parse_error"
+                except Exception:
+                    _LOGGER.exception("Unexpected error during connection test")
+                    errors["base"] = "unknown"
+                finally:
+                    await client.close()
 
             if not errors and device_info is not None:
                 if len(device_info.available_meter_ids) > 1:
@@ -244,7 +298,9 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=_build_schema(),
+            # Re-shown forms keep what the user typed (chips are painful to
+            # re-enter); a fresh form gets the plain defaults.
+            data_schema=_build_schema(user_input),
             errors=errors,
         )
 
@@ -338,6 +394,9 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
                 base_url=new_data[CONF_URL],
                 username=new_data[CONF_USERNAME],
                 password=new_data[CONF_PASSWORD],
+                lock=gateway_lock(
+                    self.hass, new_data[CONF_URL], new_data[CONF_USERNAME]
+                ),
             )
 
             try:
@@ -570,13 +629,21 @@ class SmgwTafOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Convert string values from dropdowns to int for storage
-            user_input[CONF_TARIFF_SWITCH_HOUR] = int(
-                user_input.get(CONF_TARIFF_SWITCH_HOUR, DEFAULT_TARIFF_SWITCH_HOUR)
-            )
-            user_input[CONF_TARIFF_SWITCH_MINUTE] = int(
-                user_input.get(CONF_TARIFF_SWITCH_MINUTE, DEFAULT_TARIFF_SWITCH_MINUTE)
-            )
+            # Validate the tariff-zone definition first (pure local check) so
+            # a malformed entry never triggers a needless SMGW round trip.
+            try:
+                user_input[CONF_TARIFF_ZONES] = _parse_tariff_zones(
+                    user_input.get(CONF_TARIFF_ZONES, [])
+                )
+            except ZoneDefinitionError as err:
+                errors[CONF_TARIFF_ZONES] = err.error_key
+                return self.async_show_form(
+                    step_id="settings",
+                    data_schema=_build_schema(
+                        {**self.config_entry.data, **user_input}
+                    ),
+                    errors=errors,
+                )
 
             new_data = {**self.config_entry.data, **user_input}
 
@@ -588,6 +655,9 @@ class SmgwTafOptionsFlow(OptionsFlow):
                 base_url=new_data[CONF_URL],
                 username=new_data[CONF_USERNAME],
                 password=new_data[CONF_PASSWORD],
+                lock=gateway_lock(
+                    self.hass, new_data[CONF_URL], new_data[CONF_USERNAME]
+                ),
             )
 
             old_meter_id = self.config_entry.data.get(CONF_METER_ID)
@@ -712,6 +782,10 @@ class SmgwTafOptionsFlow(OptionsFlow):
 
         return self.async_show_form(
             step_id="settings",
-            data_schema=_build_schema(dict(self.config_entry.data)),
+            # On a re-shown form (error) keep what the user typed; a fresh
+            # form is prefilled from the stored entry data.
+            data_schema=_build_schema(
+                {**self.config_entry.data, **(user_input or {})}
+            ),
             errors=errors,
         )

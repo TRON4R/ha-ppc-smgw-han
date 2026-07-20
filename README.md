@@ -18,8 +18,7 @@
 Die Integration verbindet sich einmal täglich mit dem PPC SMGW und ruft die offiziellen, eichrechtskonformen Tagesendwerte vom Zählerstand-Endpunkt ab. Sie berechnet:
 
 - **Tagesverbrauch (gesamt)** - gesamter Stromverbrauch des Vortags
-- **Tagesverbrauch (Zeitfenster 1)** - Verbrauch im ersten Tarifzeitraum (Standard: 00:00–04:59)
-- **Tagesverbrauch (Zeitfenster 2)** - Verbrauch im zweiten Tarifzeitraum (Standard: 05:00–23:59)
+- **Tagesverbrauch pro Tarifzone** - mit **frei konfigurierbaren Tarifzonen** (seit v3.0.0): von einfachen Zwei-Zonen-Tarifen wie Octopus Go (Standard: 00:00–04:59 / 05:00–23:59) bis zu Tarifen mit mehreren Zeitfenstern pro Zone wie Octopus Heat
 - **Tageseinspeisung (gesamt)** - gesamte Netzeinspeisung des Vortags
 
 Alle Sensoren sind kompatibel mit dem **Home Assistant Energie-Dashboard**.
@@ -32,7 +31,7 @@ Die bestehende [ha-ppc-smgw](https://github.com/jannickfahlbusch/ha-ppc-smgw)-In
 
 - **Ein Abruf pro Tag** (5 HTTP-Requests insgesamt, zu einer konfigurierbaren Uhrzeit. Damit kein Risiko einer SMGW-Sperrung wegen Überbeanspruchung)
 - **Geeichte Werte** vom Zählerstand-Endpunkt des SMGW (keine Live-Momentaufnahmen)
-- **Exakte Tarifaufteilung** anhand des sekundengenauen Zählerstands zum konfigurierten Tarifwechselzeitpunkt
+- **Exakte Tarifaufteilung** anhand der sekundengenauen Zählerstände an den konfigurierten Tarif-Umschaltpunkten
 - **Keine Timing-Probleme** - die Werte basieren auf den offiziellen Tagesgrenzen des SMGW, nicht auf der lokalen Uhrzeit des „Home Assistant"-Servers
 - **Mehrere Zähler und SMGWs parallel** - die Integration unterstützt sowohl mehrere SMGWs als auch mehrere Zähler an einem SMGW (Modul-2-Konstellationen, getrennte Logins für Verbrauch und Einspeisung). Details unter [Mehrere SMGWs / mehrere Zugänge](#mehrere-smgws--mehrere-zugänge).
 - **Export der zertifizierten CMS-Dateien** - die Integration erlaubt den Export von rechtssicheren CMS-Dateien im zertifizierten Original direkt aus dem SMGW (z.B. für den Nachweis von Rechnungsfehlern durch den Stromlieferanten) sowie die Erzeugung von CSV- und Excel-Dateien für die Weiterverarbeitung der Verbrauchs- und Einspeisedaten. Details unter [Datenexport für beliebige Zeiträume](#datenexport-für-beliebige-zeiträume).
@@ -86,9 +85,12 @@ Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy
 3. Eingeben:
    - **URL**: URL der SMGW HAN-Schnittstelle (Standard: `https://192.168.100.100/cgi-bin/hanservice.cgi`)
    - **Benutzername** und **Passwort**: HAN-Zugangsdaten
-   - **Start Standard-Tarif**: Uhrzeit des Tarifwechsels (Standard: 05:00, konfigurierbar)
+   - **Tarifzonen (Umschaltpunkte)**: ein Eintrag pro Umschaltpunkt im Format `HH:MM Zonenname`, beginnend mit `00:00`; der letzte Eintrag gilt bis Mitternacht (Vorbelegung: `00:00 Zeitfenster 1` und `05:00 Zeitfenster 2`, passend für Octopus Go). Gleiche Zonennamen werden zu **einem** gemeinsamen Sensor summiert — so lassen sich auch Tarife mit mehreren Zeitfenstern pro Zone abbilden, z. B. Octopus Heat: `00:00 Standard`, `02:00 Heat`, `06:00 Standard`, `12:00 Heat`, `16:00 Standard`. Möchtest du stattdessen **jedes Zeitfenster einzeln erfassen** — auch wenn es beim Stromanbieter denselben Namen und Arbeitspreis trägt —, vergib einfach unterschiedliche Namen (z. B. `Standard1`/`Standard2` oder `Niedrig-Nacht`/`Niedrig-Mittag`): dann bekommt jedes Fenster seinen eigenen Sensor. Minuten nur im Raster 00/15/30/45
    - **Abrufzeit**: Uhrzeit des täglichen Datenabrufs (Standard: 00:15)
    - **Gerätename** (optional, siehe nächster Abschnitt)
+
+> [!NOTE]
+> **Update von v2.x:** Bestehende Einträge werden beim ersten Start automatisch auf das Tarifzonen-Modell migriert — Entitäten, Namen und die Energy-Dashboard-Historie bleiben erhalten. Die Migration ist **einmalig** (ein Downgrade auf eine Version vor 3.0.0 erfordert ein Backup oder das Neuanlegen des Eintrags).
 
 ## Mehrere SMGWs / mehrere Zugänge
 
@@ -111,11 +113,10 @@ Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst d
 | Sensor | Beschreibung | Device Class | State Class |
 |---|---|---|---|
 | Tagesverbrauch gesamt | Gesamtverbrauch des Vortags | `energy` | `total` |
-| Tagesverbrauch Zeitfenster 1 | Verbrauch Zeitfenster 1 (Mitternacht → Tarifwechsel) | `energy` | `total` |
-| Tagesverbrauch Zeitfenster 2 | Verbrauch Zeitfenster 2 (Tarifwechsel → Mitternacht) | `energy` | `total` |
+| Tagesverbrauch *{Zonenname}* | Verbrauch pro konfigurierter Tarifzone (ein Sensor je Zonenname; Segmente mit gleichem Namen werden summiert) | `energy` | `total` |
 | Tageseinspeisung gesamt | Gesamteinspeisung des Vortags | `energy` | `total` |
 | Zählerstand Verbrauch Endstand Vortag | Absoluter Zählerstand am Ende des Vortags (Mitternacht) | `energy` | `total_increasing` |
-| Zählerstand Verbrauch Tarifwechsel 1 | Absoluter Zählerstand zum Tarifwechselzeitpunkt | `energy` | `total_increasing` |
+| Zählerstand Verbrauch Tarifwechsel *N* | Absoluter Zählerstand an jedem inneren Umschaltpunkt (ein Sensor je Umschaltpunkt) | `energy` | `total_increasing` |
 | Zählerstand Einspeisung Endstand Vortag | Absoluter Einspeise-Zählerstand am Ende des Vortags (Mitternacht) | `energy` | `total_increasing` |
 | Tagesdatum | Datum der zuletzt abgerufenen Daten | `date` | — |
 

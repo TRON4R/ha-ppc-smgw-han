@@ -13,6 +13,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.storage import Store
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
     HomeAssistantError,
     ServiceValidationError,
 )
@@ -24,23 +25,22 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_METER_ID,
-    CONF_TARIFF_SWITCH_HOUR,
-    CONF_TARIFF_SWITCH_MINUTE,
+    CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
-    DEFAULT_TARIFF_SWITCH_HOUR,
-    DEFAULT_TARIFF_SWITCH_MINUTE,
+    DEFAULT_TARIFF_ZONES,
     DEFAULT_UPDATE_TIME,
     DOMAIN,
     ISSUE_NO_RECENT_DATA,
-    SENSOR_DAILY_CONSUMPTION_SLOT_1,
-    SENSOR_DAILY_CONSUMPTION_SLOT_2,
     SENSOR_DAILY_CONSUMPTION_TOTAL,
     SENSOR_DAILY_FEEDIN_TOTAL,
     SENSOR_DATE,
     SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
-    SENSOR_METER_CONSUMPTION_SWITCH_1,
     SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
     STORE_VERSION,
+    ZONE_NAME,
+    ZONE_TIME,
+    slot_key,
+    switch_key,
 )
 from .smgw_client import (
     DailyData,
@@ -49,9 +49,18 @@ from .smgw_client import (
     SmgwClientError,
     SmgwNoDataError,
     SmgwServerError,
+    TariffZones,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# coordinator.data keys whose meaning depends on the configured tariff zones.
+# They must never be published under a zone definition they were not computed
+# with (the values would look plausible but be mislabeled).
+_ZONE_DEPENDENT_KEY_PREFIXES = (
+    "daily_consumption_slot_",
+    "meter_consumption_switch_",
+)
 
 
 def no_data_issue_id(entry_id: str) -> str:
@@ -106,14 +115,28 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._store.async_remove()
             stored = None
         if stored and isinstance(stored, dict):
+            if stored.get("_tariff_zones") != self._zones_config:
+                # The cached day was computed with a DIFFERENT zone
+                # definition. Publishing its per-zone values would attach
+                # them to the new zone names/sensors — plausible-looking but
+                # mislabeled. Keep only the zone-independent values (total,
+                # feed-in, date, closing readings) until a refetch succeeds;
+                # dropping "_tariff_zones" keeps the refetch triggers armed.
+                stored = {
+                    key: value
+                    for key, value in stored.items()
+                    if not key.startswith(_ZONE_DEPENDENT_KEY_PREFIXES)
+                    and key != "_tariff_zones"
+                }
+                _LOGGER.info(
+                    "Tariff zones changed since the cached day - withholding "
+                    "per-zone values until a refetch succeeds"
+                )
             self.async_set_updated_data(stored)
             _LOGGER.debug(
                 "Loaded stored data for date: %s",
                 stored.get(SENSOR_DATE, "unknown"),
             )
-
-        # Schedule the daily fetch
-        self._schedule_daily_fetch()
 
         # Check if we need to fetch: either no data at all, or stale data,
         # or tariff time has changed since last fetch
@@ -134,24 +157,15 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
             needs_fetch = True
         else:
-            # Check if tariff time has changed since last stored data
-            current_tariff = (
-                int(self.config_entry.data.get(
-                    CONF_TARIFF_SWITCH_HOUR, DEFAULT_TARIFF_SWITCH_HOUR
-                )),
-                int(self.config_entry.data.get(
-                    CONF_TARIFF_SWITCH_MINUTE, DEFAULT_TARIFF_SWITCH_MINUTE
-                )),
-            )
-            stored_tariff = (
-                self.data.get("_tariff_hour"),
-                self.data.get("_tariff_minute"),
-            )
-            if stored_tariff != current_tariff:
+            # Check if the tariff-zone definition has changed since the last
+            # stored data (any change — a switch time or a zone name — alters
+            # the computed slots, so it must trigger a refetch).
+            stored_zones = self.data.get("_tariff_zones")
+            if stored_zones != self._zones_config:
                 _LOGGER.info(
-                    "Tariff time changed from %s to %s - refetching data",
-                    stored_tariff,
-                    current_tariff,
+                    "Tariff zones changed from %s to %s - refetching data",
+                    stored_zones,
+                    self._zones_config,
                 )
                 needs_fetch = True
 
@@ -159,10 +173,29 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             try:
                 await self._async_do_daily_fetch()
             except UpdateFailed as err:
-                _LOGGER.warning(
-                    "Startup fetch failed (will retry at scheduled time): %s",
-                    err,
-                )
+                if self.data:
+                    # Cached values exist — keep running, the scheduled
+                    # nightly fetch will retry.
+                    _LOGGER.warning(
+                        "Startup fetch failed (will retry at scheduled "
+                        "time): %s",
+                        err,
+                    )
+                else:
+                    # No data at all: fail setup so HA retries with its own
+                    # backoff instead of leaving empty sensors until the
+                    # next nightly fetch. (SmgwNoDataError does NOT land
+                    # here — the gateway answered fine and a repair issue
+                    # was raised; auth errors propagate to trigger reauth.)
+                    raise ConfigEntryNotReady(
+                        f"Initial SMGW fetch failed: {err}"
+                    ) from err
+
+        # Register the daily time listener only after everything above
+        # succeeded: an aborted setup (ConfigEntryNotReady / auth -> reauth)
+        # must not leave an orphaned listener behind that keeps fetching on a
+        # discarded coordinator instance across HA's setup retries.
+        self._schedule_daily_fetch()
 
     def _schedule_daily_fetch(self) -> None:
         """Register a time-based trigger for the daily data fetch."""
@@ -219,19 +252,13 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Perform the actual daily data fetch for yesterday."""
         yesterday = dt_util.now().date() - timedelta(days=1)
 
-        # Skip if we already have data for yesterday with same tariff time
-        tariff_hour = int(self.config_entry.data.get(
-            CONF_TARIFF_SWITCH_HOUR, DEFAULT_TARIFF_SWITCH_HOUR
-        ))
-        tariff_minute = int(self.config_entry.data.get(
-            CONF_TARIFF_SWITCH_MINUTE, DEFAULT_TARIFF_SWITCH_MINUTE
-        ))
+        # Skip if we already have data for yesterday with the same zones
+        zones_config = self._zones_config
 
         if (
             self.data
             and self.data.get(SENSOR_DATE) == yesterday.isoformat()
-            and self.data.get("_tariff_hour") == tariff_hour
-            and self.data.get("_tariff_minute") == tariff_minute
+            and self.data.get("_tariff_zones") == zones_config
         ):
             _LOGGER.debug(
                 "Already have data for %s, skipping fetch", yesterday
@@ -248,8 +275,7 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             daily_data = await self._client.async_fetch_daily_data(
                 yesterday,
-                tariff_switch_hour=tariff_hour,
-                tariff_switch_minute=tariff_minute,
+                zones=self.tariff_zones,
                 target_meter_id=target_meter_id,
             )
         except SmgwAuthError as err:
@@ -294,21 +320,21 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         data = self._daily_data_to_dict(daily_data)
 
-        # Store tariff time alongside data for change detection
-        data["_tariff_hour"] = tariff_hour
-        data["_tariff_minute"] = tariff_minute
+        # Store the tariff-zone definition alongside data for change detection
+        data["_tariff_zones"] = zones_config
 
         # Persist to store
         await self._store.async_save(dict(data))
 
         _LOGGER.info(
             "Successfully fetched SMGW data for %s: "
-            "Import total=%.4f kWh (Go=%.4f, Standard=%.4f), "
-            "Export total=%.4f kWh",
+            "Import total=%.4f kWh (%s), Export total=%.4f kWh",
             yesterday,
             daily_data.daily_import_total,
-            daily_data.daily_import_go,
-            daily_data.daily_import_standard,
+            ", ".join(
+                f"{name}={val:.4f}"
+                for name, val in daily_data.zone_totals.items()
+            ),
             daily_data.daily_export_total,
         )
 
@@ -331,16 +357,22 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return self.config_entry.data.get(CONF_METER_ID)
 
     @property
-    def tariff_switch(self) -> tuple[int, int]:
-        """Configured tariff switch time as ``(hour, minute)``."""
-        return (
-            int(self.config_entry.data.get(
-                CONF_TARIFF_SWITCH_HOUR, DEFAULT_TARIFF_SWITCH_HOUR
-            )),
-            int(self.config_entry.data.get(
-                CONF_TARIFF_SWITCH_MINUTE, DEFAULT_TARIFF_SWITCH_MINUTE
-            )),
-        )
+    def _zones_config(self) -> list[dict[str, str]]:
+        """The raw tariff-zone definition from the config entry (JSON shape).
+
+        Used for the store's change detection: this survives the Store's JSON
+        round trip unchanged, so a plain ``==`` compares reliably.
+        """
+        raw = self.config_entry.data.get(CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES)
+        return [dict(zone) for zone in raw]
+
+    @property
+    def tariff_zones(self) -> TariffZones:
+        """Configured tariff zones as parsed ``(time, name)`` pairs."""
+        return [
+            (time.fromisoformat(zone[ZONE_TIME]), zone[ZONE_NAME])
+            for zone in self._zones_config
+        ]
 
     async def async_download_cms(
         self, from_dt: datetime, to_dt: datetime
@@ -368,24 +400,32 @@ class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @staticmethod
     def _daily_data_to_dict(daily_data: DailyData) -> dict[str, Any]:
-        """Convert DailyData to a flat dict for coordinator.data."""
-        return {
+        """Convert DailyData to a flat dict for coordinator.data.
+
+        Zone totals become ``daily_consumption_slot_{n}`` (n = order of first
+        appearance in the config); the absolute readings at the inner
+        boundaries become ``meter_consumption_switch_{n}``.
+        """
+        data = {
             SENSOR_DATE: daily_data.date.isoformat(),
             SENSOR_DAILY_CONSUMPTION_TOTAL: daily_data.daily_import_total,
-            SENSOR_DAILY_CONSUMPTION_SLOT_1: daily_data.daily_import_go,
-            SENSOR_DAILY_CONSUMPTION_SLOT_2: daily_data.daily_import_standard,
             SENSOR_DAILY_FEEDIN_TOTAL: daily_data.daily_export_total,
             # "Endstand Vortag" is the CLOSING reading of the fetched day
-            # (next-day midnight anchor C), not its opening reading A — A is
-            # the close of the day BEFORE the fetched day (issue #35).
+            # (next-day midnight boundary), not its opening reading — the
+            # opening boundary is the close of the day BEFORE the fetched
+            # day (issue #35).
             SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE: (
-                daily_data.import_next_midnight
+                daily_data.import_boundaries[-1]
             ),
-            SENSOR_METER_CONSUMPTION_SWITCH_1: daily_data.import_tariff_switch,
             SENSOR_METER_FEEDIN_PREV_DAY_CLOSE: (
                 daily_data.export_next_midnight
             ),
         }
+        for n, value in enumerate(daily_data.zone_totals.values(), 1):
+            data[slot_key(n)] = value
+        for n, value in enumerate(daily_data.import_boundaries[1:-1], 1):
+            data[switch_key(n)] = value
+        return data
 
     async def async_unload(self) -> None:
         """Clean up on unload."""

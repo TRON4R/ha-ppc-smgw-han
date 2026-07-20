@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -17,9 +18,16 @@ from homeassistant.helpers.typing import ConfigType
 from .const import (
     CONF_INSTANCE_ID,
     CONF_PASSWORD,
+    CONF_TARIFF_SWITCH_HOUR,
+    CONF_TARIFF_SWITCH_MINUTE,
+    CONF_TARIFF_ZONES,
     CONF_URL,
     CONF_USERNAME,
+    DEFAULT_TARIFF_SWITCH_HOUR,
+    DEFAULT_TARIFF_SWITCH_MINUTE,
     DOMAIN,
+    ZONE_NAME,
+    ZONE_TIME,
 )
 from .coordinator import SmgwTafCoordinator, no_data_issue_id
 from .services import async_setup_services
@@ -38,9 +46,69 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 type SmgwTafConfigEntry = ConfigEntry[SmgwTafCoordinator]
 
 
+def gateway_lock(
+    hass: HomeAssistant, base_url: str, username: str
+) -> asyncio.Lock:
+    """One shared lock per SMGW gateway + login, across all config entries.
+
+    The SMGW allows only one active session per account. A per-client lock
+    only serializes one config entry with itself — two entries on the same
+    gateway (multi-meter SMGW, or separate import/feed-in logins pointing at
+    the same account) would still log in concurrently and invalidate each
+    other's session. Every ``SmgwClient`` for the same ``(URL, username)``
+    must therefore share this lock; the config flow and reauth use it too.
+    """
+    locks: dict[tuple[str, str], asyncio.Lock] = hass.data.setdefault(
+        DOMAIN, {}
+    ).setdefault("gateway_locks", {})
+    key = (base_url.rstrip("/"), username)
+    if key not in locks:
+        locks[key] = asyncio.Lock()
+    return locks[key]
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up integration-wide resources (the export service)."""
     async_setup_services(hass)
+    return True
+
+
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: SmgwTafConfigEntry
+) -> bool:
+    """Migrate old config entries to the current version.
+
+    Version 1 -> 2 (v3.0.0): the single tariff switch time
+    (CONF_TARIFF_SWITCH_HOUR/MINUTE) becomes the ordered tariff-zone list
+    CONF_TARIFF_ZONES. The fallback zone names "Zeitfenster 1/2" reproduce
+    the pre-3.0 entity display names, so migrated installations look
+    unchanged. A degenerate legacy switch time of 00:00 yields two zones with
+    equal boundaries — slot 1 then computes to 0 kWh, exactly as before.
+    """
+    if entry.version > 2:
+        # Downgrade from a future version — refuse to load.
+        return False
+
+    if entry.version == 1:
+        data = dict(entry.data)
+        hour = int(
+            data.pop(CONF_TARIFF_SWITCH_HOUR, DEFAULT_TARIFF_SWITCH_HOUR)
+        )
+        minute = int(
+            data.pop(CONF_TARIFF_SWITCH_MINUTE, DEFAULT_TARIFF_SWITCH_MINUTE)
+        )
+        if CONF_TARIFF_ZONES not in data:
+            data[CONF_TARIFF_ZONES] = [
+                {ZONE_TIME: "00:00", ZONE_NAME: "Zeitfenster 1"},
+                {ZONE_TIME: f"{hour:02d}:{minute:02d}", ZONE_NAME: "Zeitfenster 2"},
+            ]
+        hass.config_entries.async_update_entry(entry, data=data, version=2)
+        _LOGGER.info(
+            "Migrated config entry %s to version 2 (tariff zones: %s)",
+            entry.entry_id,
+            data[CONF_TARIFF_ZONES],
+        )
+
     return True
 
 
@@ -74,10 +142,21 @@ async def async_setup_entry(
         base_url=entry.data[CONF_URL],
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
+        lock=gateway_lock(
+            hass, entry.data[CONF_URL], entry.data[CONF_USERNAME]
+        ),
     )
 
     coordinator = SmgwTafCoordinator(hass, entry, client)
-    await coordinator.async_setup()
+    try:
+        await coordinator.async_setup()
+    except Exception:
+        # Aborted setup (ConfigEntryNotReady -> HA retries with backoff,
+        # ConfigEntryAuthFailed -> reauth): runtime_data is never set, so
+        # nothing would ever unload this instance — clean up here so no time
+        # listener or HTTP client outlives the failed attempt.
+        await coordinator.async_unload()
+        raise
 
     entry.runtime_data = coordinator
 
