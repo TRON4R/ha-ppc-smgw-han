@@ -27,7 +27,7 @@ Alle Sensoren sind kompatibel mit dem **Home Assistant Energie-Dashboard**.
 
 ## Unterschied zu ha-ppc-smgw
 
-Die bestehende [ha-ppc-smgw](https://github.com/jannickfahlbusch/ha-ppc-smgw)-Integration fragt aktuelle Zählerstände in festen 10-Minuten-Intervallen ab (unabhängig von der Nutzereinstellung beim Setup). Einige Nutzer berichten, dass sie vom SMGW gesperrt wurden, weil die Abfragehäufigkeit als zu hoch eingestuft wurde. Diese Integration verfolgt einen anderen Ansatz:
+Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Minuten-Intervallen ab. Einige Nutzer berichten, dass sie deswegen von ihrem SMGW ausgesperrt wurden, weil die Abfragehäufigkeit als zu hoch eingestuft wurde. Diese Integration verfolgt einen anderen Ansatz:
 
 - **Ein Abruf pro Tag** (5 HTTP-Requests insgesamt, zu einer konfigurierbaren Uhrzeit. Damit kein Risiko einer SMGW-Sperrung wegen Überbeanspruchung)
 - **Geeichte Werte** vom Zählerstand-Endpunkt des SMGW (keine Live-Momentaufnahmen)
@@ -90,7 +90,7 @@ Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy
    - **Gerätename** (optional, siehe nächster Abschnitt)
 
 > [!NOTE]
-> **Update von v2.x:** Bestehende Einträge werden beim ersten Start automatisch auf das Tarifzonen-Modell migriert — Entitäten, Namen und die Energy-Dashboard-Historie bleiben erhalten. Die Migration ist **einmalig** (ein Downgrade auf eine Version vor 3.0.0 erfordert ein Backup oder das Neuanlegen des Eintrags).
+> **Update von v2.x:** Bestehende Einträge werden beim ersten Start automatisch auf das Tarifzonen-Modell migriert, d.h. die vorhandenen Entitäten, Namen und die Energy-Dashboard-Historie bleiben erhalten. Die Migration ist **einmalig** (ein Downgrade auf eine Version vor 3.0.0 erfordert ein Backup oder das Neuanlegen des Eintrags).
 
 ## Mehrere SMGWs / mehrere Zugänge
 
@@ -255,7 +255,7 @@ Die Entity-IDs findest du unter **Einstellungen → Geräte & Dienste → Entit�
 
 ## Anwendungsfall
 
-Diese Integration wurde primär für den **Octopus Energy (Intelligent) Go-Tarif** in Deutschland entwickelt, der einen vergünstigten Strompreis zwischen **00:00 und 04:59:59** (Go-Tarif) und einen Normalpreis von **05:00 bis 23:59:59** (Standard-Tarif) bietet.
+Diese Integration wurde anfangs für den **Octopus Energy (Intelligent) Go-Tarif** in Deutschland entwickelt, der einen vergünstigten Strompreis zwischen **00:00 und 04:59:59** (Go-Tarif) und einen Normalpreis von **05:00 bis 23:59:59** (Standard-Tarif) bietet. Inzwischen wurde sie erweitert, sodass sie z.B. auch den Octopus Heat Tarif abbilden kann, aber natürlich auch Tarife von anderen Stromanbietern. 
 
 Der **Tarifwechselzeitpunkt** ist aber für andere Tarife problemlos über das GUI **frei einstellbar**. 
 
