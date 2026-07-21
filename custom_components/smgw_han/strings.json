@@ -14,7 +14,7 @@
         },
         "data_description": {
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
-          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\". Equal zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00. Minutes must be 00, 15, 30 or 45.",
+          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\".\nEqual zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00.\nMinutes must be 00, 15, 30 or 45.",
           "update_time": "Time of day for the automatic daily data fetch",
           "device_name": "Leave empty unless you set this integration up multiple times against the same SMGW (e.g. separate logins for grid import and feed-in). In that case enter a distinct name to tell the devices apart."
         }
@@ -74,7 +74,7 @@
         },
         "data_description": {
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
-          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\". Equal zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00. Minutes must be 00, 15, 30 or 45. Note: sensor n belongs to the n-th newly appearing zone in the list. If a change puts a different zone at position n, its sensor takes over the recorded history of the old zone (the statistics mix two tariffs). Changing times or appending zones at the end is safe.",
+          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\".\nEqual zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00.\nMinutes must be 00, 15, 30 or 45.\nNote on statistics history: each zone gets its own consumption sensor. Home Assistant identifies these sensors by their position in the list (first zone, second zone …), not by the name you enter.\nChanging times or appending further zones at the end is therefore safe – existing sensors keep their history. But if you reorder or rename the zones so that a different zone now occupies a previously used position, the new zone's data is appended to the old zone's data in the Home Assistant history, i.e. the sensor's statistics get mixed.",
           "update_time": "Time of day for the automatic daily data fetch",
           "device_name": "Custom name (e.g. \"SMGW Import\" / \"SMGW Export\") for the case where you run multiple logins against the same SMGW as separate entries. Otherwise leave empty."
         }
