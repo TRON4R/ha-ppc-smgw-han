@@ -16,7 +16,17 @@ target-version = "py313"
 # Generated/sample data must not be linted.
 extend-exclude = ["tests/fixtures"]
 
-# No custom [tool.ruff.lint] select: ruff's defaults (pyflakes F + a focused
-# pycodestyle subset E4/E7/E9) catch real breakage — unused imports, undefined
-# names, syntax errors — without enforcing style churn (e.g. line length) on the
+[tool.ruff.lint]
+# Pinned explicitly to what used to be ruff's default set: pyflakes F plus a
+# focused pycodestyle subset (E4/E7/E9). These catch real breakage — unused
+# imports, undefined names, syntax errors — without enforcing style churn on the
 # existing, already-reviewed integration code.
+#
+# Why pinned instead of relying on the defaults: `requirements_test.txt` installs
+# ruff unpinned, so CI always gets the newest release. Ruff 0.16.0 widened its
+# default set (DTZ/BLE/FURB/RET/I/...), which turned 134 findings red across the
+# whole repo — 121 of them DTZ001 "naive datetime()", i.e. exactly the naive
+# Europe/Berlin timestamps this integration uses *by design* (see cms_parser and
+# smgw_client: CMS and HTML paths must produce identical naive local times).
+# Selecting the rules here keeps the intent stable across future ruff releases.
+select = ["F", "E4", "E7", "E9"]
