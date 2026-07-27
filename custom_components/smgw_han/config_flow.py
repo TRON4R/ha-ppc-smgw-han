@@ -51,6 +51,10 @@ from .const import (
     DEFAULT_UPDATE_TIME,
     DEFAULT_URL,
     DOMAIN,
+    TARIFF_TEMPLATE_CUSTOM,
+    TARIFF_TEMPLATE_GO,
+    TARIFF_TEMPLATE_HEAT,
+    TARIFF_TEMPLATES,
     ZONE_NAME,
     ZONE_TIME,
 )
@@ -220,10 +224,13 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the flow."""
-        # Carry-over from async_step_user to async_step_select_meter when the
-        # SMGW exposes multiple meters in its dropdown.
+        # Carry-over from async_step_credentials to async_step_select_meter
+        # when the SMGW exposes multiple meters in its dropdown.
         self._pending_user_input: dict[str, Any] | None = None
         self._available_meter_ids: list[str] = []
+        # Zone definition picked from a template menu; only ever used to
+        # prefill the (editable) form, never stored without confirmation.
+        self._template_zones: list[dict[str, str]] = DEFAULT_TARIFF_ZONES
 
     @staticmethod
     @callback
@@ -236,7 +243,41 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step."""
+        """Offer tariff templates before asking for credentials.
+
+        Rendered as buttons by Home Assistant; picking one only prefills the
+        editable zone field in the next step.
+        """
+        return self.async_show_menu(
+            step_id="user",
+            menu_options=["tariff_go", "tariff_heat", "tariff_custom"],
+        )
+
+    async def async_step_tariff_go(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the Octopus Go / Intelligent Octopus Go windows."""
+        self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_GO]
+        return await self.async_step_credentials()
+
+    async def async_step_tariff_heat(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the Octopus Heat windows."""
+        self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
+        return await self.async_step_credentials()
+
+    async def async_step_tariff_custom(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the neutral two-zone default for any other tariff."""
+        self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_CUSTOM]
+        return await self.async_step_credentials()
+
+    async def async_step_credentials(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Collect credentials and the (template-prefilled) tariff zones."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -297,10 +338,14 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
 
         return self.async_show_form(
-            step_id="user",
+            step_id="credentials",
             # Re-shown forms keep what the user typed (chips are painful to
-            # re-enter); a fresh form gets the plain defaults.
-            data_schema=_build_schema(user_input),
+            # re-enter); a fresh form gets the zones of the chosen template.
+            data_schema=_build_schema(
+                user_input
+                if user_input is not None
+                else {CONF_TARIFF_ZONES: self._template_zones}
+            ),
             errors=errors,
         )
 
@@ -465,15 +510,48 @@ class SmgwTafOptionsFlow(OptionsFlow):
         self._export_input: dict[str, Any] = {}
         self._export_from: datetime | None = None
         self._export_to: datetime | None = None
+        # Zones from a template menu; prefills the settings form for review.
+        # None means "keep the stored zones" (the normal settings path).
+        self._template_zones: list[dict[str, str]] | None = None
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Top-level menu: change settings or export data."""
+        """Top-level menu: change settings, apply a template, or export data."""
         return self.async_show_menu(
             step_id="init",
-            menu_options=["settings", "export"],
+            menu_options=["settings", "tariff_template", "export"],
         )
+
+    async def async_step_tariff_template(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Offer the tariff templates as buttons."""
+        return self.async_show_menu(
+            step_id="tariff_template",
+            menu_options=["tariff_go", "tariff_heat", "tariff_custom"],
+        )
+
+    async def async_step_tariff_go(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the settings form with the Octopus Go windows."""
+        self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_GO]
+        return await self.async_step_settings()
+
+    async def async_step_tariff_heat(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the settings form with the Octopus Heat windows."""
+        self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
+        return await self.async_step_settings()
+
+    async def async_step_tariff_custom(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the settings form with the neutral two-zone default."""
+        self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_CUSTOM]
+        return await self.async_step_settings()
 
     # ------------------------------------------------------------------
     # Data export (period preset -> prefilled, editable date range)
@@ -780,12 +858,20 @@ class SmgwTafOptionsFlow(OptionsFlow):
                     )
                     return self.async_create_entry(title="", data={})
 
+        # A template chosen from the menu overrides the stored zones for
+        # display only — the user still reviews and submits the form.
+        template = (
+            {CONF_TARIFF_ZONES: self._template_zones}
+            if self._template_zones is not None and user_input is None
+            else {}
+        )
         return self.async_show_form(
             step_id="settings",
             # On a re-shown form (error) keep what the user typed; a fresh
-            # form is prefilled from the stored entry data.
+            # form is prefilled from the stored entry data, or from the
+            # template the user just picked.
             data_schema=_build_schema(
-                {**self.config_entry.data, **(user_input or {})}
+                {**self.config_entry.data, **template, **(user_input or {})}
             ),
             errors=errors,
         )

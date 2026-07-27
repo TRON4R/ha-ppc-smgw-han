@@ -80,10 +80,23 @@ Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy
 
 1. Einstellungen → Geräte & Dienste → Integration hinzufügen
 2. Nach „PPC SMGW HAN" suchen
-3. Eingeben:
+3. **Tarif auswählen** – es erscheinen drei Schaltflächen:
+
+   | Auswahl | Vorbelegte Umschaltzeiten |
+   |---|---|
+   | **Octopus Go / Intelligent Octopus Go** | `00:00 Go`, `05:00 Standard` |
+   | **Octopus Heat** | `00:00 Standard`, `02:00 Niedrig`, `06:00 Standard`, `12:00 Niedrig`, `16:00 Standard`, `18:00 Hoch`, `21:00 Standard` |
+   | **Eigene Zeiten eingeben** | `00:00 Zeitfenster 1`, `05:00 Zeitfenster 2` |
+
+   Die Auswahl **füllt die Zeiten im nächsten Schritt nur vor** – du siehst sie dort und kannst sie beliebig ändern; gespeichert wird nichts ungefragt. Bei Octopus Heat ergeben die sieben Umschaltpunkte drei Sensoren („Standard", „Niedrig", „Hoch"), weil gleichnamige Fenster zusammengezählt werden; das Standard-Fenster 21:00–02:00 läuft über Mitternacht und erscheint deshalb als erster und letzter Eintrag.
+
+   > [!NOTE]
+   > Octopus-Zeiten Stand 07/2026. Tarifzeiten können sich ändern und je nach Vertrag abweichen – bitte kurz mit deinem Vertrag abgleichen.
+
+4. Eingeben:
    - **URL**: URL der SMGW HAN-Schnittstelle (Standard: `https://192.168.100.100/cgi-bin/hanservice.cgi`)
    - **Benutzername** und **Passwort**: HAN-Zugangsdaten
-   - **Tarifzonen (Umschaltpunkte)**: ein Eintrag pro Umschaltpunkt im Format `HH:MM Zonenname`, beginnend mit `00:00`; der letzte Eintrag gilt bis Mitternacht (Vorbelegung: `00:00 Zeitfenster 1` und `05:00 Zeitfenster 2`, passend für Octopus Go). Gleiche Zonennamen werden zu **einem** gemeinsamen Sensor summiert — so lassen sich auch Tarife mit mehreren Zeitfenstern pro Zone abbilden, z. B. Octopus Heat: `00:00 Standard`, `02:00 Heat`, `06:00 Standard`, `12:00 Heat`, `16:00 Standard`. Möchtest du stattdessen **jedes Zeitfenster einzeln erfassen** — auch wenn es beim Stromanbieter denselben Namen und Arbeitspreis trägt —, vergib einfach unterschiedliche Namen (z. B. `Standard1`/`Standard2` oder `Niedrig-Nacht`/`Niedrig-Mittag`): dann bekommt jedes Fenster seinen eigenen Sensor. Die Umschaltzeiten müssen auf dem 15-Minuten-Messraster des SMGW liegen (Minuten `00`, `15`, `30` oder `45`) — andere Uhrzeiten werden direkt bei der Eingabe mit einer Fehlermeldung abgelehnt, es wird nichts automatisch gerundet
+   - **Tarifzonen (Umschaltpunkte)**: ein Eintrag pro Umschaltpunkt im Format `HH:MM Zonenname`, beginnend mit `00:00`; der letzte Eintrag gilt bis Mitternacht. Für **Octopus Go/Intelligent Octopus Go** und **Octopus Heat** gibt es fertige Vorlagen (siehe oben) — du kannst die Zeiten aber jederzeit frei eingeben oder anpassen. Gleiche Zonennamen werden zu **einem** gemeinsamen Sensor summiert — so lassen sich auch Tarife mit mehreren Zeitfenstern pro Zone abbilden. Möchtest du stattdessen **jedes Zeitfenster einzeln erfassen** — auch wenn es beim Stromanbieter denselben Namen und Arbeitspreis trägt —, vergib einfach unterschiedliche Namen (z. B. `Standard1`/`Standard2` oder `Niedrig-Nacht`/`Niedrig-Mittag`): dann bekommt jedes Fenster seinen eigenen Sensor. Die Umschaltzeiten müssen auf dem 15-Minuten-Messraster des SMGW liegen (Minuten `00`, `15`, `30` oder `45`) — andere Uhrzeiten werden direkt bei der Eingabe mit einer Fehlermeldung abgelehnt, es wird nichts automatisch gerundet
    - **Abrufzeit**: Uhrzeit des täglichen Datenabrufs (Standard: 00:15)
    - **Gerätename** (optional, siehe nächster Abschnitt)
 

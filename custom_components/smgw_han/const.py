@@ -33,6 +33,44 @@ DEFAULT_TARIFF_ZONES = [
     {ZONE_TIME: "05:00", ZONE_NAME: "Zeitfenster 2"},
 ]
 
+# Ready-made zone definitions offered as a starting point in setup and in the
+# options flow. They are PREFILLED into the editable zone field and never
+# stored without the user seeing them — supplier windows can change and may
+# differ per contract, so the user always confirms (or corrects) them.
+#
+# Octopus Go / Intelligent Octopus Go share the same windows (cheap 00:00-05:00,
+# standard for the rest of the day), so one template covers both.
+#
+# Octopus Heat has three price zones (as published by Octopus, 2026-07):
+#   Niedrig  02:00-06:00 and 12:00-16:00
+#   Standard 06:00-12:00, 16:00-18:00 and 21:00-02:00
+#   Hoch     18:00-21:00
+# The Standard window 21:00-02:00 crosses midnight; within the calendar-day
+# frame it simply becomes two segments of the same name, which the zone
+# summing rejoins — hence seven switch points for three sensors.
+TARIFF_TEMPLATE_GO = "go"
+TARIFF_TEMPLATE_HEAT = "heat"
+TARIFF_TEMPLATE_CUSTOM = "custom"
+
+TARIFF_TEMPLATES: dict[str, list[dict[str, str]]] = {
+    TARIFF_TEMPLATE_GO: [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Go"},
+        {ZONE_TIME: "05:00", ZONE_NAME: "Standard"},
+    ],
+    TARIFF_TEMPLATE_HEAT: [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Standard"},
+        {ZONE_TIME: "02:00", ZONE_NAME: "Niedrig"},
+        {ZONE_TIME: "06:00", ZONE_NAME: "Standard"},
+        {ZONE_TIME: "12:00", ZONE_NAME: "Niedrig"},
+        {ZONE_TIME: "16:00", ZONE_NAME: "Standard"},
+        {ZONE_TIME: "18:00", ZONE_NAME: "Hoch"},
+        {ZONE_TIME: "21:00", ZONE_NAME: "Standard"},
+    ],
+    # "Own times": the neutral two-zone default, shown so the format is
+    # visible instead of leaving the user with an empty field.
+    TARIFF_TEMPLATE_CUSTOM: DEFAULT_TARIFF_ZONES,
+}
+
 # OBIS codes
 OBIS_IMPORT = "1-0:1.8.0"  # Verbrauch / Grid import
 OBIS_EXPORT = "1-0:2.8.0"  # Einspeisung / Grid export

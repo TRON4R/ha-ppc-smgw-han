@@ -88,15 +88,32 @@ def _entry(meter_id: str, instance_id: int = 1, **extra) -> MockConfigEntry:
     )
 
 
+async def _start_user_flow(
+    hass: HomeAssistant, template: str = "tariff_custom"
+):
+    """Start setup and pick a tariff template, returning the credentials form.
+
+    Since v3.1.0 the flow opens with a template menu; the chosen template only
+    prefills the (editable) zone field of the following form.
+    """
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": template}
+    )
+    assert result["step_id"] == "credentials"
+    return result
+
+
 async def test_user_flow_single_meter_creates_entry(hass: HomeAssistant):
     with (
         patch(VALIDATE, return_value=_info("1lgz0072999211", ["1lgz0072999211"])),
         patch(CLOSE, return_value=None),
         patch(SETUP_ENTRY, return_value=True),
     ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_USER}
-        )
+        result = await _start_user_flow(hass)
         assert result["type"] == FlowResultType.FORM
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], dict(USER_INPUT)
@@ -123,9 +140,7 @@ async def test_user_flow_multi_meter_goes_through_select_step(
         patch(CLOSE, return_value=None),
         patch(SETUP_ENTRY, return_value=True),
     ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_USER}
-        )
+        result = await _start_user_flow(hass)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], dict(USER_INPUT)
         )
@@ -146,9 +161,7 @@ async def test_user_flow_duplicate_aborts(hass: HomeAssistant):
         patch(VALIDATE, return_value=_info("1lgz0072999211", ["1lgz0072999211"])),
         patch(CLOSE, return_value=None),
     ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_USER}
-        )
+        result = await _start_user_flow(hass)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], dict(USER_INPUT)
         )
@@ -162,9 +175,7 @@ async def test_user_flow_invalid_auth(hass: HomeAssistant):
         patch(VALIDATE, side_effect=SmgwAuthError("bad creds")),
         patch(CLOSE, return_value=None),
     ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_USER}
-        )
+        result = await _start_user_flow(hass)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], dict(USER_INPUT)
         )
@@ -463,9 +474,7 @@ def test_parse_tariff_zones_rejects(entries, error_key):
 async def test_user_flow_invalid_zones_shows_field_error(hass: HomeAssistant):
     # A malformed zone list fails locally — the SMGW is never contacted.
     with patch(VALIDATE) as mock_validate:
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_USER}
-        )
+        result = await _start_user_flow(hass)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             {**USER_INPUT, CONF_TARIFF_ZONES: ["05:00 Standard"]},
@@ -635,3 +644,124 @@ async def test_migrate_entry_v2_is_noop(hass: HomeAssistant):
     assert await async_migrate_entry(hass, entry) is True
     assert entry.version == 2
     assert dict(entry.data) == before
+
+
+# --------------------------------------------------------------------------
+# Tariff templates (v3.1.0)
+#
+# A template only PREFILLS the editable zone field — it is never stored
+# without the user submitting the form. These tests pin both halves: the
+# prefill reaches the form, and an edited value still wins.
+# --------------------------------------------------------------------------
+
+HEAT_ZONES_STORED = [
+    {ZONE_TIME: "00:00", ZONE_NAME: "Standard"},
+    {ZONE_TIME: "02:00", ZONE_NAME: "Niedrig"},
+    {ZONE_TIME: "06:00", ZONE_NAME: "Standard"},
+    {ZONE_TIME: "12:00", ZONE_NAME: "Niedrig"},
+    {ZONE_TIME: "16:00", ZONE_NAME: "Standard"},
+    {ZONE_TIME: "18:00", ZONE_NAME: "Hoch"},
+    {ZONE_TIME: "21:00", ZONE_NAME: "Standard"},
+]
+
+
+def _zone_default(result) -> list[str]:
+    """Read the tariff-zone default out of a shown form's schema."""
+    for key in result["data_schema"].schema:
+        if key == CONF_TARIFF_ZONES:
+            return key.default()
+    raise AssertionError("tariff zones not in schema")
+
+
+@pytest.mark.parametrize(
+    ("template", "expected"),
+    [
+        ("tariff_go", ["00:00 Go", "05:00 Standard"]),
+        (
+            "tariff_heat",
+            [
+                "00:00 Standard",
+                "02:00 Niedrig",
+                "06:00 Standard",
+                "12:00 Niedrig",
+                "16:00 Standard",
+                "18:00 Hoch",
+                "21:00 Standard",
+            ],
+        ),
+        ("tariff_custom", ["00:00 Zeitfenster 1", "05:00 Zeitfenster 2"]),
+    ],
+    ids=["go", "heat", "custom"],
+)
+async def test_setup_template_prefills_zone_field(
+    hass: HomeAssistant, template, expected
+):
+    result = await _start_user_flow(hass, template)
+    assert _zone_default(result) == expected
+
+
+async def test_setup_heat_template_creates_three_zone_entry(
+    hass: HomeAssistant,
+):
+    """Submitting the Heat prefill unchanged stores all seven switch points."""
+    with (
+        patch(VALIDATE, return_value=_info("1lgz0072999211", ["1lgz0072999211"])),
+        patch(CLOSE, return_value=None),
+        patch(SETUP_ENTRY, return_value=True),
+    ):
+        result = await _start_user_flow(hass, "tariff_heat")
+        submitted = {**USER_INPUT, CONF_TARIFF_ZONES: _zone_default(result)}
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], submitted
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_TARIFF_ZONES] == HEAT_ZONES_STORED
+    # Seven windows collapse into three distinct zone names.
+    names = [z[ZONE_NAME] for z in result["data"][CONF_TARIFF_ZONES]]
+    assert dict.fromkeys(names) == dict.fromkeys(
+        ["Standard", "Niedrig", "Hoch"]
+    )
+
+
+async def test_setup_template_is_only_a_suggestion(hass: HomeAssistant):
+    """Picking Heat but submitting own zones stores the user's zones."""
+    with (
+        patch(VALIDATE, return_value=_info("1lgz0072999211", ["1lgz0072999211"])),
+        patch(CLOSE, return_value=None),
+        patch(SETUP_ENTRY, return_value=True),
+    ):
+        result = await _start_user_flow(hass, "tariff_heat")
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], dict(USER_INPUT)  # carries the Go zones
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_TARIFF_ZONES] == GO_ZONES_STORED
+
+
+async def test_options_template_prefills_but_does_not_save(
+    hass: HomeAssistant,
+):
+    """The options template menu prefills the settings form only.
+
+    Until the form is submitted the stored zones must stay untouched.
+    """
+    entry = _entry("1lgz0072999211")
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == FlowResultType.MENU
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "tariff_template"}
+    )
+    assert result["type"] == FlowResultType.MENU
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "tariff_heat"}
+    )
+
+    assert result["step_id"] == "settings"
+    assert _zone_default(result)[1] == "02:00 Niedrig"
+    # Nothing saved yet — the entry still holds its original zones.
+    assert entry.data[CONF_TARIFF_ZONES] == [dict(z) for z in GO_ZONES_STORED]
