@@ -80,10 +80,23 @@ Your existing configuration remains untouched — all entities and the Energy Da
 
 1. Go to Settings → Devices & Services → Add Integration
 2. Search for "PPC SMGW"
-3. Enter:
+3. **Select your tariff** – three buttons appear:
+
+   | Choice | Prefilled switch times |
+   |---|---|
+   | **Octopus Go / Intelligent Octopus Go** | `00:00 Go`, `05:00 Standard` |
+   | **Octopus Heat** | `00:00 Standard`, `02:00 Niedrig`, `06:00 Standard`, `12:00 Niedrig`, `16:00 Standard`, `18:00 Hoch`, `21:00 Standard` |
+   | **Enter my own times** | `00:00 Zeitfenster 1`, `05:00 Zeitfenster 2` |
+
+   The choice only **prefills** the times in the next step – you see them there and can change them freely; nothing is stored without your confirmation. For Octopus Heat the seven switch points yield three sensors ("Standard", "Niedrig", "Hoch") because windows sharing a name are summed; the Standard window 21:00–02:00 crosses midnight and therefore appears as both the first and the last entry.
+
+   > [!NOTE]
+   > Octopus windows as of 2026-07. Tariff times can change and may differ per contract – please verify against your contract.
+
+4. Enter:
    - **URL**: Your SMGW HAN interface URL (default: `https://192.168.100.100/cgi-bin/hanservice.cgi`)
    - **Username** and **Password**: Your HAN credentials
-   - **Tariff zones (switch points)**: one entry per switch point in the format `HH:MM zone name`, starting at `00:00`; the last entry runs until midnight (default: `00:00 Zeitfenster 1` and `05:00 Zeitfenster 2`, matching Octopus Go). Entries sharing a zone name are summed into **one** sensor — this also covers tariffs with several time windows per zone, e.g. Octopus Heat: `00:00 Standard`, `02:00 Heat`, `06:00 Standard`, `12:00 Heat`, `16:00 Standard`. If you prefer to **track every time window separately** — even when it carries the same name and price at your supplier — simply use distinct names (e.g. `Standard1`/`Standard2` or `Night-Low`/`Noon-Low`): each window then gets its own sensor. Switch times must sit on the SMGW's 15-minute measurement grid (minutes `00`, `15`, `30` or `45`) — other times are rejected with an error message right at input, nothing is rounded automatically
+   - **Tariff zones (switch points)**: one entry per switch point in the format `HH:MM zone name`, starting at `00:00`; the last entry runs until midnight. Ready-made templates exist for **Octopus Go/Intelligent Octopus Go** and **Octopus Heat** (see above) — you can still enter or adjust the times freely at any time. Entries sharing a zone name are summed into **one** sensor, which is what covers tariffs with several time windows per zone. If you prefer to **track every time window separately** — even when it carries the same name and price at your supplier — simply use distinct names (e.g. `Standard1`/`Standard2` or `Night-Low`/`Noon-Low`): each window then gets its own sensor. Switch times must sit on the SMGW's 15-minute measurement grid (minutes `00`, `15`, `30` or `45`) — other times are rejected with an error message right at input, nothing is rounded automatically
    - **Fetch time**: Time of the daily data fetch (default: 00:15)
    - **Device name** (optional, see next section)
 

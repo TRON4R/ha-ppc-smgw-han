@@ -2,6 +2,15 @@
   "config": {
     "step": {
       "user": {
+        "title": "Select your tariff",
+        "description": "Pick your electricity tariff. The matching switch times are then prefilled — you can review and adjust them in the next step. (Octopus windows as of 2026-07; please verify against your contract.)",
+        "menu_options": {
+          "tariff_go": "Octopus Go / Intelligent Octopus Go (cheap 00:00–05:00)",
+          "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
+          "tariff_custom": "Enter my own times"
+        }
+      },
+      "credentials": {
         "title": "Connect to Smart Meter Gateway",
         "description": "Enter your SMGW HAN interface credentials. The integration will fetch certified daily meter readings once per day.",
         "data": {
@@ -41,7 +50,7 @@
       "duplicate_login": "Another configured entry already uses this meter and username combination.",
       "parse_error": "Could not parse the SMGW response. Please double-check the username and password. If the credentials are correct, wait up to 15 minutes and try again.",
       "unknown": "An unexpected error occurred.",
-      "invalid_zone_entry": "Each entry must have the format \"HH:MM\u00a0zone\u00a0name\", e.g.\u00a0\"05:00\u00a0Standard\".",
+      "invalid_zone_entry": "Each entry must have the format \"HH:MM zone name\", e.g. \"05:00 Standard\".",
       "zone_too_few": "Define at least two entries (00:00 plus one switch point).",
       "zone_first_not_midnight": "The first entry must start at 00:00.",
       "zone_times_not_ascending": "The switch times must be strictly ascending within the day.",
@@ -58,7 +67,17 @@
         "title": "SMGW HAN",
         "menu_options": {
           "settings": "Change settings",
+          "tariff_template": "Apply a tariff-zone template",
           "export": "Export SMGW data for a custom time range"
+        }
+      },
+      "tariff_template": {
+        "title": "Apply a tariff-zone template",
+        "description": "Pick a template. The switch times are prefilled into the form that follows and only replace your current zones once you submit it. (Octopus windows as of 2026-07; please verify against your contract.)",
+        "menu_options": {
+          "tariff_go": "Octopus Go / Intelligent Octopus Go (cheap 00:00–05:00)",
+          "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
+          "tariff_custom": "Enter my own times"
         }
       },
       "settings": {
@@ -115,7 +134,7 @@
       "from_after_to": "The start ('From') must be before the end ('To').",
       "to_in_future": "The end of the range ('To') must not be in the future.",
       "from_too_old": "The start of the range ('From') is older than the SMGW's maximum 760-day history.",
-      "invalid_zone_entry": "Each entry must have the format \"HH:MM\u00a0zone\u00a0name\", e.g.\u00a0\"05:00\u00a0Standard\".",
+      "invalid_zone_entry": "Each entry must have the format \"HH:MM zone name\", e.g. \"05:00 Standard\".",
       "zone_too_few": "Define at least two entries (00:00 plus one switch point).",
       "zone_first_not_midnight": "The first entry must start at 00:00.",
       "zone_times_not_ascending": "The switch times must be strictly ascending within the day.",
@@ -223,18 +242,42 @@
     }
   },
   "exceptions": {
-    "from_after_to": {"message": "'from_datetime' must be before 'to_datetime'."},
-    "to_in_future": {"message": "The end of the range ('to_datetime') must not be in the future."},
-    "from_too_old": {"message": "The start of the range ('from_datetime') is older than the SMGW's maximum 760-day history."},
-    "no_device": {"message": "No loaded SMGW HAN device found."},
-    "multiple_devices": {"message": "Multiple SMGW HAN devices are configured; please specify 'device_id'."},
-    "unknown_device": {"message": "Unknown device id: {device_id}."},
-    "wrong_device": {"message": "Selected device does not belong to the SMGW HAN integration."},
-    "device_not_loaded": {"message": "The SMGW HAN entry for this device is not loaded."},
-    "unknown_period": {"message": "Unknown period preset: {period}."},
-    "no_data_in_range": {"message": "No meter data is available for the selected time range (e.g. before the meter was commissioned)."},
-    "cms_auth_failed": {"message": "SMGW authentication failed. Please re-authenticate the integration."},
-    "cms_download_failed": {"message": "The SMGW export could not be downloaded. Check the SMGW connection and the Home Assistant log."}
+    "from_after_to": {
+      "message": "'from_datetime' must be before 'to_datetime'."
+    },
+    "to_in_future": {
+      "message": "The end of the range ('to_datetime') must not be in the future."
+    },
+    "from_too_old": {
+      "message": "The start of the range ('from_datetime') is older than the SMGW's maximum 760-day history."
+    },
+    "no_device": {
+      "message": "No loaded SMGW HAN device found."
+    },
+    "multiple_devices": {
+      "message": "Multiple SMGW HAN devices are configured; please specify 'device_id'."
+    },
+    "unknown_device": {
+      "message": "Unknown device id: {device_id}."
+    },
+    "wrong_device": {
+      "message": "Selected device does not belong to the SMGW HAN integration."
+    },
+    "device_not_loaded": {
+      "message": "The SMGW HAN entry for this device is not loaded."
+    },
+    "unknown_period": {
+      "message": "Unknown period preset: {period}."
+    },
+    "no_data_in_range": {
+      "message": "No meter data is available for the selected time range (e.g. before the meter was commissioned)."
+    },
+    "cms_auth_failed": {
+      "message": "SMGW authentication failed. Please re-authenticate the integration."
+    },
+    "cms_download_failed": {
+      "message": "The SMGW export could not be downloaded. Check the SMGW connection and the Home Assistant log."
+    }
   },
   "issues": {
     "no_recent_data": {
