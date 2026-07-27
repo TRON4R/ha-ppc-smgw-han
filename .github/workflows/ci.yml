@@ -1,7 +1,12 @@
 name: CI
 
+# Pushing to a branch that has an open PR used to fire BOTH events, producing two
+# identical runs per commit. Restricting `push` to main keeps full coverage with
+# one run each: feature-branch pushes are covered by `pull_request`, and the
+# merge/tag commit on main is covered by `push`.
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
