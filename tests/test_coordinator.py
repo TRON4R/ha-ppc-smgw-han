@@ -6,6 +6,7 @@ import asyncio
 from datetime import date, datetime, time, timedelta
 
 import pytest
+from unittest.mock import patch
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -22,7 +23,9 @@ from custom_components.smgw_han import async_remove_entry, gateway_lock
 from custom_components.smgw_han.const import (
     CONF_METER_ID,
     CONF_TARIFF_ZONES,
+    CONF_UPDATE_TIME,
     DOMAIN,
+    RETRY_DELAYS_MINUTES,
     SENSOR_DATE,
     SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
     SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
@@ -456,3 +459,280 @@ async def test_other_client_error_maps_to_home_assistant_error(
         )
     assert not isinstance(ei.value, ServiceValidationError)
     assert ei.value.translation_key == "cms_download_failed"
+
+
+# --------------------------------------------------------------------------
+# Nightly-fetch retry with backoff (v3.2.0)
+#
+# A failed 00:15 fetch used to wait a full day. It now retries on a widening
+# schedule so a fault the user only fixes in the morning is picked up
+# automatically. Auth failures are excluded on purpose, and a pending retry
+# must never outlive the coordinator.
+# --------------------------------------------------------------------------
+
+
+class _FailThenSucceedStub(_FetchStub):
+    """Fails the first ``fail_times`` calls, then returns ``result``."""
+
+    def __init__(self, *, result, exc: Exception, fail_times: int) -> None:
+        super().__init__(result=result)
+        self._fail_exc = exc
+        self._fail_times = fail_times
+
+    async def async_fetch_daily_data(self, *args, **kwargs):
+        self.calls += 1
+        if self.calls <= self._fail_times:
+            raise self._fail_exc
+        return self._result
+
+
+async def test_failed_fetch_schedules_a_retry(hass: HomeAssistant):
+    coord = _fetch_coordinator(
+        hass, _FetchStub(exc=SmgwConnectionError("gateway down"))
+    )
+
+    await coord._handle_daily_fetch(dt_util.now())
+
+    assert coord._unsub_retry is not None
+    assert coord._retry_attempt == 1
+    await coord.async_unload()
+
+
+async def test_retry_backoff_widens_then_gives_up_before_next_fetch(
+    hass: HomeAssistant,
+):
+    """Delays follow RETRY_DELAYS_MINUTES and stop before the next run."""
+    coord = _fetch_coordinator(
+        hass, _FetchStub(exc=SmgwConnectionError("still down"))
+    )
+    delays: list[float] = []
+    # A clock that actually advances — without it the cutoff ("the next
+    # scheduled run is due") can never be reached and the series is endless.
+    clock = {"now": dt_util.now().replace(hour=0, minute=15, second=0)}
+
+    def _capture(_hass, delay, _action):
+        delays.append(delay)
+        clock["now"] += timedelta(seconds=delay)
+        return lambda: None
+
+    with (
+        patch(
+            "custom_components.smgw_han.coordinator.async_call_later", _capture
+        ),
+        patch(
+            "custom_components.smgw_han.coordinator.dt_util.now",
+            lambda: clock["now"],
+        ),
+    ):
+        await coord._handle_daily_fetch(clock["now"])
+        for _ in range(50):  # generous upper bound; must terminate earlier
+            if coord._retry_attempt == 0:
+                break
+            await coord._run_fetch_with_retry(_target(coord))
+
+    assert [d / 60 for d in delays[:4]] == list(RETRY_DELAYS_MINUTES)
+    # The last delay repeats, and the series terminates on its own well
+    # before the next daily run rather than running for ever.
+    assert delays[-1] / 60 == RETRY_DELAYS_MINUTES[-1]
+    assert coord._retry_attempt == 0
+    assert 10 < len(delays) < 20, len(delays)
+    await coord.async_unload()
+
+
+async def test_successful_retry_resets_the_counter(hass: HomeAssistant):
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    stub = _FailThenSucceedStub(
+        result=_daily_data(yesterday),
+        exc=SmgwConnectionError("brief hiccup"),
+        fail_times=1,
+    )
+    coord = _fetch_coordinator(hass, stub)
+
+    with patch(
+        "custom_components.smgw_han.coordinator.async_call_later",
+        lambda _h, _d, _a: (lambda: None),
+    ):
+        await coord._handle_daily_fetch(dt_util.now())
+        assert coord._retry_attempt == 1
+        await coord._run_fetch_with_retry(_target(coord))  # the retry itself
+
+    assert coord._retry_attempt == 0
+    assert coord.data[SENSOR_DATE] == yesterday.isoformat()
+    await coord.async_unload()
+
+
+async def test_auth_failure_does_not_retry(hass: HomeAssistant):
+    """Repeated logins could lock the HAN account — reauth is the only path."""
+    coord = _fetch_coordinator(hass, _FetchStub(exc=SmgwAuthError("bad pw")))
+
+    await coord._handle_daily_fetch(dt_util.now())
+
+    assert coord._unsub_retry is None
+    assert coord._retry_attempt == 0
+    await coord.async_unload()
+
+
+async def test_no_data_does_not_retry(hass: HomeAssistant):
+    """The gateway answered fine; a retry cannot conjure up missing values."""
+    coord = _fetch_coordinator(hass, _FetchStub(exc=SmgwNoDataError("empty")))
+
+    await coord._handle_daily_fetch(dt_util.now())
+
+    assert coord._unsub_retry is None
+    assert coord._retry_attempt == 0
+    reg = ir.async_get(hass)
+    assert reg.async_get_issue(DOMAIN, coord._no_data_issue_id) is not None
+    await coord.async_unload()
+
+
+async def test_unload_cancels_a_pending_retry(hass: HomeAssistant):
+    """A stray timer on a discarded coordinator is the leak class from beta.3."""
+    cancelled = []
+    coord = _fetch_coordinator(
+        hass, _FetchStub(exc=SmgwConnectionError("down"))
+    )
+
+    with patch(
+        "custom_components.smgw_han.coordinator.async_call_later",
+        lambda _h, _d, _a: (lambda: cancelled.append(True)),
+    ):
+        await coord._handle_daily_fetch(dt_util.now())
+    assert coord._unsub_retry is not None
+
+    await coord.async_unload()
+
+    assert coord._unsub_retry is None
+    assert cancelled == [True]
+
+
+async def test_scheduled_fetch_cancels_a_leftover_retry(hass: HomeAssistant):
+    """The regular run supersedes any retry still pending from before."""
+    cancelled = []
+    coord = _fetch_coordinator(
+        hass, _FetchStub(exc=SmgwConnectionError("down"))
+    )
+
+    with patch(
+        "custom_components.smgw_han.coordinator.async_call_later",
+        lambda _h, _d, _a: (lambda: cancelled.append(True)),
+    ):
+        await coord._handle_daily_fetch(dt_util.now())
+        await coord._handle_daily_fetch(dt_util.now())
+
+    assert cancelled == [True]  # the first retry was dropped
+    await coord.async_unload()
+
+
+def _target(coord) -> date:
+    """The day the coordinator's retry chain is currently recovering."""
+    return dt_util.now().date() - timedelta(days=1)
+
+
+async def test_retry_chain_keeps_its_target_day_across_midnight(
+    hass: HomeAssistant,
+):
+    """A chain started in the evening must not silently switch days.
+
+    Regression for the review finding on PR #43: each attempt recomputed
+    "yesterday", so with a late configured fetch time the chain crossed
+    midnight and started fetching a *different* day — leaving the day it was
+    meant to recover missing for good (the next scheduled run then skips it
+    as "already have data").
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_METER_ID: "M", CONF_UPDATE_TIME: "23:30:00"},
+    )
+    entry.add_to_hass(hass)
+    stub = _FetchStub(exc=SmgwConnectionError("down"))
+    requested: list[date] = []
+
+    async def _record(target_date, *args, **kwargs):
+        requested.append(target_date)
+        raise SmgwConnectionError("down")
+
+    stub.async_fetch_daily_data = _record
+    coord = SmgwTafCoordinator(hass, entry, stub)
+
+    start = dt_util.now().replace(
+        month=7, day=28, hour=23, minute=30, second=0, microsecond=0
+    )
+    clock = {"now": start}
+
+    # Keep the real callback (a functools.partial carrying the target day) and
+    # fire THAT, so the whole chain is exercised — not just the signature.
+    pending: list = []
+
+    def _capture(_hass, delay, action):
+        clock["now"] += timedelta(seconds=delay)
+        pending.append(action)
+        return lambda: None
+
+    with (
+        patch(
+            "custom_components.smgw_han.coordinator.async_call_later", _capture
+        ),
+        patch(
+            "custom_components.smgw_han.coordinator.dt_util.now",
+            lambda: clock["now"],
+        ),
+    ):
+        await coord._handle_daily_fetch(start)
+        for _ in range(4):  # far enough to cross midnight
+            assert pending, "no retry was scheduled"
+            await pending.pop(0)(clock["now"])
+
+    # Attempts ran on both sides of midnight ...
+    assert clock["now"].day == 29, clock["now"]
+    # ... yet every single one asked for the day the chain started for.
+    assert requested, "no fetch attempted"
+    assert set(requested) == {date(start.year, 7, 27)}, requested
+    await coord.async_unload()
+
+
+async def test_older_day_never_overwrites_newer_sensor_values(
+    hass: HomeAssistant,
+):
+    """A late retry must not drag the sensors back to an earlier day.
+
+    The meter sensors are TOTAL_INCREASING: a decreasing value reads as a
+    meter swap to Home Assistant and would be booked as consumption in the
+    long-term statistics. Reachable via a manual refresh that publishes the
+    newer day while a retry chain is still pinned to the older one.
+    """
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    day_before = yesterday - timedelta(days=1)
+    stub = _FetchStub(result=_daily_data(day_before))
+    coord = _fetch_coordinator(hass, stub)
+
+    # Sensors already hold the newer day (e.g. from a manual refresh).
+    newer = {SENSOR_DATE: yesterday.isoformat(), "daily_consumption_total": 9.9}
+    coord.async_set_updated_data(dict(newer))
+
+    await coord._async_do_daily_fetch(day_before)
+
+    assert stub.calls == 0, "the gateway should not even be contacted"
+    assert coord.data == newer
+
+
+async def test_superseded_retry_is_not_logged_as_success(
+    hass: HomeAssistant, caplog
+):
+    """A skipped retry must not claim it fetched anything.
+
+    The backwards guard returns without raising, so the retry chain used to
+    take the success path and log "succeeded on retry N" for a day it never
+    fetched — misleading exactly when someone is diagnosing a gap.
+    """
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    day_before = yesterday - timedelta(days=1)
+    coord = _fetch_coordinator(hass, _FetchStub(result=_daily_data(day_before)))
+    coord.async_set_updated_data({SENSOR_DATE: yesterday.isoformat()})
+    coord._retry_attempt = 3  # as if a chain had been running
+
+    caplog.clear()
+    await coord._run_fetch_with_retry(day_before)
+
+    assert "succeeded on retry" not in caplog.text
+    assert "nothing left to fetch" in caplog.text
+    assert coord._retry_attempt == 0

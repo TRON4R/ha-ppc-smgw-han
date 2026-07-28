@@ -18,6 +18,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smgw_han import async_migrate_entry
 from custom_components.smgw_han.config_flow import (
+    SmgwTafOptionsFlow,
     ZoneDefinitionError,
     _parse_tariff_zones,
 )
@@ -32,6 +33,8 @@ from custom_components.smgw_han.const import (
     CONF_URL,
     CONF_USERNAME,
     DOMAIN,
+    TARIFF_TEMPLATE_HEAT,
+    TARIFF_TEMPLATES,
     ZONE_NAME,
     ZONE_TIME,
 )
@@ -765,3 +768,20 @@ async def test_options_template_prefills_but_does_not_save(
     assert _zone_default(result)[1] == "02:00 Niedrig"
     # Nothing saved yet — the entry still holds its original zones.
     assert entry.data[CONF_TARIFF_ZONES] == [dict(z) for z in GO_ZONES_STORED]
+
+
+async def test_returning_to_menu_drops_a_picked_template():
+    """Re-entering the top menu must clear a previously picked template.
+
+    Asserted on the handler: the flow API cannot express "go back to the
+    menu" (a shown form only accepts its own schema), so whether the frontend
+    offers that navigation is version-dependent. The guard is defensive
+    precisely for that reason — without it a leftover template would overlay
+    the stored zones in the plain "settings" step.
+    """
+    flow = SmgwTafOptionsFlow()
+    flow._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
+
+    await flow.async_step_init()
+
+    assert flow._template_zones is None

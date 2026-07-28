@@ -103,6 +103,18 @@ EXPORT_WWW_SUBDIR = "smgw_han_exports"
 # per-entry issue_id is built in the coordinator as f"{ISSUE_NO_RECENT_DATA}_{entry_id}".
 ISSUE_NO_RECENT_DATA = "no_recent_data"
 
+# Retry schedule for a failed nightly fetch (minutes after the previous try).
+# Short at first to ride out a brief network hiccup, then wide so a fault the
+# user only notices in the morning (crashed router, unplugged switch) is picked
+# up automatically within about two hours of them fixing it. The last value
+# repeats until the next scheduled fetch is due.
+#
+# Scheduling a callback hours ahead costs nothing in HA; the only real budget
+# is SMGW requests (5 per attempt). Even a full day of retries stays an order
+# of magnitude below the fixed-interval polling that has locked users out of
+# their gateways.
+RETRY_DELAYS_MINUTES = (15, 30, 60, 120)
+
 # Store
 # v5: configurable tariff zones (slot/switch keys depend on the zone config).
 # v6: "Endstand Vortag" sensors switched from anchor A to anchor C (issue

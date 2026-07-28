@@ -518,6 +518,10 @@ class SmgwTafOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Top-level menu: change settings, apply a template, or export data."""
+        # Returning to the menu discards a template picked earlier, so the
+        # plain "settings" entry always shows the stored zones. Without this a
+        # back-navigation would leave the template overlaying the form.
+        self._template_zones = None
         return self.async_show_menu(
             step_id="init",
             menu_options=["settings", "tariff_template", "export"],

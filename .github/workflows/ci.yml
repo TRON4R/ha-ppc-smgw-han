@@ -2,8 +2,13 @@ name: CI
 
 # Pushing to a branch that has an open PR used to fire BOTH events, producing two
 # identical runs per commit. Restricting `push` to main keeps full coverage with
-# one run each: feature-branch pushes are covered by `pull_request`, and the
-# merge/tag commit on main is covered by `push`.
+# one run each: feature-branch pushes are covered by `pull_request`, the merge
+# commit on main by `push`.
+#
+# Note: with a `branches` filter present, tag pushes do NOT trigger this
+# workflow. That is intentional — releases tag a merge commit on main that has
+# already been checked twice (PR run + push run), so a third identical run adds
+# nothing. Add `tags: ["v*"]` here if that ever stops being true.
 on:
   push:
     branches: [main]
