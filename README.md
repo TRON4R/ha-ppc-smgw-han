@@ -21,7 +21,7 @@ Die Integration verbindet sich einmal täglich automatisch mit dem PPC SMGW und 
 - **Tagesverbrauch pro Tarifzone** - mit **frei konfigurierbaren Tarifzonen** (seit v3.0.0): von einfachen Zwei-Zonen-Tarifen wie Octopus Go (Standard: 00:00–04:59 / 05:00–23:59) bis zu Tarifen mit mehreren Zeitfenstern pro Zone wie Octopus Heat
 - **Tageseinspeisung (gesamt)** - gesamte Netzeinspeisung des Vortags
 - **Energie-Dashboard-kompatibel** - alle Sensoren lassen sich direkt im Home Assistant Energie-Dashboard verwenden
-- **Separater Datenexport für beliebige Zeiträume** - auf Abruf und unabhängig von den Sensoren: Die Daten kommen direkt aus dem Speicher des SMGW (je nach Gerät 15–24 Monate Historie, also auch aus der Zeit **vor** der Installation der Integration) — bequem aus der Home-Assistant-Oberfläche, ohne umständliches manuelles Einloggen am SMGW-Webinterface. Ausgabe als CSV, Excel oder **signiertes CMS-Original**. Siehe [Datenexport für beliebige Zeiträume](#-datenexport-für-beliebige-zeiträume)
+- **Separater Datenexport für beliebige Zeiträume** - auf Abruf und unabhängig von den Sensoren: Die Daten kommen direkt aus dem Speicher des SMGW (je nach Gerät 15–24 Monate Historie, also auch aus der Zeit **vor** der Installation der Integration) — bequem aus der Home-Assistant-Oberfläche, ohne umständliches manuelles Einloggen am SMGW-Webinterface. Ausgabe als CSV, Excel oder **signiertes CMS-Original**. Siehe [Datenexport für beliebige Zeiträume](https://github.com/TRON4R/ha-ppc-smgw-han#-datenexport-f%C3%BCr-beliebige-zeitr%C3%A4ume)
 
 ## Unterschied zu anderen SMGW-Integrationen
 
@@ -31,8 +31,8 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 - **Geeichte Werte** vom Zählerstand-Endpunkt des SMGW (keine Live-Momentaufnahmen)
 - **Exakte Tarifaufteilung** anhand der sekundengenauen Zählerstände an den konfigurierten Tarif-Umschaltpunkten
 - **Keine Timing-Probleme** - die Werte basieren auf den offiziellen Tagesgrenzen des SMGW, nicht auf der lokalen Uhrzeit des „Home Assistant"-Servers
-- **Mehrere Zähler und SMGWs parallel** - die Integration unterstützt sowohl mehrere SMGWs als auch mehrere Zähler an einem SMGW (Modul-2-Konstellationen, getrennte Logins für Verbrauch und Einspeisung). Details unter [Mehrere SMGWs / mehrere Zugänge](#mehrere-smgws--mehrere-zugänge).
-- **Export der zertifizierten CMS-Dateien** - die Integration erlaubt den Export von rechtssicheren CMS-Dateien im zertifizierten Original direkt aus dem SMGW (z.B. für den Nachweis von Rechnungsfehlern durch den Stromlieferanten) sowie die Erzeugung von CSV- und Excel-Dateien für die Weiterverarbeitung der Verbrauchs- und Einspeisedaten. Details unter [Datenexport für beliebige Zeiträume](#-datenexport-für-beliebige-zeiträume).
+- **Mehrere Zähler und SMGWs parallel** - die Integration unterstützt sowohl mehrere SMGWs als auch mehrere Zähler an einem SMGW (Modul-2-Konstellationen, getrennte Logins für Verbrauch und Einspeisung). Details unter [Mehrere SMGWs / mehrere Zugänge](https://github.com/TRON4R/ha-ppc-smgw-han#mehrere-smgws--mehrere-zug%C3%A4nge).
+- **Export der zertifizierten CMS-Dateien** - die Integration erlaubt den Export von rechtssicheren CMS-Dateien im zertifizierten Original direkt aus dem SMGW (z.B. für den Nachweis von Rechnungsfehlern durch den Stromlieferanten) sowie die Erzeugung von CSV- und Excel-Dateien für die Weiterverarbeitung der Verbrauchs- und Einspeisedaten. Details unter [Datenexport für beliebige Zeiträume](https://github.com/TRON4R/ha-ppc-smgw-han#-datenexport-f%C3%BCr-beliebige-zeitr%C3%A4ume).
 
 ## Voraussetzungen
 
@@ -41,9 +41,9 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 - Der "Home Assistant"-Server und das SMGW müssen sich IP-technisch gegenseitig "sehen" können.
 
 > [!TIP]
-> **EINE EINFACHE LÖSUNG FÜR DAS SMGW IP-ROUTING-PROBLEM:**  
-> _(Home Assistant und SMGW im selben IP-Bereich erreichbar machen)_
->   
+> **EINE EINFACHE LÖSUNG FÜR DAS SMGW IP-ROUTING-PROBLEM**  
+> _(Home Assistant und SMGW im selben IP-Bereich erreichbar machen)_:
+>
 > Das SMGW ist in der Regel unveränderbar auf `192.168.100.100` konfiguriert, Home Assistant läuft meist auf einer lokalen IP wie z.B. `192.168.2.x` o.ä.
 > Wie du deinem HA-Server ganz einfach eine zweite IP im `192.168.100.x`-Netz gibst und damit die Verbindung herstellst, erklärt die
 > [Netzwerk-Einrichtungsanleitung](docs/network-setup.md).

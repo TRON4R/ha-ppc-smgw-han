@@ -21,7 +21,7 @@ This integration automatically connects to your PPC SMGW once per day and retrie
 - **Daily consumption per tariff zone** - with **freely configurable tariff zones** (since v3.0.0): from simple two-zone tariffs like Octopus Go (default: 00:00–04:59 / 05:00–23:59) up to tariffs with several time windows per zone like Octopus Heat
 - **Daily feed-in (total)** - total electricity fed back to grid
 - **Energy Dashboard compatible** - all sensors can be used directly in the Home Assistant Energy Dashboard
-- **Separate data export for arbitrary time ranges** - on demand and independent of the sensors: the data comes straight from the SMGW's own storage (15–24 months of history depending on the device, i.e. also from **before** the integration was installed) — conveniently from the Home Assistant UI, without cumbersome manual logins to the SMGW web interface. Output as CSV, Excel or the **signed CMS original**. See [Data export for user-defined time ranges](#-data-export-for-user-defined-time-ranges)
+- **Separate data export for arbitrary time ranges** - on demand and independent of the sensors: the data comes straight from the SMGW's own storage (15–24 months of history depending on the device, i.e. also from **before** the integration was installed) — conveniently from the Home Assistant UI, without cumbersome manual logins to the SMGW web interface. Output as CSV, Excel or the **signed CMS original**. See [Data export for user-defined time ranges](https://github.com/TRON4R/ha-ppc-smgw-han#-data-export-for-user-defined-time-ranges)
 
 ## How does this differ from other SMGW integrations?
 
@@ -31,8 +31,8 @@ Another SMGW integration polls current meter readings at fixed 10 minute interva
 - **Certified values** from the SMGW's Zählerstand endpoint (not live meter snapshots)
 - **Accurate tariff split** using the second-precise meter readings at the configured tariff switch points
 - **No timing issues** - values are based on the SMGW's official daily boundaries, not the local clock of the Home Assistant server
-- **Multiple meters and SMGWs in parallel** - supports both several SMGWs and several meters on a single SMGW (Modul-2 setups, separate logins for import and feed-in). Details under [Multiple SMGWs / multiple logins](#multiple-smgws--multiple-logins).
-- **Export of certified CMS files** - the integration allows exporting legally sound CMS files in their certified original straight from the SMGW (e.g. to prove billing errors by the electricity supplier), plus generating CSV and Excel files for further processing of the consumption and feed-in data. Details under [Data export for user-defined time ranges](#-data-export-for-user-defined-time-ranges).
+- **Multiple meters and SMGWs in parallel** - supports both several SMGWs and several meters on a single SMGW (Modul-2 setups, separate logins for import and feed-in). Details under [Multiple SMGWs / multiple logins](https://github.com/TRON4R/ha-ppc-smgw-han#multiple-smgws--multiple-logins).
+- **Export of certified CMS files** - the integration allows exporting legally sound CMS files in their certified original straight from the SMGW (e.g. to prove billing errors by the electricity supplier), plus generating CSV and Excel files for further processing of the consumption and feed-in data. Details under [Data export for user-defined time ranges](https://github.com/TRON4R/ha-ppc-smgw-han#-data-export-for-user-defined-time-ranges).
 
 ## Requirements
 
@@ -41,8 +41,8 @@ Another SMGW integration polls current meter readings at fixed 10 minute interva
 - Your Home Assistant server and the SMGW must be able to reach each other via IP.
 
 > [!TIP]
-> **A SIMPLE SOLUTION FOR THE SMGW IP ROUTING PROBLEM:**  
-> _(Making Home Assistant and the SMGW reachable in the same IP range)_
+> **A SIMPLE SOLUTION FOR THE SMGW IP ROUTING PROBLEM**  
+> _(Making Home Assistant and the SMGW reachable in the same IP range)_:
 >
 > The SMGW is permanently fixed at `192.168.100.100`, while Home Assistant typically runs on a local IP like `192.168.2.x` or similar.
 > The [network setup guide](docs/network-setup.en.md) explains how to easily assign your HA server
