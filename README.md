@@ -52,11 +52,18 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 
 ### HACS (empfohlen)
 
-1. HACS in Home Assistant öffnen
-2. Integrationen → Drei-Punkte-Menü → Benutzerdefinierte Repositories
-3. `https://github.com/TRON4R/ha-ppc-smgw-han` als Integration hinzufügen
-4. „PPC SMGW HAN Daily Import" installieren
+1. In Home Assistant in der linken Seitenleiste **HACS** öffnen
+2. Oben rechts das **Drei-Punkte-Menü** → **Benutzerdefinierte Repositories**
+3. Im Dialog:
+   - Feld *Repository*: `https://github.com/TRON4R/ha-ppc-smgw-han`
+   - Dropdown *Typ*: **Integration**
+   - <kbd>HINZUFÜGEN</kbd> klicken, danach den Dialog oben links mit **X** schließen
+4. Im HACS-Suchfeld nach `PPC SMGW HAN` suchen, den Eintrag **PPC SMGW HAN Daily Import** öffnen und unten rechts <kbd>HERUNTERLADEN</kbd> klicken
 5. Home Assistant neu starten
+
+> [!NOTE]
+> Einen eigenen Menüpunkt „Integrationen" gibt es in HACS seit Version 2.0 nicht mehr — alle Typen liegen in einer gemeinsamen Liste.
+> Und: Die Integration erscheint in der HACS-Suche **erst nach** Schritt 2–3. Wer vorher sucht, bekommt „Repository nicht gefunden".
 
 ### Manuell
 
@@ -67,7 +74,7 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 
 Falls eine Vorab-Version (Pre-Release) verfügbar ist und du sie testen möchtest:
 
-1. HACS → Integrationen → „PPC SMGW HAN Daily Import" öffnen
+1. **HACS** öffnen und den Eintrag **PPC SMGW HAN Daily Import** anklicken
 2. Drei-Punkte-Menü oben rechts → **„Erneut herunterladen"**
 3. Im Dialog **„Benötigst du eine andere Version?"** aufklappen
 4. Im Dropdown **„Release"** die gewünschte Version (mit orangem `pre-release`-Label) auswählen
