@@ -52,11 +52,18 @@ Another SMGW integration polls current meter readings at fixed 10 minute interva
 
 ### HACS (recommended)
 
-1. Open HACS in Home Assistant
-2. Go to Integrations → three-dot menu → Custom repositories
-3. Add `https://github.com/TRON4R/ha-ppc-smgw-han` as an Integration
-4. Install "PPC SMGW HAN Daily Import"
+1. Open **HACS** from the Home Assistant sidebar
+2. **Three-dot menu** in the top right → **Custom repositories**
+3. In the dialog:
+   - *Repository* field: `https://github.com/TRON4R/ha-ppc-smgw-han`
+   - *Type* dropdown: **Integration**
+   - Click <kbd>ADD</kbd>, then close the dialog with the **X** in the top left
+4. Search for `PPC SMGW HAN` in the HACS search box, open the **PPC SMGW HAN Daily Import** entry and click <kbd>DOWNLOAD</kbd> in the bottom right
 5. Restart Home Assistant
+
+> [!NOTE]
+> HACS no longer has a separate "Integrations" section — since HACS 2.0 all types live in one combined list.
+> Also, the integration only shows up in the HACS search **after** steps 2–3. Searching before that returns "repository not found".
 
 ### Manual
 
@@ -67,7 +74,7 @@ Another SMGW integration polls current meter readings at fixed 10 minute interva
 
 If a pre-release is available and you want to try it:
 
-1. HACS → Integrations → open "PPC SMGW HAN Daily Import"
+1. Open **HACS** and click the **PPC SMGW HAN Daily Import** entry
 2. Three-dot menu in the top right → **"Re-download"**
 3. Expand **"Need a different version?"** in the dialog
 4. From the **"Release"** dropdown, pick the desired version (with an orange `pre-release` label)
