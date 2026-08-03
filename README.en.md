@@ -62,8 +62,7 @@ Another SMGW integration polls current meter readings at fixed 10 minute interva
 5. Restart Home Assistant
 
 > [!NOTE]
-> HACS no longer has a separate "Integrations" section — since HACS 2.0 all types live in one combined list.
-> Also, the integration only shows up in the HACS search **after** steps 2–3. Searching before that returns "repository not found".
+> The integration only shows up in the HACS search **after** steps 2–3. Searching before that returns "repository not found".
 
 ### Manual
 

@@ -62,8 +62,7 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 5. Home Assistant neu starten
 
 > [!NOTE]
-> Einen eigenen Menüpunkt „Integrationen" gibt es in HACS seit Version 2.0 nicht mehr — alle Typen liegen in einer gemeinsamen Liste.
-> Und: Die Integration erscheint in der HACS-Suche **erst nach** Schritt 2–3. Wer vorher sucht, bekommt „Repository nicht gefunden".
+> Die Integration erscheint in der HACS-Suche **erst nach** Schritt 2–3. Wer vorher sucht, bekommt „Repository nicht gefunden".
 
 ### Manuell
 
