@@ -41,7 +41,7 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 - Der "Home Assistant"-Server und das SMGW müssen sich IP-technisch gegenseitig "sehen" können.
 
 > [!TIP]
-> **EINE EINFACHE LÖSUNG FÜR DAS SMGW IP-ROUTING-PROBLEM**  
+> **EINE EINFACHE LÖSUNG FÜR DAS SMGW IP-ROUTING-PROBLEM**   
 > _(Home Assistant und SMGW im selben IP-Bereich erreichbar machen)_: 
 >
 > Das SMGW ist in der Regel unveränderbar auf `192.168.100.100` konfiguriert, Home Assistant läuft meist auf einer lokalen IP wie z.B. `192.168.2.x` o.ä.
