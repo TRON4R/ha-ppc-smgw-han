@@ -1,0 +1,26 @@
+name: HACS
+
+# Required for inclusion in the HACS default repository list. The action must
+# run without an `ignore` key — disabled checks are rejected there.
+#
+# The schedule catches breakage that happens outside our own commits: HACS
+# tightens its validation rules over time, and a repository that silently stops
+# passing would only be noticed when a user tries to install.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hacs/action@main
+        with:
+          category: integration
