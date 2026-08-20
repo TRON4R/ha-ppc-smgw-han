@@ -3,7 +3,7 @@
 
 <img src="custom_components/smgw_han/brand/icon.png" alt="SMGW Icon" width="128" align="left" style="margin-right: 16px;">
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) [![Downloads via GitHub releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=downloads&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) [![GitHub stars](https://img.shields.io/github/stars/TRON4R/ha-ppc-smgw-han?label=stars&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/stargazers) [![Downloads via GitHub releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=downloads%20since%2008%2F2026&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases)
 
 <!--
 The analytics counter stays disabled for now: Home Assistant Analytics filters
