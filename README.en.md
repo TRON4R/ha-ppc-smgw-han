@@ -3,7 +3,18 @@
 
 <img src="custom_components/smgw_han/brand/icon.png" alt="SMGW Icon" width="128" align="left" style="margin-right: 16px;">
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) [![Downloads via GitHub releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=downloads&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases) [![Active installs according to Home Assistant Analytics](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.smgw_han.total&label=active%20installs&color=41BDF5&logo=home-assistant&logoColor=white&cacheSeconds=21600)](https://analytics.home-assistant.io/custom_integrations)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) [![Downloads via GitHub releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=downloads&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases)
+
+<!--
+The analytics counter stays disabled for now: Home Assistant Analytics filters
+custom integrations against brands.home-assistant.io/domains.json, and since
+HA 2026.3 the brands repository no longer accepts custom integrations. The
+smgw_han domain therefore cannot appear there and the badge only rendered
+"no result". See home-assistant/analytics.home-assistant.io#1094 — once that
+is resolved, dropping the comment markers is enough.
+
+[![Active installs according to Home Assistant Analytics](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.smgw_han.total&label=active%20installs&color=41BDF5&logo=home-assistant&logoColor=white&cacheSeconds=21600)](https://analytics.home-assistant.io/custom_integrations)
+-->
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=TRON4R&repository=ha-ppc-smgw-han)
 
