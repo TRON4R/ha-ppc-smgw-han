@@ -1,0 +1,38 @@
+name: Release zip
+
+# HACS downloads a release asset instead of the individual files when hacs.json
+# sets `zip_release`. That asset has to exist for every release, so this builds
+# it automatically whenever a release is published.
+#
+# The archive is extracted straight into custom_components/smgw_han/ on the
+# user's system, so its contents must sit at the root of the zip — hence the
+# `cd` before zipping rather than archiving the path from the repository root.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    name: Attach smgw_han.zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the archive
+        run: |
+          cd custom_components/smgw_han
+          zip -r "${GITHUB_WORKSPACE}/smgw_han.zip" .
+
+      - name: Verify the layout
+        run: |
+          unzip -l smgw_han.zip
+          unzip -l smgw_han.zip | grep -q " manifest.json$" \
+            || { echo "manifest.json is not at the root of the archive"; exit 1; }
+
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" smgw_han.zip --clobber

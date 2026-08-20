@@ -3,7 +3,7 @@
 
 <img src="custom_components/smgw_han/brand/icon.png" alt="SMGW Icon" width="128" align="left" style="margin-right: 16px;">
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) [![Aktive Installationen laut Home Assistant Analytics](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.smgw_han.total&label=aktive%20Installationen&color=41BDF5&logo=home-assistant&logoColor=white&cacheSeconds=21600)](https://analytics.home-assistant.io/custom_integrations)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) [![Downloads über GitHub-Releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=Downloads&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases) [![Aktive Installationen laut Home Assistant Analytics](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.smgw_han.total&label=aktive%20Installationen&color=41BDF5&logo=home-assistant&logoColor=white&cacheSeconds=21600)](https://analytics.home-assistant.io/custom_integrations)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=TRON4R&repository=ha-ppc-smgw-han)
 
