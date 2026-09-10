@@ -290,11 +290,11 @@
     },
     "fetch_failed": {
       "title": "SMGW fetch gave up for one day",
-      "description": "The daily fetch for {date} failed {attempts} times and has been given up, because the next scheduled fetch is due. Last error: {error}\n\nThat day stays missing from the sensors - Home Assistant cannot add statistics retroactively. The readings themselves are still stored in the gateway (15-24 months) and can be retrieved with the export service. This notice disappears by itself once a fetch succeeds again."
+      "description": "The daily fetch for {date} failed {attempts} times and has been given up, because the next scheduled fetch is due. Last error: {error}\n\nThat day stays missing from the sensors - Home Assistant cannot add statistics retroactively. The readings themselves may still be stored in the gateway (15-24 months), in which case the export service can retrieve them. This notice disappears by itself once a fetch succeeds again."
     },
     "data_gap": {
       "title": "SMGW daily data is missing",
-      "description": "No daily values have been recorded since {last_date}: {days} day(s) are missing ({first_missing} to {last_missing}). Home Assistant cannot add them to the sensors retroactively, but the readings are still stored in the gateway and can be retrieved with the export service. This notice stays until you dismiss it."
+      "description": "No daily values have been recorded since {last_date}: {days} day(s) are missing ({first_missing} to {last_missing}). Home Assistant cannot add them to the sensors retroactively. The readings may still be stored in the gateway, in which case the export service can retrieve them. This notice stays until you dismiss it."
     }
   }
 }
