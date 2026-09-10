@@ -316,8 +316,8 @@ async def test_zone_change_withholds_stale_zone_values_on_connection_error(
         hass, hass_storage, stub, NEW_ZONES, _stored_day(OLD_ZONES, yesterday)
     )
 
-    # Cached (stripped) data exists -> setup must NOT raise; the nightly
-    # fetch retries.
+    # Cached (stripped) data exists -> setup must NOT raise; the retry
+    # chain takes over from here (see the startup test below).
     await coord.async_setup()
 
     assert "daily_consumption_slot_1" not in coord.data
@@ -915,3 +915,42 @@ async def test_remove_entry_dismisses_the_gap_notification(
     assert pn.async_dismiss.call_args.args[1] == data_gap_notification_id(
         entry.entry_id
     )
+
+
+async def test_startup_failure_starts_the_retry_chain(
+    hass: HomeAssistant, hass_storage: dict
+):
+    """A missed nightly slot is recovered during the day, not at midnight.
+
+    The startup fetch only runs when a day is genuinely missing, so there is
+    always something real to recover here. It used to just log and wait for
+    the next scheduled run - up to 24 hours of silence.
+    """
+    # Fixed midday clock: at 12:00 the next scheduled fetch (00:15) is far
+    # enough away that the chain schedules instead of giving up at once.
+    fixed = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    stale_day = (fixed.date() - timedelta(days=3)).isoformat()
+    stub = _FetchStub(exc=SmgwConnectionError("gateway down"))
+    coord = _coordinator_with_store(
+        hass, hass_storage, stub, NEW_ZONES, _stored_day(NEW_ZONES, stale_day)
+    )
+
+    with (
+        patch(
+            "custom_components.smgw_han.coordinator.async_call_later",
+            lambda _h, _d, _a: (lambda: None),
+        ),
+        patch(
+            "custom_components.smgw_han.coordinator.dt_util.now",
+            lambda: fixed,
+        ),
+    ):
+        await coord.async_setup()
+
+    assert coord._retry_attempt == 1
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, coord._fetch_issue_id)
+    assert issue is not None
+    assert issue.translation_key == ISSUE_FETCH_RETRYING
+    # Cached values stay put while the chain runs.
+    assert coord.data[SENSOR_DATE] == stale_day
+    await coord.async_unload()
