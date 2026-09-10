@@ -3,12 +3,12 @@
   "name": "PPC SMGW HAN Daily Import",
   "codeowners": ["@TRON4R"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["persistent_notification"],
   "documentation": "https://github.com/TRON4R/ha-ppc-smgw-han",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/TRON4R/ha-ppc-smgw-han/issues",
   "loggers": ["custom_components.smgw_han"],
   "requirements": ["httpx>=0.27.0", "beautifulsoup4>=4.12.0", "openpyxl>=3.1.0"],
-  "version": "3.2.1"
+  "version": "3.3.0"
 }

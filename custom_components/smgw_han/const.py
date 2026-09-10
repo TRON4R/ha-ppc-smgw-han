@@ -103,6 +103,28 @@ EXPORT_WWW_SUBDIR = "smgw_han_exports"
 # per-entry issue_id is built in the coordinator as f"{ISSUE_NO_RECENT_DATA}_{entry_id}".
 ISSUE_NO_RECENT_DATA = "no_recent_data"
 
+# translation_key for the repair raised while a failed nightly fetch is still
+# being retried, and again — same issue_id, different text — once the retry
+# chain has given up. One id so the entry updates in place instead of
+# stacking two notices for one outage. Both clear on the next success.
+ISSUE_FETCH_RETRYING = "fetch_retrying"
+ISSUE_FETCH_FAILED = "fetch_failed"
+
+# Persistent notification (sidebar bell) for the catch-all staleness check.
+# Deliberately NOT a repair issue: repairs clear themselves on the next
+# success, but the skipped days never come back — HA cannot insert
+# statistics retroactively. A signal that vanishes on recovery would hide a
+# permanent data loss, so this one stays until the user dismisses it.
+NOTIFY_DATA_GAP = "data_gap"
+
+# Missed days before the staleness notification fires. NOT 1: after a normal
+# nightly run the last successful day IS yesterday, and the single-missed-day
+# case is already covered by ISSUE_FETCH_FAILED at the moment the retry chain
+# gives up. Firing at 1 would duplicate that same event on two surfaces; at 2
+# this escalates the day after instead, and still catches failure modes that
+# bypass the retry path entirely.
+STALE_DAYS_THRESHOLD = 2
+
 # Retry schedule for a failed nightly fetch (minutes after the previous try).
 # Short at first to ride out a brief network hiccup, then wide so a fault the
 # user only notices in the morning (crashed router, unplugged switch) is picked

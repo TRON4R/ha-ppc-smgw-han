@@ -283,6 +283,18 @@
     "no_recent_data": {
       "title": "SMGW is not delivering current data",
       "description": "The Smart Meter Gateway returned no (complete) daily values for {date} (last successful: {last_date}). Login and connection work fine — the gateway simply isn't providing new daily data (e.g. after a meter or account change). Existing sensor values are kept. This notice disappears automatically as soon as a day is fetched successfully again."
+    },
+    "fetch_retrying": {
+      "title": "SMGW fetch failed - retrying",
+      "description": "The daily fetch for {date} failed: {error}\n\nThe integration keeps trying automatically; attempt {attempt} runs in {minutes} minutes. Existing sensor values are kept. This notice disappears by itself as soon as a fetch succeeds - if the fault was brief, there is nothing for you to do."
+    },
+    "fetch_failed": {
+      "title": "SMGW fetch gave up for one day",
+      "description": "The daily fetch for {date} failed {attempts} times and has been given up, because the next scheduled fetch is due. Last error: {error}\n\nThat day stays missing from the sensors - Home Assistant cannot add statistics retroactively. The readings themselves are still stored in the gateway (15-24 months) and can be retrieved with the export service. This notice disappears by itself once a fetch succeeds again."
+    },
+    "data_gap": {
+      "title": "SMGW daily data is missing",
+      "description": "No daily values have been recorded since {last_date}: {days} day(s) are missing ({first_missing} to {last_missing}). Home Assistant cannot add them to the sensors retroactively, but the readings are still stored in the gateway and can be retrieved with the export service. This notice stays until you dismiss it."
     }
   }
 }

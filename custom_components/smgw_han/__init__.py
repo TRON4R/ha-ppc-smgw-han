@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -29,7 +30,12 @@ from .const import (
     ZONE_NAME,
     ZONE_TIME,
 )
-from .coordinator import SmgwCoordinator, no_data_issue_id
+from .coordinator import (
+    SmgwCoordinator,
+    data_gap_notification_id,
+    fetch_issue_id,
+    no_data_issue_id,
+)
 from .services import async_setup_services
 from .smgw_client import SmgwClient
 
@@ -177,7 +183,7 @@ async def async_remove_config_entry_device(
 async def async_remove_entry(
     hass: HomeAssistant, entry: SmgwConfigEntry
 ) -> None:
-    """Clean up the per-entry repair issue when the entry is removed.
+    """Clean up the per-entry notices when the entry is removed.
 
     The coordinator deletes the "no recent data" issue on a successful fetch,
     but if the entry is removed while that issue is still active, nothing else
@@ -186,6 +192,12 @@ async def async_remove_entry(
     an active issue intact across reloads while avoiding the orphan on removal.
     """
     ir.async_delete_issue(hass, DOMAIN, no_data_issue_id(entry.entry_id))
+    ir.async_delete_issue(hass, DOMAIN, fetch_issue_id(entry.entry_id))
+    # The data-gap notification never clears itself on recovery, so
+    # removing the entry is the one moment it has to be taken down.
+    persistent_notification.async_dismiss(
+        hass, data_gap_notification_id(entry.entry_id)
+    )
 
 
 async def async_unload_entry(

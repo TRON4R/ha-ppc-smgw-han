@@ -283,6 +283,18 @@
     "no_recent_data": {
       "title": "SMGW liefert keine aktuellen Daten",
       "description": "Das Smart Meter Gateway hat für den {date} keine (vollständigen) Tageswerte geliefert (zuletzt erfolgreich: {last_date}). Anmeldung und Verbindung funktionieren — es kommen nur keine neuen Tagesdaten vom Gateway (z. B. nach einem Zähler- oder Kontoumbau). Bestehende Sensorwerte bleiben erhalten. Dieser Hinweis verschwindet automatisch, sobald wieder ein Tag erfolgreich abgerufen wurde."
+    },
+    "fetch_retrying": {
+      "title": "SMGW-Abruf fehlgeschlagen - wird wiederholt",
+      "description": "Der Tagesabruf für {date} ist fehlgeschlagen: {error}\n\nDie Integration versucht es automatisch weiter; Versuch {attempt} läuft in {minutes} Minuten. Vorhandene Sensorwerte bleiben erhalten. Dieser Hinweis verschwindet von selbst, sobald ein Abruf gelingt - war die Störung nur kurz, musst du nichts tun."
+    },
+    "fetch_failed": {
+      "title": "SMGW-Abruf für einen Tag aufgegeben",
+      "description": "Der Tagesabruf für {date} ist {attempts}-mal fehlgeschlagen und wurde aufgegeben, weil der nächste reguläre Abruf ansteht. Letzter Fehler: {error}\n\nDieser Tag fehlt damit dauerhaft in den Sensoren - Home Assistant kann Statistikwerte nicht nachträglich einfügen. Die Messwerte selbst liegen weiterhin im Gateway (15-24 Monate) und lassen sich über den Datenexport abrufen. Dieser Hinweis verschwindet von selbst, sobald wieder ein Abruf gelingt."
+    },
+    "data_gap": {
+      "title": "SMGW-Tagesdaten fehlen",
+      "description": "Seit dem {last_date} wurden keine Tagesdaten mehr erfasst: {days} Tag(e) fehlen ({first_missing} bis {last_missing}). Home Assistant kann sie nicht nachträglich in die Sensoren einfügen; die Messwerte liegen aber weiterhin im Gateway und lassen sich über den Datenexport abrufen. Dieser Hinweis bleibt stehen, bis du ihn wegklickst."
     }
   }
 }
