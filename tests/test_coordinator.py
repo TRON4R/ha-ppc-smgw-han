@@ -954,3 +954,53 @@ async def test_startup_failure_starts_the_retry_chain(
     # Cached values stay put while the chain runs.
     assert coord.data[SENSOR_DATE] == stale_day
     await coord.async_unload()
+
+
+async def test_dates_are_written_the_way_the_reader_expects(
+    hass: HomeAssistant,
+):
+    """ISO dates from the store must not reach a German reader raw.
+
+    Repair and notification texts are substituted server side, so nothing
+    downstream would localize them.
+    """
+    coord = _fetch_coordinator(hass, _FetchStub(result=None))
+
+    hass.config.language = "de"
+    assert coord._fmt_date(date(2026, 9, 9)) == "09.09.2026"
+    assert coord._fmt_date("2026-09-09") == "09.09.2026"
+
+    hass.config.language = "en"
+    assert coord._fmt_date(date(2026, 9, 9)) == "2026-09-09"
+
+    # Junk is passed through rather than swallowed or crashing a notice.
+    assert coord._fmt_date("not-a-date") == "not-a-date"
+    assert coord._fmt_date(None) == "—"
+
+
+async def test_issue_placeholders_carry_the_localized_date(
+    hass: HomeAssistant,
+):
+    """End to end: the formatter is actually wired into the texts."""
+    hass.config.language = "de"
+    coord = _fetch_coordinator(
+        hass, _FetchStub(exc=SmgwConnectionError("gateway down"))
+    )
+    fixed = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
+
+    with (
+        patch(
+            "custom_components.smgw_han.coordinator.async_call_later",
+            lambda _h, _d, _a: (lambda: None),
+        ),
+        patch(
+            "custom_components.smgw_han.coordinator.dt_util.now",
+            lambda: fixed,
+        ),
+    ):
+        await coord._handle_daily_fetch(fixed)
+
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, coord._fetch_issue_id)
+    expected = (fixed.date() - timedelta(days=1)).strftime("%d.%m.%Y")
+    assert issue.translation_placeholders["date"] == expected
+    await coord.async_unload()

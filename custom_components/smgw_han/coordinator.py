@@ -104,9 +104,9 @@ _DATA_GAP_FALLBACK_TITLE = "SMGW daily data is missing"
 _DATA_GAP_FALLBACK_BODY = (
     "No daily values have been recorded since {last_date}: {days} day(s) "
     "are missing ({first_missing} to {last_missing}). Home Assistant "
-    "cannot add them to the sensors retroactively, but the readings are "
-    "still stored in the gateway and can be retrieved with the export "
-    "service. This notice stays until you dismiss it."
+    "cannot add them to the sensors retroactively. The readings may "
+    "still be stored in the gateway, in which case the export service "
+    "can retrieve them. This notice stays until you dismiss it."
 )
 
 
@@ -372,9 +372,11 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         placeholders = {
             "days": str(missed),
-            "last_date": last_date.isoformat(),
-            "first_missing": (last_date + timedelta(days=1)).isoformat(),
-            "last_missing": yesterday.isoformat(),
+            "last_date": self._fmt_date(last_date),
+            "first_missing": self._fmt_date(
+                last_date + timedelta(days=1)
+            ),
+            "last_missing": self._fmt_date(yesterday),
         }
         title, message = await self._async_data_gap_text(placeholders)
         persistent_notification.async_create(
@@ -414,6 +416,26 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Placeholder mismatch in a translation - an unformatted
             # message still beats no message at all.
             return title, body
+
+    def _fmt_date(self, value: date | str | None) -> str:
+        """Render a date the way the reader's language writes it.
+
+        Repair texts and notifications are plain strings substituted on
+        the server, so the ISO form the gateway and the store use would
+        otherwise reach the user unchanged - and 2026-09-09 is not how a
+        German reader expects a date. Only the shipped languages are
+        handled; anything else keeps the unambiguous ISO form.
+        """
+        if value is None:
+            return "—"
+        if isinstance(value, str):
+            try:
+                value = date.fromisoformat(value)
+            except ValueError:
+                return value
+        if self.hass.config.language.startswith("de"):
+            return value.strftime("%d.%m.%Y")
+        return value.isoformat()
 
     def _raise_fetch_issue(
         self, translation_key: str, placeholders: dict[str, str]
@@ -458,14 +480,15 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.error(
                 "SMGW data fetch for %s still failing after %d retries and "
                 "the next scheduled fetch is due — giving up. That day stays "
-                "missing from the sensors; the readings remain available from "
-                "the gateway via the export service. Last error: %s",
+                "missing from the sensors; the readings may still be in "
+                "the gateway, in which case the export service can "
+                "retrieve them. Last error: %s",
                 target_date, self._retry_attempt, err,
             )
             self._raise_fetch_issue(
                 ISSUE_FETCH_FAILED,
                 {
-                    "date": target_date.isoformat(),
+                    "date": self._fmt_date(target_date),
                     "attempts": str(self._retry_attempt),
                     "error": str(err),
                 },
@@ -488,7 +511,7 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._raise_fetch_issue(
             ISSUE_FETCH_RETRYING,
             {
-                "date": target_date.isoformat(),
+                "date": self._fmt_date(target_date),
                 "attempt": str(self._retry_attempt),
                 "minutes": str(delay),
                 "error": str(err),
@@ -597,8 +620,8 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 severity=ir.IssueSeverity.WARNING,
                 translation_key=ISSUE_NO_RECENT_DATA,
                 translation_placeholders={
-                    "date": yesterday.isoformat(),
-                    "last_date": last_date,
+                    "date": self._fmt_date(yesterday),
+                    "last_date": self._fmt_date(last_date),
                 },
             )
             # The gateway answered, so a pending connection notice is
