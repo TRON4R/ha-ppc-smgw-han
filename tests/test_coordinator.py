@@ -25,14 +25,19 @@ from custom_components.smgw_han.const import (
     CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
     DOMAIN,
+    ISSUE_FETCH_FAILED,
+    ISSUE_FETCH_RETRYING,
     RETRY_DELAYS_MINUTES,
     SENSOR_DATE,
     SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
     SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
+    STALE_DAYS_THRESHOLD,
     STORE_VERSION,
 )
 from custom_components.smgw_han.coordinator import (
     SmgwCoordinator,
+    data_gap_notification_id,
+    fetch_issue_id,
     no_data_issue_id,
 )
 from custom_components.smgw_han.smgw_client import (
@@ -736,3 +741,177 @@ async def test_superseded_retry_is_not_logged_as_success(
     assert "succeeded on retry" not in caplog.text
     assert "nothing left to fetch" in caplog.text
     assert coord._retry_attempt == 0
+
+
+# --- Visibility of a failing fetch (v3.3.0) --------------------------------
+# Three layers, deliberately on two surfaces: repair issues for anything that
+# can still heal, a persistent notification for the days that cannot.
+
+_NOTIFY = "custom_components.smgw_han.coordinator.persistent_notification"
+
+
+async def test_first_failure_raises_a_retrying_issue(hass: HomeAssistant):
+    """The very first failed attempt is already visible, not just the last."""
+    coord = _fetch_coordinator(
+        hass, _FetchStub(exc=SmgwConnectionError("gateway down"))
+    )
+
+    with patch(
+        "custom_components.smgw_han.coordinator.async_call_later",
+        lambda _h, _d, _a: (lambda: None),
+    ):
+        await coord._handle_daily_fetch(dt_util.now())
+
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, coord._fetch_issue_id)
+    assert issue is not None
+    assert issue.translation_key == ISSUE_FETCH_RETRYING
+    # The text has to promise that the integration keeps going.
+    assert issue.translation_placeholders["attempt"] == "1"
+    assert issue.translation_placeholders["minutes"] == str(
+        RETRY_DELAYS_MINUTES[0]
+    )
+    await coord.async_unload()
+
+
+async def test_giving_up_replaces_it_with_a_final_issue(hass: HomeAssistant):
+    """Same issue_id: the entry updates in place instead of stacking."""
+    coord = _fetch_coordinator(
+        hass, _FetchStub(exc=SmgwConnectionError("still down"))
+    )
+    clock = {"now": dt_util.now().replace(hour=0, minute=15, second=0)}
+
+    def _capture(_hass, delay, _action):
+        clock["now"] += timedelta(seconds=delay)
+        return lambda: None
+
+    with (
+        patch(
+            "custom_components.smgw_han.coordinator.async_call_later", _capture
+        ),
+        patch(
+            "custom_components.smgw_han.coordinator.dt_util.now",
+            lambda: clock["now"],
+        ),
+    ):
+        await coord._handle_daily_fetch(clock["now"])
+        for _ in range(50):
+            if coord._retry_attempt == 0:
+                break
+            await coord._run_fetch_with_retry(_target(coord))
+
+    reg = ir.async_get(hass)
+    issue = reg.async_get_issue(DOMAIN, coord._fetch_issue_id)
+    assert issue is not None
+    assert issue.translation_key == ISSUE_FETCH_FAILED
+    # Same id as the retrying notice above: the registry is keyed by
+    # (domain, issue_id), so this is the SAME entry with new text rather
+    # than a second one stacked on top.
+    assert coord._fetch_issue_id == fetch_issue_id(coord.config_entry.entry_id)
+    await coord.async_unload()
+
+
+async def test_successful_fetch_clears_the_fetch_issue(hass: HomeAssistant):
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    coord = _fetch_coordinator(
+        hass, _FetchStub(result=_daily_data(yesterday))
+    )
+    coord._raise_fetch_issue(
+        ISSUE_FETCH_FAILED, {"date": "x", "attempts": "3", "error": "y"}
+    )
+
+    await coord._async_do_daily_fetch()
+
+    reg = ir.async_get(hass)
+    assert reg.async_get_issue(DOMAIN, coord._fetch_issue_id) is None
+
+
+async def test_no_data_clears_the_fetch_issue(hass: HomeAssistant):
+    """The gateway answered, so a pending connection notice is stale."""
+    coord = _fetch_coordinator(hass, _FetchStub(exc=SmgwNoDataError("empty")))
+    coord.async_set_updated_data({SENSOR_DATE: "2000-01-01"})
+    coord._raise_fetch_issue(
+        ISSUE_FETCH_RETRYING,
+        {"date": "x", "attempt": "1", "minutes": "15", "error": "y"},
+    )
+
+    await coord._async_do_daily_fetch()
+
+    reg = ir.async_get(hass)
+    assert reg.async_get_issue(DOMAIN, coord._fetch_issue_id) is None
+    # ... but the no-data issue itself is raised.
+    assert reg.async_get_issue(DOMAIN, coord._no_data_issue_id) is not None
+
+
+async def test_one_missed_day_does_not_notify(hass: HomeAssistant):
+    """Below the threshold the repair issues already cover the case."""
+    coord = _fetch_coordinator(hass, _FetchStub(result=None))
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    coord.async_set_updated_data(
+        {SENSOR_DATE: (yesterday - timedelta(days=1)).isoformat()}
+    )
+
+    with patch(_NOTIFY) as pn:
+        await coord._async_check_data_gap()
+
+    assert not pn.async_create.called
+
+
+async def test_two_missed_days_notify_with_the_gap_spelled_out(
+    hass: HomeAssistant,
+):
+    coord = _fetch_coordinator(hass, _FetchStub(result=None))
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    last_good = yesterday - timedelta(days=STALE_DAYS_THRESHOLD)
+    coord.async_set_updated_data({SENSOR_DATE: last_good.isoformat()})
+
+    with patch(_NOTIFY) as pn:
+        await coord._async_check_data_gap()
+
+    assert pn.async_create.called
+    message = pn.async_create.call_args.args[1]
+    kwargs = pn.async_create.call_args.kwargs
+    # Named days, not a vague 'something is wrong'.
+    assert (last_good + timedelta(days=1)).isoformat() in message
+    assert yesterday.isoformat() in message
+    assert kwargs["notification_id"] == coord._data_gap_notification_id
+
+
+async def test_gap_notification_survives_a_successful_fetch(
+    hass: HomeAssistant,
+):
+    """The skipped days never come back, so the notice must not vanish.
+
+    A repair issue would clear itself here - that is exactly why the
+    staleness warning is a persistent notification instead.
+    """
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    coord = _fetch_coordinator(
+        hass, _FetchStub(result=_daily_data(yesterday))
+    )
+    coord.async_set_updated_data(
+        {SENSOR_DATE: (yesterday - timedelta(days=4)).isoformat()}
+    )
+
+    with patch(_NOTIFY) as pn:
+        await coord._async_check_data_gap()
+        assert pn.async_create.called
+        await coord._async_do_daily_fetch()
+        await coord._async_check_data_gap()
+        # Nothing ever dismisses it on the way back to healthy.
+        assert not pn.async_dismiss.called
+
+
+async def test_remove_entry_dismisses_the_gap_notification(
+    hass: HomeAssistant,
+):
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_METER_ID: "M"})
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.smgw_han.persistent_notification"
+    ) as pn:
+        await async_remove_entry(hass, entry)
+
+    assert pn.async_dismiss.call_args.args[1] == data_gap_notification_id(
+        entry.entry_id
+    )

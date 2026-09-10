@@ -7,9 +7,11 @@ from functools import partial
 from datetime import date, datetime, time, timedelta
 from typing import Any
 
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers import translation
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_time_change,
@@ -34,13 +36,17 @@ from .const import (
     DEFAULT_TARIFF_ZONES,
     DEFAULT_UPDATE_TIME,
     DOMAIN,
+    ISSUE_FETCH_FAILED,
+    ISSUE_FETCH_RETRYING,
     ISSUE_NO_RECENT_DATA,
+    NOTIFY_DATA_GAP,
     RETRY_DELAYS_MINUTES,
     SENSOR_DAILY_CONSUMPTION_TOTAL,
     SENSOR_DAILY_FEEDIN_TOTAL,
     SENSOR_DATE,
     SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
     SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
+    STALE_DAYS_THRESHOLD,
     STORE_VERSION,
     ZONE_NAME,
     ZONE_TIME,
@@ -75,6 +81,33 @@ def no_data_issue_id(entry_id: str) -> str:
     fetch) and ``async_remove_entry`` (cleanup when the entry is removed).
     """
     return f"{ISSUE_NO_RECENT_DATA}_{entry_id}"
+
+
+def fetch_issue_id(entry_id: str) -> str:
+    """Repair issue id for the "nightly fetch failed" issue of an entry.
+
+    One id for both the "still retrying" and the "gave up" state: the
+    entry updates in place as the situation develops instead of stacking
+    two notices for a single outage.
+    """
+    return f"{ISSUE_FETCH_FAILED}_{entry_id}"
+
+
+def data_gap_notification_id(entry_id: str) -> str:
+    """Persistent-notification id for an entry's staleness warning."""
+    return f"{DOMAIN}_{NOTIFY_DATA_GAP}_{entry_id}"
+
+
+# Used when the translation cache has no strings for this integration yet.
+# Mirrors the English source text in strings.json.
+_DATA_GAP_FALLBACK_TITLE = "SMGW daily data is missing"
+_DATA_GAP_FALLBACK_BODY = (
+    "No daily values have been recorded since {last_date}: {days} day(s) "
+    "are missing ({first_missing} to {last_missing}). Home Assistant "
+    "cannot add them to the sensors retroactively, but the readings are "
+    "still stored in the gateway and can be retrieved with the export "
+    "service. This notice stays until you dismiss it."
+)
 
 
 class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -207,6 +240,12 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # discarded coordinator instance across HA's setup retries.
         self._schedule_daily_fetch()
 
+        # A persistent notification does not survive a restart, so the
+        # staleness check has to run here too - otherwise a gap that was
+        # flagged yesterday would silently disappear on the next reboot
+        # and only come back at the following nightly fetch.
+        await self._async_check_data_gap()
+
     def _configured_fetch_time(self) -> time:
         """Return the configured daily fetch time, falling back to 00:15."""
         time_str = self.config_entry.data.get(
@@ -294,6 +333,95 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     )
             self._retry_attempt = 0
 
+        # Every path lands here - success, auth failure and a scheduled
+        # retry alike - so the staleness check sees each outcome once.
+        await self._async_check_data_gap()
+
+    async def _async_check_data_gap(self) -> None:
+        """Warn about days that are missing for good.
+
+        Runs after every fetch attempt and once at startup (a persistent
+        notification does not survive a restart, so it has to be re-set).
+        Unlike the repair issues this deliberately does NOT clear itself:
+        Home Assistant cannot insert statistics retroactively, so a
+        skipped day stays skipped even once the gateway is healthy again.
+        A notice that vanished on recovery would hide exactly the
+        permanent loss the user needs to know about.
+        """
+        stored_date = self.data.get(SENSOR_DATE) if self.data else None
+        if not stored_date:
+            # Nothing ever fetched. An empty setup already fails with
+            # ConfigEntryNotReady, which HA surfaces on its own.
+            return
+        try:
+            last_date = date.fromisoformat(str(stored_date))
+        except ValueError:
+            return
+
+        yesterday = dt_util.now().date() - timedelta(days=1)
+        missed = (yesterday - last_date).days
+        if missed < STALE_DAYS_THRESHOLD:
+            return
+
+        placeholders = {
+            "days": str(missed),
+            "last_date": last_date.isoformat(),
+            "first_missing": (last_date + timedelta(days=1)).isoformat(),
+            "last_missing": yesterday.isoformat(),
+        }
+        title, message = await self._async_data_gap_text(placeholders)
+        persistent_notification.async_create(
+            self.hass,
+            message,
+            title=title,
+            notification_id=self._data_gap_notification_id,
+        )
+
+    async def _async_data_gap_text(
+        self, placeholders: dict[str, str]
+    ) -> tuple[str, str]:
+        """Return the localized title and body for the staleness notice.
+
+        Persistent notifications take plain strings, so the text is pulled
+        from the same ``issues`` block the repairs use and formatted here.
+        """
+        prefix = f"component.{DOMAIN}.issues.{NOTIFY_DATA_GAP}."
+        try:
+            strings = await translation.async_get_translations(
+                self.hass, self.hass.config.language, "issues", {DOMAIN}
+            )
+        except Exception as err:
+            # A text lookup must never cost us the notification itself.
+            _LOGGER.debug(
+                "Translation lookup for the data gap failed: %s", err
+            )
+            strings = {}
+
+        title = strings.get(f"{prefix}title") or _DATA_GAP_FALLBACK_TITLE
+        body = (
+            strings.get(f"{prefix}description") or _DATA_GAP_FALLBACK_BODY
+        )
+        try:
+            return title, body.format(**placeholders)
+        except (KeyError, IndexError):
+            # Placeholder mismatch in a translation - an unformatted
+            # message still beats no message at all.
+            return title, body
+
+    def _raise_fetch_issue(
+        self, translation_key: str, placeholders: dict[str, str]
+    ) -> None:
+        """Create or update the fetch-failed repair issue of this entry."""
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            self._fetch_issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=translation_key,
+            translation_placeholders=placeholders,
+        )
+
     def _next_scheduled_fetch(self, now: datetime) -> datetime:
         """Return when the regular daily fetch is next due."""
         fetch_time = self._configured_fetch_time()
@@ -327,6 +455,14 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "the gateway via the export service. Last error: %s",
                 target_date, self._retry_attempt, err,
             )
+            self._raise_fetch_issue(
+                ISSUE_FETCH_FAILED,
+                {
+                    "date": target_date.isoformat(),
+                    "attempts": str(self._retry_attempt),
+                    "error": str(err),
+                },
+            )
             self._retry_attempt = 0
             return
 
@@ -337,6 +473,19 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         log(
             "Daily fetch for %s failed (%s) — retry %d in %d minutes",
             target_date, err, self._retry_attempt, delay,
+        )
+        # Raised on the very first failure - the user should see a problem
+        # while it is happening, not only once we have given up - and
+        # refreshed on every further attempt so the countdown stays true.
+        # Same issue_id, so this is one entry that updates, not a stack.
+        self._raise_fetch_issue(
+            ISSUE_FETCH_RETRYING,
+            {
+                "date": target_date.isoformat(),
+                "attempt": str(self._retry_attempt),
+                "minutes": str(delay),
+                "error": str(err),
+            },
         )
         self._unsub_retry = async_call_later(
             self.hass,
@@ -445,6 +594,9 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "last_date": last_date,
                 },
             )
+            # The gateway answered, so a pending connection notice is
+            # stale now - even though this day could not be computed.
+            ir.async_delete_issue(self.hass, DOMAIN, self._fetch_issue_id)
             return False
         except SmgwClientError as err:
             raise UpdateFailed(
@@ -454,6 +606,8 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # A successful fetch clears any prior "no recent data" repair issue
         # (idempotent: a no-op when none exists).
         ir.async_delete_issue(self.hass, DOMAIN, self._no_data_issue_id)
+        # ... and the retrying / gave-up one, whichever state it is in.
+        ir.async_delete_issue(self.hass, DOMAIN, self._fetch_issue_id)
 
         data = self._daily_data_to_dict(daily_data)
 
@@ -488,6 +642,16 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _no_data_issue_id(self) -> str:
         """Unique repair issue id for the 'no recent data' issue of this entry."""
         return no_data_issue_id(self.config_entry.entry_id)
+
+    @property
+    def _fetch_issue_id(self) -> str:
+        """Unique repair issue id for the "fetch failed" issue of this entry."""
+        return fetch_issue_id(self.config_entry.entry_id)
+
+    @property
+    def _data_gap_notification_id(self) -> str:
+        """Unique persistent-notification id for this entry."""
+        return data_gap_notification_id(self.config_entry.entry_id)
 
     @property
     def target_meter_id(self) -> str | None:
