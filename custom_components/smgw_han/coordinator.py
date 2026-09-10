@@ -214,16 +214,23 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if needs_fetch:
             try:
-                await self._async_do_daily_fetch()
+                await self._async_do_daily_fetch(yesterday)
             except UpdateFailed as err:
                 if self.data:
-                    # Cached values exist — keep running, the scheduled
-                    # nightly fetch will retry.
+                    # Cached values exist, so setup can go ahead. Hand the
+                    # failure to the same retry chain the nightly run uses
+                    # instead of waiting for the next slot: this branch is
+                    # only reached when a day is genuinely missing (see the
+                    # needs_fetch conditions above), so there is something
+                    # real to recover and the chain stops by itself once
+                    # the next scheduled fetch is due. It also raises the
+                    # repair issue, which a bare log line never did.
                     _LOGGER.warning(
-                        "Startup fetch failed (will retry at scheduled "
-                        "time): %s",
+                        "Startup fetch failed, starting the retry "
+                        "chain: %s",
                         err,
                     )
+                    self._schedule_retry(err, yesterday)
                 else:
                     # No data at all: fail setup so HA retries with its own
                     # backoff instead of leaving empty sensors until the
