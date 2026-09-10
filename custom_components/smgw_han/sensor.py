@@ -37,8 +37,8 @@ from .const import (
     slot_key,
     switch_key,
 )
-from . import SmgwTafConfigEntry
-from .coordinator import SmgwTafCoordinator
+from . import SmgwConfigEntry
+from .coordinator import SmgwCoordinator
 
 DEFAULT_DEVICE_NAME = "PPC SMGW"
 
@@ -49,7 +49,7 @@ _SWITCH_UID_RE = re.compile(r"_meter_consumption_switch_(\d+)$")
 
 
 @dataclass(frozen=True, kw_only=True)
-class SmgwTafSensorEntityDescription(SensorEntityDescription):
+class SmgwSensorEntityDescription(SensorEntityDescription):
     """Describe a SMGW HAN sensor."""
 
     data_key: str
@@ -59,9 +59,9 @@ class SmgwTafSensorEntityDescription(SensorEntityDescription):
     translation_placeholders: dict[str, str] | None = None
 
 
-SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
+SENSOR_DESCRIPTIONS: tuple[SmgwSensorEntityDescription, ...] = (
     # --- Daily consumption values (for Energy Dashboard) ---
-    SmgwTafSensorEntityDescription(
+    SmgwSensorEntityDescription(
         key="daily_consumption_total",
         translation_key="daily_consumption_total",
         data_key=SENSOR_DAILY_CONSUMPTION_TOTAL,
@@ -72,7 +72,7 @@ SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
         is_daily_value=True,
         icon="mdi:home-lightning-bolt",
     ),
-    SmgwTafSensorEntityDescription(
+    SmgwSensorEntityDescription(
         key="daily_feedin_total",
         translation_key="daily_feedin_total",
         data_key=SENSOR_DAILY_FEEDIN_TOTAL,
@@ -84,7 +84,7 @@ SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
         icon="mdi:solar-power",
     ),
     # --- Absolute meter readings (primary technical sensors) ---
-    SmgwTafSensorEntityDescription(
+    SmgwSensorEntityDescription(
         key="meter_consumption_prev_day_close",
         translation_key="meter_consumption_prev_day_close",
         data_key=SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
@@ -94,7 +94,7 @@ SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
         suggested_display_precision=4,
         icon="mdi:meter-electric",
     ),
-    SmgwTafSensorEntityDescription(
+    SmgwSensorEntityDescription(
         key="meter_feedin_prev_day_close",
         translation_key="meter_feedin_prev_day_close",
         data_key=SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
@@ -105,7 +105,7 @@ SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
         icon="mdi:meter-electric-outline",
     ),
     # --- Date sensor (diagnostic, enabled by default) ---
-    SmgwTafSensorEntityDescription(
+    SmgwSensorEntityDescription(
         key="date",
         translation_key="date",
         data_key=SENSOR_DATE,
@@ -118,20 +118,20 @@ SENSOR_DESCRIPTIONS: tuple[SmgwTafSensorEntityDescription, ...] = (
 
 def _dynamic_descriptions(
     zones_config: list[dict[str, str]],
-) -> list[SmgwTafSensorEntityDescription]:
+) -> list[SmgwSensorEntityDescription]:
     """Build the config-dependent sensor descriptions from the zone list.
 
     One daily-consumption sensor per distinct zone name (slot index = order
     of first appearance, so 2-zone installations keep slot_1/slot_2) and one
     absolute meter-reading sensor per inner segment boundary.
     """
-    descriptions: list[SmgwTafSensorEntityDescription] = []
+    descriptions: list[SmgwSensorEntityDescription] = []
     zone_names = list(
         dict.fromkeys(zone[ZONE_NAME] for zone in zones_config)
     )
     for n, name in enumerate(zone_names, 1):
         descriptions.append(
-            SmgwTafSensorEntityDescription(
+            SmgwSensorEntityDescription(
                 key=slot_key(n),
                 translation_key="daily_consumption_zone",
                 translation_placeholders={"zone_name": name},
@@ -146,7 +146,7 @@ def _dynamic_descriptions(
         )
     for n in range(1, len(zones_config)):
         descriptions.append(
-            SmgwTafSensorEntityDescription(
+            SmgwSensorEntityDescription(
                 key=switch_key(n),
                 translation_key="meter_consumption_switch",
                 translation_placeholders={"index": str(n)},
@@ -163,7 +163,7 @@ def _dynamic_descriptions(
 
 def _remove_stale_dynamic_entities(
     hass: HomeAssistant,
-    config_entry: SmgwTafConfigEntry,
+    config_entry: SmgwConfigEntry,
     zone_count: int,
     switch_count: int,
 ) -> None:
@@ -187,11 +187,11 @@ def _remove_stale_dynamic_entities(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: SmgwTafConfigEntry,
+    config_entry: SmgwConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up SMGW HAN sensors from a config entry."""
-    coordinator: SmgwTafCoordinator = config_entry.runtime_data
+    coordinator: SmgwCoordinator = config_entry.runtime_data
 
     zones_config = config_entry.data.get(CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES)
     dynamic = _dynamic_descriptions(zones_config)
@@ -201,7 +201,7 @@ async def async_setup_entry(
     )
 
     entities: list[SensorEntity] = [
-        SmgwTafSensor(coordinator, description, config_entry)
+        SmgwSensor(coordinator, description, config_entry)
         for description in (*SENSOR_DESCRIPTIONS, *dynamic)
     ]
     entities.append(SmgwDeviceIdSensor(config_entry))
@@ -209,17 +209,17 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class SmgwTafSensor(CoordinatorEntity[SmgwTafCoordinator], SensorEntity):
+class SmgwSensor(CoordinatorEntity[SmgwCoordinator], SensorEntity):
     """Sensor for SMGW HAN daily meter values."""
 
-    entity_description: SmgwTafSensorEntityDescription
+    entity_description: SmgwSensorEntityDescription
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: SmgwTafCoordinator,
-        description: SmgwTafSensorEntityDescription,
-        config_entry: SmgwTafConfigEntry,
+        coordinator: SmgwCoordinator,
+        description: SmgwSensorEntityDescription,
+        config_entry: SmgwConfigEntry,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -299,7 +299,7 @@ class SmgwDeviceIdSensor(SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:identifier"
 
-    def __init__(self, config_entry: SmgwTafConfigEntry) -> None:
+    def __init__(self, config_entry: SmgwConfigEntry) -> None:
         """Initialize the device-id sensor."""
         instance_id = config_entry.data.get(CONF_INSTANCE_ID, 1)
         device_slug = f"smgw_meter{instance_id}"

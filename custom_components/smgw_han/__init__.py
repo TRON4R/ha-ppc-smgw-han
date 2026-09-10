@@ -29,7 +29,7 @@ from .const import (
     ZONE_NAME,
     ZONE_TIME,
 )
-from .coordinator import SmgwTafCoordinator, no_data_issue_id
+from .coordinator import SmgwCoordinator, no_data_issue_id
 from .services import async_setup_services
 from .smgw_client import SmgwClient
 
@@ -43,7 +43,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 # implement async_setup (here only to register the export services).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-type SmgwTafConfigEntry = ConfigEntry[SmgwTafCoordinator]
+type SmgwConfigEntry = ConfigEntry[SmgwCoordinator]
 
 
 def gateway_lock(
@@ -74,7 +74,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_migrate_entry(
-    hass: HomeAssistant, entry: SmgwTafConfigEntry
+    hass: HomeAssistant, entry: SmgwConfigEntry
 ) -> bool:
     """Migrate old config entries to the current version.
 
@@ -113,7 +113,7 @@ async def async_migrate_entry(
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: SmgwTafConfigEntry
+    hass: HomeAssistant, entry: SmgwConfigEntry
 ) -> bool:
     """Set up SMGW HAN from a config entry."""
     # One-time backfill for entries created with pre-2.0 versions:
@@ -147,7 +147,7 @@ async def async_setup_entry(
         ),
     )
 
-    coordinator = SmgwTafCoordinator(hass, entry, client)
+    coordinator = SmgwCoordinator(hass, entry, client)
     try:
         await coordinator.async_setup()
     except Exception:
@@ -167,7 +167,7 @@ async def async_setup_entry(
 
 async def async_remove_config_entry_device(
     hass: HomeAssistant,
-    config_entry: SmgwTafConfigEntry,
+    config_entry: SmgwConfigEntry,
     device_entry: dr.DeviceEntry,
 ) -> bool:
     """Allow removal of a device from the UI."""
@@ -175,7 +175,7 @@ async def async_remove_config_entry_device(
 
 
 async def async_remove_entry(
-    hass: HomeAssistant, entry: SmgwTafConfigEntry
+    hass: HomeAssistant, entry: SmgwConfigEntry
 ) -> None:
     """Clean up the per-entry repair issue when the entry is removed.
 
@@ -189,7 +189,7 @@ async def async_remove_entry(
 
 
 async def async_unload_entry(
-    hass: HomeAssistant, entry: SmgwTafConfigEntry
+    hass: HomeAssistant, entry: SmgwConfigEntry
 ) -> bool:
     """Unload a config entry.
 

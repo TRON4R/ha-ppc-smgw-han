@@ -1,4 +1,4 @@
-"""Tests for SmgwTafCoordinator error mapping and the no-data repair issue."""
+"""Tests for SmgwCoordinator error mapping and the no-data repair issue."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ from custom_components.smgw_han.const import (
     STORE_VERSION,
 )
 from custom_components.smgw_han.coordinator import (
-    SmgwTafCoordinator,
+    SmgwCoordinator,
     no_data_issue_id,
 )
 from custom_components.smgw_han.smgw_client import (
@@ -64,10 +64,10 @@ class _StubClient:
         pass
 
 
-def _coordinator(hass: HomeAssistant, exc: Exception) -> SmgwTafCoordinator:
+def _coordinator(hass: HomeAssistant, exc: Exception) -> SmgwCoordinator:
     entry = MockConfigEntry(domain=DOMAIN, data={CONF_METER_ID: "M"})
     entry.add_to_hass(hass)
-    return SmgwTafCoordinator(hass, entry, _StubClient(exc))
+    return SmgwCoordinator(hass, entry, _StubClient(exc))
 
 
 class _FetchStub:
@@ -93,10 +93,10 @@ class _FetchStub:
 
 def _fetch_coordinator(
     hass: HomeAssistant, stub: _FetchStub
-) -> SmgwTafCoordinator:
+) -> SmgwCoordinator:
     entry = MockConfigEntry(domain=DOMAIN, data={CONF_METER_ID: "M"})
     entry.add_to_hass(hass)
-    return SmgwTafCoordinator(hass, entry, stub)
+    return SmgwCoordinator(hass, entry, stub)
 
 
 def _daily_data(target_date) -> DailyData:
@@ -123,7 +123,7 @@ def test_daily_data_to_dict_generates_slot_and_switch_keys():
         daily_import_total=10.0,
         daily_export_total=3.0,
     )
-    data = SmgwTafCoordinator._daily_data_to_dict(dd)
+    data = SmgwCoordinator._daily_data_to_dict(dd)
     assert data["daily_consumption_slot_1"] == 6.0  # Standard
     assert data["daily_consumption_slot_2"] == 2.0  # Niedrig
     assert data["daily_consumption_slot_3"] == 2.0  # Hoch
@@ -261,7 +261,7 @@ def _coordinator_with_store(
     stub: _FetchStub,
     entry_zones: list[dict],
     stored: dict | None,
-) -> SmgwTafCoordinator:
+) -> SmgwCoordinator:
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={CONF_METER_ID: "M", CONF_TARIFF_ZONES: entry_zones},
@@ -275,7 +275,7 @@ def _coordinator_with_store(
             "key": key,
             "data": stored,
         }
-    return SmgwTafCoordinator(hass, entry, stub)
+    return SmgwCoordinator(hass, entry, stub)
 
 
 async def test_zone_change_withholds_stale_zone_values_on_no_data(
@@ -652,7 +652,7 @@ async def test_retry_chain_keeps_its_target_day_across_midnight(
         raise SmgwConnectionError("down")
 
     stub.async_fetch_daily_data = _record
-    coord = SmgwTafCoordinator(hass, entry, stub)
+    coord = SmgwCoordinator(hass, entry, stub)
 
     start = dt_util.now().replace(
         month=7, day=28, hour=23, minute=30, second=0, microsecond=0

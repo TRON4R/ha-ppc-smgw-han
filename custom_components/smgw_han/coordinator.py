@@ -77,7 +77,7 @@ def no_data_issue_id(entry_id: str) -> str:
     return f"{ISSUE_NO_RECENT_DATA}_{entry_id}"
 
 
-class SmgwTafCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for daily SMGW HAN data fetching.
 
     Uses async_track_time_change to trigger exactly at the configured

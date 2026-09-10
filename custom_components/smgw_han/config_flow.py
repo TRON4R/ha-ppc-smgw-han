@@ -214,7 +214,7 @@ def _unique_id_collision(
     )
 
 
-class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
+class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for SMGW HAN."""
 
     # Version 2 (v3.0.0): the single tariff switch time (hour/minute) became
@@ -236,9 +236,9 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: ConfigEntry,
-    ) -> SmgwTafOptionsFlow:
+    ) -> SmgwOptionsFlow:
         """Get the options flow for this handler."""
-        return SmgwTafOptionsFlow()
+        return SmgwOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -501,7 +501,7 @@ class SmgwTafConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
-class SmgwTafOptionsFlow(OptionsFlow):
+class SmgwOptionsFlow(OptionsFlow):
     """Handle options flow for SMGW HAN."""
 
     def __init__(self) -> None:
