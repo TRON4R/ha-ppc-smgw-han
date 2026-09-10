@@ -259,7 +259,7 @@ async def run_export(
 ) -> dict[str, Any]:
     """Shared export core, reused by the services and the options flow.
 
-    ``coordinator`` is a loaded :class:`SmgwTafCoordinator`. Returns the
+    ``coordinator`` is a loaded :class:`SmgwCoordinator`. Returns the
     response dict (download links first, then meter data).
     """
     zones = coordinator.tariff_zones

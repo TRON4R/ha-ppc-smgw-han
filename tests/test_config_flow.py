@@ -18,7 +18,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smgw_han import async_migrate_entry
 from custom_components.smgw_han.config_flow import (
-    SmgwTafOptionsFlow,
+    SmgwOptionsFlow,
     ZoneDefinitionError,
     _parse_tariff_zones,
 )
@@ -779,7 +779,7 @@ async def test_returning_to_menu_drops_a_picked_template():
     precisely for that reason — without it a leftover template would overlay
     the stored zones in the plain "settings" step.
     """
-    flow = SmgwTafOptionsFlow()
+    flow = SmgwOptionsFlow()
     flow._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
 
     await flow.async_step_init()
