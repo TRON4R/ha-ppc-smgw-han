@@ -104,6 +104,12 @@ def write_xlsx(
     ``meta["zones"]`` is the tariff-zone definition as ordered
     ``("HH:MM", name)`` pairs (the first at 00:00); it drives the dynamic
     columns of the "Tarifzonen" sheet and the "Definition" sheet.
+
+    ``meta["zone_periods"]`` optionally lists every dated layout the exported
+    range touches (``{"valid_from": "YYYY-MM-DD", "zones": [...]}``). A range
+    crossing a scheduled zone change is split by more than one layout, so the
+    workbook has to name all of them — otherwise half the rows are documented
+    by windows they were not computed with.
     """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font
@@ -112,18 +118,41 @@ def write_xlsx(
     zones: list[tuple[str, str]] = [
         (t, name) for t, name in meta.get("zones", [])
     ]
+    periods: list[dict[str, Any]] = meta.get("zone_periods") or [
+        {"valid_from": "", "zones": zones}
+    ]
+
+    def _zone_windows(
+        pairs: list[tuple[str, str]],
+    ) -> tuple[list[str], dict[str, list[str]]]:
+        """Names in order plus each name's daily windows ("06:00-12:00")."""
+        names = list(dict.fromkeys(name for _t, name in pairs))
+        ends = [*[t for t, _name in pairs[1:]], "24:00"]
+        return names, {
+            name: [
+                f"{pairs[i][0]}-{ends[i]}"
+                for i in range(len(pairs))
+                if pairs[i][1] == name
+            ]
+            for name in names
+        }
+
     inner_times = [t for t, _name in zones[1:]]
-    zone_names = list(dict.fromkeys(name for _t, name in zones))
-    # Each zone's daily windows, e.g. "Standard: 06:00-12:00 + 16:00-18:00".
-    segment_ends = [*inner_times, "24:00"]
-    zone_windows = {
-        name: [
-            f"{zones[i][0]}-{segment_ends[i]}"
-            for i in range(len(zones))
-            if zones[i][1] == name
-        ]
-        for name in zone_names
-    }
+    # Columns span every layout in the range (plus anything the summaries
+    # actually carry), so a zone that exists on only one side of a change
+    # still gets its own column instead of silently dropping out.
+    zone_names: list[str] = []
+    period_windows: list[tuple[str, dict[str, list[str]]]] = []
+    for period in periods:
+        names, windows = _zone_windows(
+            [(t, name) for t, name in period.get("zones", [])]
+        )
+        zone_names.extend(n for n in names if n not in zone_names)
+        period_windows.append((period.get("valid_from", ""), windows))
+    for summary in daily_summary:
+        zone_names.extend(
+            n for n in summary.zone_consumptions if n not in zone_names
+        )
 
     wb = Workbook()
 
@@ -199,8 +228,19 @@ def write_xlsx(
     info["A9"] = "Tarifzonen (konfiguriert, lokale Zeit des Kalendertags D)"
     info["A9"].font = bold
     row = 10
-    for name in zone_names:
-        info[f"A{row}"] = _safe_text(f"{name}: {' + '.join(zone_windows[name])}")
+    for valid_from, windows in period_windows:
+        if len(period_windows) > 1:
+            info[f"A{row}"] = _safe_text(f"ab {valid_from}:")
+            info[f"A{row}"].font = bold
+            row += 1
+        for name, segments in windows.items():
+            info[f"A{row}"] = _safe_text(f"{name}: {' + '.join(segments)}")
+            row += 1
+    if len(period_windows) > 1:
+        info[f"A{row}"] = (
+            "Der Zeitraum umfasst mehrere Tarifzonen-Schemata. Jeder Tag "
+            "wurde mit dem Schema berechnet, das an diesem Tag galt."
+        )
         row += 1
     row += 1
     info[f"A{row}"] = "Berechnung Bezug"

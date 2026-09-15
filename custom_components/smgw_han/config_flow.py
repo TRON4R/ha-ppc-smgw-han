@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 import voluptuous as vol
@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    DateSelector,
     DateTimeSelector,
     SelectSelector,
     SelectSelectorConfig,
@@ -46,8 +47,11 @@ from .const import (
     CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
     CONF_URL,
+    CONF_SCHEDULE_DISCARD,
+    CONF_SCHEDULE_VALID_FROM,
     CONF_USERNAME,
     CONF_VIEW_ID,
+    CONF_ZONE_SCHEDULE,
     DEFAULT_TARIFF_ZONES,
     DEFAULT_UPDATE_TIME,
     DEFAULT_URL,
@@ -59,7 +63,7 @@ from .const import (
     ZONE_NAME,
     ZONE_TIME,
 )
-from . import gateway_lock
+from . import gateway_lock, zone_schedule
 from .services import (
     PERIOD_PRESETS,
     _period_range,
@@ -181,6 +185,18 @@ def _build_schema(
             ): TextSelector(TextSelectorConfig()),
         }
     )
+
+
+def _parse_schedule_date(value: Any) -> date | None:
+    """Parse the DateSelector's value; None when it is missing or malformed."""
+    if isinstance(value, date):
+        return value
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(str(value))
+    except ValueError:
+        return None
 
 
 def _next_instance_id(used: set[int]) -> int:
@@ -645,8 +661,147 @@ class SmgwOptionsFlow(OptionsFlow):
         self._template_zones = None
         return self.async_show_menu(
             step_id="init",
-            menu_options=["settings", "tariff_template", "export"],
+            menu_options=[
+                "settings",
+                "tariff_template",
+                "schedule_zones",
+                "export",
+            ],
         )
+
+    # ------------------------------------------------------------------
+    # Scheduled tariff-zone change (see zone_schedule.py)
+    # ------------------------------------------------------------------
+
+    async def async_step_schedule_zones(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Enter a future zone layout ahead of the date it takes effect.
+
+        Tariff times change on a date known well in advance: grid operators
+        publish their module-3 windows for the next year in autumn, and a
+        change of supplier or tariff usually falls mid-year. Editing the
+        zones on the effective date itself would be too late either way: the
+        nightly run that morning still fetches the previous day, which has to
+        be split by the old windows. Scheduling keeps both layouts, so each
+        day is split by the one that was valid on it.
+        """
+        errors: dict[str, str] = {}
+        entry_data = self.config_entry.data
+        today = dt_util.now().date()
+        pending = zone_schedule.pending_change(
+            entry_data.get(CONF_ZONE_SCHEDULE), today
+        )
+        active_zones = entry_data.get(CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES)
+
+        if user_input is not None:
+            if user_input.get(CONF_SCHEDULE_DISCARD):
+                new_data = {**entry_data}
+                remaining = zone_schedule.without_pending(
+                    entry_data.get(CONF_ZONE_SCHEDULE), today
+                )
+                if remaining:
+                    new_data[CONF_ZONE_SCHEDULE] = remaining
+                else:
+                    new_data.pop(CONF_ZONE_SCHEDULE, None)
+                return await self._apply_schedule(new_data)
+
+            try:
+                zones = _parse_tariff_zones(
+                    user_input.get(CONF_TARIFF_ZONES, [])
+                )
+            except ZoneDefinitionError as err:
+                errors[CONF_TARIFF_ZONES] = err.error_key
+
+            valid_from = _parse_schedule_date(
+                user_input.get(CONF_SCHEDULE_VALID_FROM)
+            )
+            if valid_from is None:
+                errors[CONF_SCHEDULE_VALID_FROM] = "schedule_date_invalid"
+            elif valid_from <= today:
+                # Applying "from today" through the schedule would silently
+                # re-split days that are already recorded. That is what the
+                # plain settings step is for, where the consequences are
+                # visible and deliberate.
+                errors[CONF_SCHEDULE_VALID_FROM] = "schedule_date_not_future"
+
+            if not errors:
+                return await self._apply_schedule(
+                    {
+                        **entry_data,
+                        CONF_ZONE_SCHEDULE: zone_schedule.with_change(
+                            entry_data.get(CONF_ZONE_SCHEDULE),
+                            active_zones,
+                            valid_from,
+                            zones,
+                        ),
+                    }
+                )
+
+        # A pending change is shown for editing; otherwise the form starts
+        # from the active zones on the next 1 January — the most common date,
+        # but freely editable for a mid-year tariff change. Prefilling the
+        # zones matters either way: retyping five switch points invites typos.
+        if user_input is not None:
+            defaults = user_input
+        elif pending is not None:
+            defaults = {
+                CONF_SCHEDULE_VALID_FROM: pending[zone_schedule.VALID_FROM],
+                CONF_TARIFF_ZONES: pending[zone_schedule.ZONES],
+            }
+        else:
+            defaults = {
+                CONF_SCHEDULE_VALID_FROM: date(today.year + 1, 1, 1).isoformat(),
+                CONF_TARIFF_ZONES: active_zones,
+            }
+
+        schema: dict[Any, Any] = {
+            vol.Required(
+                CONF_SCHEDULE_VALID_FROM,
+                default=defaults.get(CONF_SCHEDULE_VALID_FROM, ""),
+            ): DateSelector(),
+            vol.Required(
+                CONF_TARIFF_ZONES,
+                default=_format_tariff_zones(
+                    defaults.get(CONF_TARIFF_ZONES, active_zones)
+                ),
+            ): TextSelector(TextSelectorConfig(multiple=True)),
+        }
+        if pending is not None:
+            schema[
+                vol.Optional(CONF_SCHEDULE_DISCARD, default=False)
+            ] = BooleanSelector()
+
+        return self.async_show_form(
+            step_id="schedule_zones",
+            data_schema=vol.Schema(schema),
+            errors=errors,
+            description_placeholders={
+                "active": ", ".join(_format_tariff_zones(active_zones)),
+                "pending": (
+                    pending[zone_schedule.VALID_FROM]
+                    if pending is not None
+                    else "-"
+                ),
+            },
+        )
+
+    async def _apply_schedule(
+        self, new_data: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Persist a schedule change and reload the entry.
+
+        No SMGW round trip: the schedule is local bookkeeping. The reload lets
+        the coordinator re-arm its midnight timer — and promote the change
+        right away if the user dated it for today via some other path.
+        """
+        self.hass.config_entries.async_update_entry(
+            self.config_entry, data=new_data
+        )
+        await self.hass.config_entries.async_reload(
+            self.config_entry.entry_id
+        )
+        return self.async_create_entry(title="", data={})
 
     async def async_step_tariff_template(
         self, user_input: dict[str, Any] | None = None

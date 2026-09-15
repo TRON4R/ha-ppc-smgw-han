@@ -10,6 +10,7 @@ script the owner already uses.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
@@ -70,14 +71,20 @@ def _diff(a: float | None, b: float | None) -> float | None:
 
 def build_daily_summary(
     readings: list[MeterReading],
-    zones: TariffZones,
+    zones_for: Callable[[date], TariffZones],
 ) -> list[DailySummary]:
     """Aggregate raw readings into one :class:`DailySummary` per calendar day.
 
-    ``zones`` is the parsed tariff-zone definition (ordered ``(time, name)``
-    pairs, the first at 00:00). Days are taken from the span of timestamps
-    present in ``readings``. A day is included only if at least one of its
-    computed values is available.
+    ``zones_for`` answers, for one calendar day, which parsed tariff-zone
+    definition applies to it (ordered ``(time, name)`` pairs, the first at
+    00:00). It is a function rather than a fixed list because an export may
+    span a scheduled zone change: a range crossing New Year has to split
+    December by last year's windows and January by this year's, which is the
+    whole point of scheduling one (see zone_schedule.py). For a range without
+    a change it simply returns the same list for every day.
+
+    Days are taken from the span of timestamps present in ``readings``. A day
+    is included only if at least one of its computed values is available.
     """
     if not readings:
         return []
@@ -91,6 +98,7 @@ def build_daily_summary(
     summaries: list[DailySummary] = []
     day = first_day
     while day <= last_day:
+        zones = zones_for(day)
         next_day = day + timedelta(days=1)
         # Segment boundaries: each configured segment start (second :01, like
         # the strict daily processing) plus next-day midnight as the closer.

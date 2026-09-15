@@ -120,6 +120,16 @@ Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy
 > [!NOTE]
 > **Update von v2.x:** Bestehende Einträge werden beim ersten Start automatisch auf das Tarifzonen-Modell migriert, d.h. die vorhandenen Entitäten, Namen und die Energy-Dashboard-Historie bleiben erhalten. Die Migration ist **einmalig** (ein Downgrade auf eine Version vor 3.0.0 erfordert ein Backup oder das Neuanlegen des Eintrags).
 
+## Tarifzonen-Umschaltung vorab planen
+
+Tarifzeiten ändern sich zu einem Stichtag, der lange vorher feststeht: Netzbetreiber veröffentlichen ihre Modul-3-Zeitfenster für das Folgejahr im Herbst, und ein Wechsel des Stromanbieters oder Tarifs fällt meist mitten ins Jahr. Für beides kannst du das neue Schema vorab hinterlegen: **Integration → Konfigurieren → „Tarifzonen-Umschaltung planen"**. Dort gibst du das Datum an, ab dem das neue Schema gilt, und die neuen Umschaltpunkte. Das Datumsfeld ist mit dem nächsten 1. Januar vorbelegt (der häufigste Fall), du kannst aber jedes künftige Datum eintragen — etwa den Tag, an dem dein neuer Stromtarif startet. Die Zonenliste ist mit den aktuell aktiven Zonen vorbelegt, meist sind also nur einzelne Zeiten zu korrigieren.
+
+Umgeschaltet wird automatisch um 00:00 Uhr des Stichtags. Solange das Datum noch in der Zukunft liegt, ändert sich nichts: keine neuen Sensoren, kein erneuter Abruf, keine Änderung an bereits erfassten Werten. Eine geplante Umschaltung kannst du im selben Dialog jederzeit ansehen, korrigieren oder wieder verwerfen.
+
+**Warum das mehr ist als ein Timer:** Die Integration merkt sich *beide* Schemata und teilt jeden Tag nach dem Schema auf, das an diesem Tag galt. Das ist entscheidend, denn der nächtliche Abruf am Stichtag holt noch den **Vortag** — und der muss nach den alten Zeitfenstern aufgeteilt werden. Würdest du die Zonen stattdessen am Stichtag selbst von Hand ändern, bekäme der Vortag die neuen Zeitfenster, und jeder spätere Datenexport würde auch alle älteren Tage rückwirkend nach dem neuen Schema aufteilen. Mit einer geplanten Umschaltung bleibt beides korrekt, auch im Excel-Export: Ein Zeitraum, der über den Stichtag hinweggeht, wird tageweise richtig aufgeteilt und im Blatt „Definition" mit beiden Schemata dokumentiert.
+
+> **Zonennamen möglichst beibehalten:** Bleiben die Namen gleich (z. B. weiterhin `NT`/`ST`/`HT`) und ändern sich nur die Uhrzeiten, läuft die Historie jedes Sensors als eine durchgehende Reihe weiter. Ein umbenannter Zonenname legt dagegen einen neuen Sensor mit neuer Statistik an.
+
 ## Mehrere SMGWs / mehrere Zugänge
 
 Seit Version 2.0 kann die Integration beliebig viele SMGW-Instanzen parallel verwalten. Klicke einfach erneut auf „Integration hinzufügen" und lege einen weiteren Zugang an. Jeder Eintrag bekommt einen eigenen Satz Entitäten und ein eigenes Gerät im Geräte-Register.

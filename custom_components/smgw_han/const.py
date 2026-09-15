@@ -8,6 +8,14 @@ CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 CONF_UPDATE_TIME = "update_time"
 CONF_TARIFF_ZONES = "tariff_zones"  # Ordered list of {"time": "HH:MM", "name": str}
+# Dated zone layouts, see zone_schedule.py. Present only once a change has been
+# scheduled; CONF_TARIFF_ZONES then holds the layout valid TODAY (its
+# projection), so every existing consumer keeps reading one plain zone list.
+CONF_ZONE_SCHEDULE = "zone_schedule"
+# Form fields of the "schedule a zone change" options step (not stored as
+# entry data — they are folded into CONF_ZONE_SCHEDULE on submit).
+CONF_SCHEDULE_VALID_FROM = "valid_from"
+CONF_SCHEDULE_DISCARD = "discard_pending"
 # Legacy single-switch-time keys (config entry version 1). Only referenced by
 # the v1 -> v2 entry migration in __init__.py; new entries store CONF_TARIFF_ZONES.
 CONF_TARIFF_SWITCH_HOUR = "tariff_switch_hour"
