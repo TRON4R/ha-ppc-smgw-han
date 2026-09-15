@@ -35,6 +35,16 @@
           "meter_id": "Meter"
         }
       },
+      "confirm_additional_view": {
+        "title": "Evaluate this meter a second time?",
+        "description": "Meter {meter_id} is already set up ({existing}).\n\nYou can add a second, independent evaluation of the same readings — useful when one bill has to be checked against your supplier's tariff windows and another against your grid operator's time windows (section 14a EnWG, module 3). Both entries read the same gateway; only the tariff zones differ.\n\n**Do not add both devices to the Energy dashboard** — they report the same physical consumption, so it would be counted twice.\n\nSubmit to create the second evaluation, or close this dialog to cancel.",
+        "data": {
+          "device_name": "Device name (recommended)"
+        },
+        "data_description": {
+          "device_name": "Without a name Home Assistant only numbers the two identical devices (\"PPC SMGW 2\"). A name such as \"Modul 3\" tells them apart at a glance."
+        }
+      },
       "reauth_confirm": {
         "title": "Re-authenticate SMGW",
         "description": "The SMGW credentials are no longer valid. Please enter updated credentials.",
@@ -57,7 +67,7 @@
       "zone_minute_grid": "Minutes must be 00, 15, 30 or 45 (the SMGW records on a 15-minute grid)."
     },
     "abort": {
-      "already_configured": "This meter is already configured.",
+      "already_configured": "This meter is already set up with this evaluation.",
       "reauth_successful": "Re-authentication successful."
     }
   },

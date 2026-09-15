@@ -47,6 +47,7 @@ from .const import (
     CONF_UPDATE_TIME,
     CONF_URL,
     CONF_USERNAME,
+    CONF_VIEW_ID,
     DEFAULT_TARIFF_ZONES,
     DEFAULT_UPDATE_TIME,
     DEFAULT_URL,
@@ -191,13 +192,50 @@ def _next_instance_id(used: set[int]) -> int:
 
 
 def _expected_unique_id(data: dict[str, Any]) -> str:
-    """The config-entry unique id implied by the current meter id + username.
+    """The config-entry unique id implied by meter id + username (+ view id).
 
-    The unique id is the duplicate guard (one entry per physical meter + login).
-    It is written once at setup but the settings and reauth flows can change the
-    meter id (hardware swap) or username afterwards, so both re-sync it to this.
+    The unique id is the duplicate guard (one entry per physical meter + login
+    + evaluation). It is written once at setup but the settings and reauth
+    flows can change the meter id (hardware swap) or username afterwards, so
+    both re-sync it to this.
+
+    An additional evaluation of an already configured meter carries a view id
+    and appends ":viewN". The primary entry has no view id, so its unique id
+    is unchanged from pre-3.4 versions and needs no migration.
     """
-    return f"{data[CONF_METER_ID]}:{data[CONF_USERNAME]}"
+    base = f"{data[CONF_METER_ID]}:{data[CONF_USERNAME]}"
+    view_id = data.get(CONF_VIEW_ID)
+    return base if not view_id else f"{base}:view{view_id}"
+
+
+def _entries_for_meter_login(
+    hass: HomeAssistant, meter_id: str, username: str
+) -> list[ConfigEntry]:
+    """Configured entries reading the same physical meter with the same login.
+
+    Matches on the entry data, not on the unique id, because an additional
+    evaluation carries a ":viewN" suffix there.
+    """
+    return [
+        entry
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if entry.data.get(CONF_METER_ID) == meter_id
+        and entry.data.get(CONF_USERNAME) == username
+    ]
+
+
+def _next_view_id(existing: list[ConfigEntry]) -> int:
+    """Lowest free view id (>= 2) among entries of one meter + login.
+
+    The primary entry counts as view 1 even though it stores no view id, so
+    the first additional evaluation becomes 2. Deleting an evaluation frees
+    its number for the next one.
+    """
+    used = {entry.data.get(CONF_VIEW_ID, 1) for entry in existing}
+    n = 2
+    while n in used:
+        n += 1
+    return n
 
 
 def _unique_id_collision(
@@ -228,6 +266,10 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
         # when the SMGW exposes multiple meters in its dropdown.
         self._pending_user_input: dict[str, Any] | None = None
         self._available_meter_ids: list[str] = []
+        # Carry-over into async_step_confirm_additional_view when the chosen
+        # meter + login is already configured.
+        self._pending_meter_id: str | None = None
+        self._existing_views: list[ConfigEntry] = []
         # Zone definition picked from a template menu; only ever used to
         # prefill the (editable) form, never stored without confirmation.
         self._template_zones: list[dict[str, str]] = DEFAULT_TARIFF_ZONES
@@ -387,18 +429,91 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _create_entry_for_meter(
         self, user_input: dict[str, Any], meter_id: str
     ) -> ConfigFlowResult:
-        """Finalize a config entry for the given (verified) meter id."""
-        # Unique id combines meter id and username so:
-        #  - the same physical SMGW can be added once per distinct login
-        #    (separate credentials for grid import vs. feed-in), and
-        #  - a single SMGW with multiple meters in its dropdown can be added
-        #    once per meter (same username, different meter id).
-        await self.async_set_unique_id(
-            f"{meter_id}:{user_input[CONF_USERNAME]}"
-        )
-        self._abort_if_unique_id_configured()
+        """Finalize a config entry for the given (verified) meter id.
 
+        A meter + login that is already configured is not an error: the same
+        readings can be evaluated a second time with different tariff zones
+        (supplier windows vs. grid-operator windows, e.g. section 14a EnWG
+        module 3). That case goes through an explicit confirmation step, so an
+        accidental re-add is still caught.
+        """
+        existing = _entries_for_meter_login(
+            self.hass, meter_id, user_input[CONF_USERNAME]
+        )
+        if existing:
+            self._pending_user_input = user_input
+            self._pending_meter_id = meter_id
+            self._existing_views = existing
+            return await self.async_step_confirm_additional_view()
+
+        return await self._finalize_entry(user_input, meter_id, view_id=None)
+
+    async def async_step_confirm_additional_view(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm a second evaluation of an already configured meter.
+
+        Submitting the form is the confirmation; closing the dialog cancels.
+        The device name is offered again here because Home Assistant would
+        otherwise only number the two identical devices ("PPC SMGW 2").
+        """
+        if self._pending_user_input is None or self._pending_meter_id is None:
+            return self.async_abort(reason="already_configured")
+
+        if user_input is not None:
+            pending = {**self._pending_user_input}
+            device_name = (user_input.get(CONF_DEVICE_NAME) or "").strip()
+            if device_name:
+                pending[CONF_DEVICE_NAME] = device_name
+            return await self._finalize_entry(
+                pending,
+                self._pending_meter_id,
+                view_id=_next_view_id(self._existing_views),
+            )
+
+        return self.async_show_form(
+            step_id="confirm_additional_view",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_DEVICE_NAME,
+                        default=self._pending_user_input.get(
+                            CONF_DEVICE_NAME, ""
+                        ),
+                    ): TextSelector(TextSelectorConfig()),
+                }
+            ),
+            description_placeholders={
+                "meter_id": self._pending_meter_id,
+                "existing": ", ".join(
+                    entry.title for entry in self._existing_views
+                ),
+            },
+        )
+
+    async def _finalize_entry(
+        self,
+        user_input: dict[str, Any],
+        meter_id: str,
+        view_id: int | None,
+    ) -> ConfigFlowResult:
+        """Create the config entry for a verified meter id."""
         data = {**user_input, CONF_METER_ID: meter_id}
+        if view_id is not None:
+            data[CONF_VIEW_ID] = view_id
+
+        # Unique id combines meter id, username and — for an additional
+        # evaluation — the view id, so:
+        #  - the same physical SMGW can be added once per distinct login
+        #    (separate credentials for grid import vs. feed-in),
+        #  - a single SMGW with multiple meters in its dropdown can be added
+        #    once per meter (same username, different meter id), and
+        #  - one meter + login can carry several evaluations with different
+        #    tariff zones.
+        # Reached only after the confirmation step for an existing meter, so
+        # this abort is the guard against a double submit or a racing flow.
+        await self.async_set_unique_id(_expected_unique_id(data))
+        self._abort_if_unique_id_configured()
 
         # Assign the lowest free positive integer as instance id.
         # Existing entries from pre-2.0 installations are treated as
@@ -414,8 +529,14 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
             data.pop(CONF_DEVICE_NAME, None)
 
         host = SmgwClient.parse_host_from_url(data[CONF_URL])
+        title = f"PPC SMGW ({host})"
+        if view_id is not None:
+            # Keeps the entry list readable when one meter carries several
+            # evaluations. Language-neutral on purpose — the entry title is
+            # built in code, not translated.
+            title = f"{title} #{view_id}"
         return self.async_create_entry(
-            title=f"PPC SMGW ({host})",
+            title=title,
             data=data,
         )
 
