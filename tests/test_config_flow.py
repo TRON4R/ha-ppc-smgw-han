@@ -933,7 +933,7 @@ async def test_options_template_prefills_but_does_not_save(
     assert entry.data[CONF_TARIFF_ZONES] == [dict(z) for z in GO_ZONES_STORED]
 
 
-async def test_returning_to_menu_drops_a_picked_template():
+async def test_returning_to_menu_drops_a_picked_template(hass: HomeAssistant):
     """Re-entering the top menu must clear a previously picked template.
 
     Asserted on the handler: the flow API cannot express "go back to the
@@ -942,12 +942,21 @@ async def test_returning_to_menu_drops_a_picked_template():
     precisely for that reason — without it a leftover template would overlay
     the stored zones in the plain "settings" step.
     """
+    entry = _entry("M", **{CONF_DEVICE_NAME: "Zweitgeraet"})
+    entry.add_to_hass(hass)
+
     flow = SmgwOptionsFlow()
+    # Wire the flow the way the flow manager does. The menu names the device
+    # it acts on, and OptionsFlow.config_entry resolves that through
+    # hass + handler — not through an attribute on the flow.
+    flow.hass = hass
+    flow.handler = entry.entry_id
     flow._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
 
-    await flow.async_step_init()
+    result = await flow.async_step_init()
 
     assert flow._template_zones is None
+    assert result["description_placeholders"]["device"] == "Zweitgeraet"
 
 
 # ----------------------------------------------------------------------
@@ -1085,3 +1094,29 @@ async def test_schedule_zones_discards_a_pending_change(hass: HomeAssistant):
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert CONF_ZONE_SCHEDULE not in entry.data
     assert entry.data[CONF_TARIFF_ZONES] == GO_ZONES_STORED
+
+
+async def test_options_menu_names_the_device_it_acts_on(hass: HomeAssistant):
+    """The menu configures THIS entry, and nothing in the labels said so.
+
+    The tariff-template submenu is reachable from here and from the setup
+    flow and does opposite things in the two places (rewrite these zones vs.
+    create a new entry), so the menu has to name its subject.
+    """
+    entry = _entry("M", **{CONF_DEVICE_NAME: "Octopus SMGW"})
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["description_placeholders"]["device"] == "Octopus SMGW"
+
+
+async def test_options_menu_falls_back_to_the_entry_title(hass: HomeAssistant):
+    """Without a device name the entry title still identifies the entry."""
+    entry = _entry("M")
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    assert result["description_placeholders"]["device"] == entry.title
