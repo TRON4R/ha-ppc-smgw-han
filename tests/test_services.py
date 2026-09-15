@@ -15,7 +15,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smgw_han.const import DOMAIN
 from custom_components.smgw_han.services import (
+    DEVICE_NAME_MAX_CHARS,
+    _cms_name_with_device,
+    _device_suffix,
     _resolve_coordinator,
+    _sanitize,
     async_setup_services,
     build_links_markdown,
     run_export,
@@ -40,6 +44,7 @@ class FakeCoordinator:
     """
 
     target_meter_id = "1lgz0072999211"
+    device_name = None  # unnamed: filenames stay as they were pre-3.5.2
     tariff_zones = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
 
     async def async_download_cms(self, from_dt, to_dt):
@@ -213,3 +218,105 @@ async def test_run_export_no_data_raises(hass: HomeAssistant):
             do_csv=False,
             do_xlsx=False,
         )
+
+
+# ----------------------------------------------------------------------
+# Device name in the export filenames
+# ----------------------------------------------------------------------
+
+
+def test_sanitize_transliterates_umlauts():
+    """"Zähler Süd" must not become the unreadable "Z_hler_S_d"."""
+    assert _sanitize("Zähler Süd") == "Zaehler_Sued"
+    assert _sanitize("Großer Öltank") == "Grosser_Oeltank"
+    assert _sanitize("Modul 3 SMGW") == "Modul_3_SMGW"
+
+
+@pytest.mark.parametrize(
+    ("device_name", "expected"),
+    [
+        (None, ""),
+        ("", ""),
+        ("   ", ""),
+        ("Modul 3 SMGW", "_Modul_3_SMGW"),
+        ("Zähler Süd", "_Zaehler_Sued"),
+        # Truncated to the cap, and never left ending on a separator.
+        ("A" * 40, "_" + "A" * DEVICE_NAME_MAX_CHARS),
+        ("Sehr langer Geraetename ohne Ende", "_Sehr_langer_Geraetename"),
+    ],
+)
+def test_device_suffix(device_name, expected):
+    assert _device_suffix(device_name) == expected
+
+
+def test_cms_name_keeps_the_gateway_naming():
+    """The suffix goes before the extension, not after it."""
+    assert _cms_name_with_device(
+        "1lgz0072999211.sm_data.xml.cms", "_Modul_3_SMGW"
+    ) == "1lgz0072999211_Modul_3_SMGW.sm_data.xml.cms"
+    # No device name, or no gateway name: nothing changes.
+    assert _cms_name_with_device("1lgz00.sm_data.xml.cms", "") == (
+        "1lgz00.sm_data.xml.cms"
+    )
+    assert _cms_name_with_device(None, "_X") is None
+
+
+async def test_export_filenames_carry_the_device_name(hass: HomeAssistant):
+    """Two evaluations of one meter share the meter id, so only the device
+    name tells their exports apart — in all three files, the gateway-named
+    .cms included.
+
+    Asserted on the returned download URLs rather than on the export
+    directory: several tests in this module write into the same config dir,
+    so picking a token folder off the filesystem picks an arbitrary one.
+    """
+
+    class NamedCoordinator(FakeCoordinator):
+        device_name = "Modul 3 SMGW"
+
+    resp = await run_export(
+        hass,
+        NamedCoordinator(),
+        datetime(2026, 5, 15, 0, 0, 0),
+        datetime(2026, 5, 16, 0, 15, 0),
+        download_cms=True,
+        do_csv=True,
+        do_xlsx=True,
+    )
+
+    names = {
+        kind: url.rsplit("/", 1)[-1] for kind, url in resp["files"].items()
+    }
+    assert set(names) == {"cms", "csv", "xlsx"}
+    assert all("Modul_3_SMGW" in name for name in names.values()), names
+    for kind in ("csv", "xlsx"):
+        # The period still leads, so exports sort chronologically.
+        assert names[kind].startswith("Zaehlerstaende_2026-05-15_000000")
+        assert names[kind].endswith(f"_1lgz0072999211_Modul_3_SMGW.{kind}")
+    # The gateway names the .cms itself; the suffix goes before the extension
+    # so that naming stays recognisable.
+    assert names["cms"] == "export_Modul_3_SMGW.sm_data.xml.cms"
+
+
+async def test_export_filenames_unchanged_without_a_device_name(
+    hass: HomeAssistant,
+):
+    """A single-device installation keeps exactly the filenames it had."""
+    resp = await run_export(
+        hass,
+        FakeCoordinator(),
+        datetime(2026, 5, 15, 0, 0, 0),
+        datetime(2026, 5, 16, 0, 15, 0),
+        download_cms=True,
+        do_csv=True,
+        do_xlsx=True,
+    )
+
+    names = {
+        kind: url.rsplit("/", 1)[-1] for kind, url in resp["files"].items()
+    }
+    assert names["csv"] == (
+        "Zaehlerstaende_2026-05-15_000000_bis_2026-05-16_001500"
+        "_1lgz0072999211.csv"
+    )
+    assert names["cms"] == "export.sm_data.xml.cms"

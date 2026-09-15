@@ -33,6 +33,7 @@ from homeassistant.util import dt as dt_util
 
 from . import zone_schedule
 from .const import (
+    CONF_DEVICE_NAME,
     CONF_METER_ID,
     CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
@@ -791,6 +792,12 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def target_meter_id(self) -> str | None:
         """The configured meter id for this entry (one meter per entry)."""
         return self.config_entry.data.get(CONF_METER_ID)
+
+    @property
+    def device_name(self) -> str | None:
+        """The user-defined device label of this entry, if it has one."""
+        name = (self.config_entry.data.get(CONF_DEVICE_NAME) or "").strip()
+        return name or None
 
     def zones_config_for(self, day: date) -> list[dict[str, str]]:
         """The raw tariff-zone definition valid on ``day`` (JSON shape).

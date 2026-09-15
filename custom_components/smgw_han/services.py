@@ -120,9 +120,56 @@ def _period_range(period: str) -> tuple[datetime, datetime]:
     )
 
 
+# German umlauts are transliterated rather than blanked out by _sanitize: a
+# device called "Zähler Süd" would otherwise land in the filename as
+# "Z_hler_S_d", which is unreadable in a folder full of exports.
+_UMLAUT_MAP = str.maketrans(
+    {
+        "ä": "ae", "ö": "oe", "ü": "ue",
+        "Ä": "Ae", "Ö": "Oe", "Ü": "Ue",
+        "ß": "ss",
+    }
+)
+
+# Cap for the device-name part of a filename. The rest of the name already
+# carries two timestamps and the meter id; a long device label should not be
+# what pushes the result over a path limit.
+DEVICE_NAME_MAX_CHARS = 24
+
+
 def _sanitize(name: str) -> str:
     """Reduce a string to a safe filename component."""
-    return re.sub(r"[^A-Za-z0-9._-]", "_", name)
+    return re.sub(r"[^A-Za-z0-9._-]", "_", name.translate(_UMLAUT_MAP))
+
+
+def _device_suffix(device_name: str | None) -> str:
+    """Filename part identifying the device, or "" when it has no name.
+
+    With two evaluations of the SAME meter the meter id no longer tells the
+    exports apart — both carry it, because it is the same physical meter. The
+    device name is then the only thing that does, so it goes into the filename
+    whenever one is set. Appended at the end so exports still sort by period,
+    which is the order in which two regimes get compared.
+    """
+    cleaned = _sanitize((device_name or "").strip()).strip("_")
+    if not cleaned:
+        return ""
+    return f"_{cleaned[:DEVICE_NAME_MAX_CHARS].rstrip('_')}"
+
+
+def _cms_name_with_device(cms_name: str | None, suffix: str) -> str | None:
+    """Insert ``suffix`` into the gateway's own CMS filename.
+
+    The gateway names the signed export after the meter, so for two
+    evaluations of one meter the .cms file is the one export that still could
+    not be told apart. Inserted before the extension rather than appended, so
+    the gateway's naming stays recognisable:
+    ``1lgz00.sm_data.xml.cms`` -> ``1lgz00_Modul_3_SMGW.sm_data.xml.cms``.
+    """
+    if not cms_name or not suffix:
+        return cms_name
+    stem, dot, extension = cms_name.partition(".")
+    return f"{stem}{suffix}{dot}{extension}"
 
 
 def _reading_to_dict(reading: MeterReading) -> dict[str, Any]:
@@ -296,10 +343,17 @@ async def run_export(
     if download_cms or do_csv or do_xlsx:
         token = secrets.token_urlsafe(8)
         export_dir = Path(hass.config.path("www", EXPORT_WWW_SUBDIR, token))
-        base = _sanitize(
-            f"Zaehlerstaende_{from_dt:%Y-%m-%d_%H%M%S}_bis_"
-            f"{to_dt:%Y-%m-%d_%H%M%S}_{meter_id or 'meter'}"
+        # An unnamed device yields an empty suffix, so a single-device
+        # installation keeps exactly the filenames it had before.
+        device_suffix = _device_suffix(coordinator.device_name)
+        base = (
+            _sanitize(
+                f"Zaehlerstaende_{from_dt:%Y-%m-%d_%H%M%S}_bis_"
+                f"{to_dt:%Y-%m-%d_%H%M%S}_{meter_id or 'meter'}"
+            )
+            + device_suffix
         )
+        cms_name = _cms_name_with_device(cms_name, device_suffix)
         # Document every layout the range touches, not just the current one:
         # an export crossing a scheduled change is split by two of them, and
         # a workbook that names only one would misrepresent half its rows.
