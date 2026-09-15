@@ -15,6 +15,10 @@ CONF_TARIFF_SWITCH_MINUTE = "tariff_switch_minute"
 CONF_METER_ID = "meter_id"  # Parsed from SMGW during setup
 CONF_INSTANCE_ID = "instance_id"  # Per-entry counter (1, 2, ...) for stable entity / device slug
 CONF_DEVICE_NAME = "device_name"  # Optional user-defined device label, overrides default
+# Additional evaluation of an already configured meter + login: 2, 3, ... The
+# first (primary) entry of a meter stores no view id at all, so its unique id
+# stays "meter:user" exactly as before — no entry migration needed.
+CONF_VIEW_ID = "view_id"
 
 # Keys of one tariff-zone dict in CONF_TARIFF_ZONES
 ZONE_TIME = "time"

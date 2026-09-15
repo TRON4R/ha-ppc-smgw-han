@@ -23,6 +23,7 @@ from custom_components.smgw_han.config_flow import (
     _parse_tariff_zones,
 )
 from custom_components.smgw_han.const import (
+    CONF_DEVICE_NAME,
     CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_PASSWORD,
@@ -32,6 +33,7 @@ from custom_components.smgw_han.const import (
     CONF_UPDATE_TIME,
     CONF_URL,
     CONF_USERNAME,
+    CONF_VIEW_ID,
     DOMAIN,
     TARIFF_TEMPLATE_HEAT,
     TARIFF_TEMPLATES,
@@ -75,7 +77,13 @@ def _info(meter_id: str, available: list[str]) -> SmgwDeviceInfo:
     )
 
 
-def _entry(meter_id: str, instance_id: int = 1, **extra) -> MockConfigEntry:
+def _entry(
+    meter_id: str,
+    instance_id: int = 1,
+    view_id: int | None = None,
+    **extra,
+) -> MockConfigEntry:
+    """A configured entry. ``view_id`` makes it an additional evaluation."""
     data = {
         CONF_URL: URL,
         CONF_USERNAME: "user",
@@ -86,8 +94,12 @@ def _entry(meter_id: str, instance_id: int = 1, **extra) -> MockConfigEntry:
         CONF_UPDATE_TIME: "00:15:00",
         **extra,
     }
+    unique_id = f"{meter_id}:user"
+    if view_id is not None:
+        data[CONF_VIEW_ID] = view_id
+        unique_id = f"{unique_id}:view{view_id}"
     return MockConfigEntry(
-        domain=DOMAIN, unique_id=f"{meter_id}:user", data=data, version=2
+        domain=DOMAIN, unique_id=unique_id, data=data, version=2
     )
 
 
@@ -158,10 +170,125 @@ async def test_user_flow_multi_meter_goes_through_select_step(
     assert result["data"][CONF_METER_ID] == "1lgz0088888888"
 
 
-async def test_user_flow_duplicate_aborts(hass: HomeAssistant):
-    _entry("1lgz0072999211").add_to_hass(hass)
+METER = "1lgz0072999211"
+
+
+async def _add_second_view(
+    hass: HomeAssistant, user_input: dict | None = None
+):
+    """Run the setup flow for an already configured meter up to the confirm."""
+    result = await _start_user_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], dict(user_input or USER_INPUT)
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "confirm_additional_view"
+    return result
+
+
+async def test_second_view_asks_for_confirmation(hass: HomeAssistant):
+    """An already configured meter + login is no longer a hard abort: it
+    offers a second evaluation with different tariff zones (issue #52)."""
+    _entry(METER).add_to_hass(hass)
     with (
-        patch(VALIDATE, return_value=_info("1lgz0072999211", ["1lgz0072999211"])),
+        patch(VALIDATE, return_value=_info(METER, [METER])),
+        patch(CLOSE, return_value=None),
+    ):
+        result = await _add_second_view(hass)
+
+    # The existing entry is named in the prompt so the user sees what they
+    # would be duplicating.
+    assert result["description_placeholders"]["meter_id"] == METER
+
+
+async def test_second_view_creates_entry_with_view_suffix(
+    hass: HomeAssistant,
+):
+    """Confirming creates an independent entry: own view id, own instance id,
+    own tariff zones — and the first entry is left completely alone."""
+    first = _entry(METER)
+    first.add_to_hass(hass)
+    modul3 = {
+        **USER_INPUT,
+        CONF_TARIFF_ZONES: [
+            "00:00 NT",
+            "05:45 ST",
+            "17:00 HT",
+            "19:30 ST",
+            "23:45 NT",
+        ],
+    }
+    with (
+        patch(VALIDATE, return_value=_info(METER, [METER])),
+        patch(CLOSE, return_value=None),
+        patch(SETUP_ENTRY, return_value=True),
+    ):
+        result = await _add_second_view(hass, modul3)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_DEVICE_NAME: "Modul 3"}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_VIEW_ID] == 2
+    assert result["data"][CONF_INSTANCE_ID] == 2
+    assert result["data"][CONF_DEVICE_NAME] == "Modul 3"
+    assert result["data"][CONF_METER_ID] == METER
+    assert [z[ZONE_NAME] for z in result["data"][CONF_TARIFF_ZONES]] == [
+        "NT",
+        "ST",
+        "HT",
+        "ST",
+        "NT",
+    ]
+    assert result["title"].endswith("#2")
+
+    new_entry = hass.config_entries.async_entries(DOMAIN)[-1]
+    assert new_entry.unique_id == f"{METER}:user:view2"
+    # Entities and history ride on instance_id, so the untouched first entry
+    # keeps its sensors.
+    assert first.unique_id == f"{METER}:user"
+    assert first.data[CONF_INSTANCE_ID] == 1
+    assert CONF_VIEW_ID not in first.data
+    assert first.data[CONF_TARIFF_ZONES] == GO_ZONES_STORED
+
+
+async def test_view_id_reuses_lowest_free_slot(hass: HomeAssistant):
+    """View 2 deleted, view 3 still there -> the next evaluation becomes 2."""
+    _entry(METER, instance_id=1).add_to_hass(hass)
+    _entry(METER, instance_id=3, view_id=3).add_to_hass(hass)
+    with (
+        patch(VALIDATE, return_value=_info(METER, [METER])),
+        patch(CLOSE, return_value=None),
+        patch(SETUP_ENTRY, return_value=True),
+    ):
+        result = await _add_second_view(hass)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_VIEW_ID] == 2
+    # instance_id is independent of the view id and fills its own gap.
+    assert result["data"][CONF_INSTANCE_ID] == 2
+
+
+async def test_unique_id_guard_still_aborts(hass: HomeAssistant):
+    """The final duplicate guard is still wired up.
+
+    Constructed case: an entry whose stored username drifted from its
+    unique_id (an update interrupted between the two). It is therefore not
+    recognised as an evaluation of this meter + login, so the flow takes the
+    primary path — and lands on a unique_id that is already taken.
+    """
+    entry = _entry(METER)
+    entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_USERNAME: "drifted"}
+    )
+    with (
+        patch(VALIDATE, return_value=_info(METER, [METER])),
         patch(CLOSE, return_value=None),
     ):
         result = await _start_user_flow(hass)
@@ -171,6 +298,38 @@ async def test_user_flow_duplicate_aborts(hass: HomeAssistant):
 
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "already_configured"
+
+
+async def test_reauth_keeps_view_suffix(hass: HomeAssistant):
+    """A username change on an additional evaluation keeps its view id."""
+    entry = _entry(METER, instance_id=2, view_id=2)
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_REAUTH,
+            "entry_id": entry.entry_id,
+        },
+        data=entry.data,
+    )
+    with (
+        patch(VALIDATE, return_value=_info(METER, [METER])),
+        patch(CLOSE, return_value=None),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {CONF_USERNAME: "user2", CONF_PASSWORD: "newpw"},
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert entry.unique_id == f"{METER}:user2:view2"
+    assert entry.data[CONF_VIEW_ID] == 2
 
 
 async def test_user_flow_invalid_auth(hass: HomeAssistant):

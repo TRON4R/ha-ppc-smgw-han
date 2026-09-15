@@ -35,6 +35,16 @@
           "meter_id": "Zähler"
         }
       },
+      "confirm_additional_view": {
+        "title": "Diesen Zähler ein zweites Mal auswerten?",
+        "description": "Zähler {meter_id} ist bereits eingerichtet ({existing}).\n\nDu kannst eine zweite, unabhängige Auswertung derselben Messwerte anlegen — sinnvoll, wenn eine Abrechnung gegen die Tarifzeiten deines Stromlieferanten und eine weitere gegen die Zeitfenster deines Netzbetreibers zu prüfen ist (§ 14a EnWG, Modul 3). Beide Einträge lesen dasselbe Gateway, nur die Tarifzonen unterscheiden sich.\n\n**Nimm nicht beide Geräte ins Energie-Dashboard auf** — sie melden denselben physischen Verbrauch, er würde doppelt gezählt.\n\nZum Anlegen absenden, zum Abbrechen den Dialog schließen.",
+        "data": {
+          "device_name": "Gerätename (empfohlen)"
+        },
+        "data_description": {
+          "device_name": "Ohne Namen nummeriert Home Assistant die beiden identischen Geräte nur durch (\"PPC SMGW 2\"). Ein Name wie \"Modul 3\" macht sie auf einen Blick unterscheidbar."
+        }
+      },
       "reauth_confirm": {
         "title": "SMGW erneut authentifizieren",
         "description": "Die SMGW-Zugangsdaten sind nicht mehr gültig. Bitte aktualisierte Zugangsdaten eingeben.",
@@ -57,7 +67,7 @@
       "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster)."
     },
     "abort": {
-      "already_configured": "Dieser Zähler ist bereits konfiguriert.",
+      "already_configured": "Dieser Zähler wird mit dieser Auswertung bereits erfasst.",
       "reauth_successful": "Erneute Authentifizierung erfolgreich."
     }
   },
