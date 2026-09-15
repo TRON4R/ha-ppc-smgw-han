@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Tarif auswählen",
-        "description": "Wähle deinen Stromtarif. Die passenden Umschaltzeiten werden dann vorausgefüllt — im nächsten Schritt kannst du sie prüfen und bei Bedarf anpassen. (Octopus-Zeiten Stand 07/2026; bitte mit deinem Vertrag abgleichen.)",
+        "description": "Wähle deinen Stromtarif. Die passenden Umschaltzeiten werden dann vorausgefüllt — im nächsten Schritt kannst du sie prüfen und bei Bedarf anpassen. (Octopus-Zeiten Stand 07/2026; bitte mit deinem Vertrag abgleichen.) Für die Netzentgelt-Zeitfenster deines Netzbetreibers (§ 14a EnWG, Modul 3) wähle „Eigene Zeiten eingeben\".",
         "menu_options": {
           "tariff_go": "Octopus Go / Intelligent Octopus Go (00:00–05:00 günstig)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
@@ -25,7 +25,7 @@
           "url": "URL der SMGW HAN-Schnittstelle (Standard: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format „HH:MM Zonenname\", beginnend mit 00:00; der letzte Eintrag gilt bis Mitternacht. Beispiel Octopus Go: „00:00 Go\" und „05:00 Standard\".\nGleiche Zonennamen ergeben einen gemeinsamen Sensor: „00:00 Standard\", „02:00 Niedrig\", „06:00 Standard\", „12:00 Niedrig\" erzeugt zwei Sensoren. „Standard\" summiert dann 00:00–02:00 und 06:00–12:00, „Niedrig\" summiert 02:00–06:00 und 12:00–24:00.\nMinuten können dem Messraster entsprechend nur als 00, 15, 30 oder 45 eingegeben werden.",
           "update_time": "Tageszeit für den automatischen Abruf der Vortageswerte",
-          "device_name": "Nur ausfüllen, wenn du diese Integration mehrfach mit unterschiedlichen Logins zum selben SMGW verwendest — z.B. wenn dir dein Messstellenbetreiber separate Zugangsdaten für die Verbrauchs- (1.8.0) und die Einspeise-Abfrage (2.8.0) gegeben hat. Vergib in dem Fall hier sprechende Namen wie „SMGW Verbrauch\" und „SMGW Einspeisung\", damit du die beiden Geräte in Home Assistant unterscheiden kannst. Leer lassen, wenn du nur einen SMGW oder unterschiedliche physische Zähler abfragst — dann reicht der Standardname."
+          "device_name": "Sprechender Name für dieses Gerät. Fülle ihn aus, sobald du mehr als einen Eintrag zum selben SMGW betreibst — sei es, weil du denselben Zähler nach zwei Zeitrastern auswertest (z.B. Stromtarif und Netzentgelt-Zeitfenster nach Modul 3), oder weil dir dein Messstellenbetreiber separate Zugangsdaten für die Verbrauchs- (1.8.0) und die Einspeise-Abfrage (2.8.0) gegeben hat. Gute Paare sind „SMGW Octopus\" / „SMGW Modul 3\" bzw. „SMGW Verbrauch\" / „SMGW Einspeisung\". Leer lassen kannst du das Feld nur, solange dies der einzige Eintrag zu diesem SMGW bleibt — sonst nummeriert Home Assistant die gleichnamigen Geräte bloß durch. Der Name fließt in die Entity-IDs ein, wähle ihn also am besten gleich passend."
         }
       },
       "select_meter": {
@@ -75,6 +75,7 @@
     "step": {
       "init": {
         "title": "SMGW HAN",
+        "description": "Diese Einstellungen gelten für **{device}**.\n\nWillst du denselben Zähler *zusätzlich* nach anderen Zeitfenstern auswerten — etwa nach den Netzentgelt-Zeitfenstern deines Netzbetreibers (§ 14a EnWG, Modul 3) —, dann lege dafür unter „Integration hinzufügen\" einen **weiteren Eintrag** an, statt hier die Zonen zu ändern.",
         "menu_options": {
           "settings": "Einstellungen ändern",
           "tariff_template": "Tarifzonen aus Vorlage setzen",
@@ -84,7 +85,7 @@
       },
       "tariff_template": {
         "title": "Tarifzonen aus Vorlage setzen",
-        "description": "Wähle eine Vorlage. Die Umschaltzeiten werden im folgenden Formular vorausgefüllt und ersetzen deine bisherigen Zonen erst, wenn du das Formular absendest. (Octopus-Zeiten Stand 07/2026; bitte mit deinem Vertrag abgleichen.)",
+        "description": "Wähle eine Vorlage. Die Umschaltzeiten werden im folgenden Formular vorausgefüllt und ersetzen deine bisherigen Zonen erst, wenn du das Formular absendest. (Octopus-Zeiten Stand 07/2026; bitte mit deinem Vertrag abgleichen.) Damit werden die Zonen des Geräts ersetzt, das du gerade bearbeitest.",
         "menu_options": {
           "tariff_go": "Octopus Go / Intelligent Octopus Go (00:00–05:00 günstig)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
@@ -119,7 +120,7 @@
           "url": "URL der SMGW HAN-Schnittstelle (Standard: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format „HH:MM Zonenname\", beginnend mit 00:00; der letzte Eintrag gilt bis Mitternacht. Beispiel Octopus Go: „00:00 Go\" und „05:00 Standard\".\nGleiche Zonennamen ergeben einen gemeinsamen Sensor: „00:00 Standard\", „02:00 Niedrig\", „06:00 Standard\", „12:00 Niedrig\" erzeugt zwei Sensoren. „Standard\" summiert dann 00:00–02:00 und 06:00–12:00, „Niedrig\" summiert 02:00–06:00 und 12:00–24:00.\nMinuten können dem Messraster entsprechend nur als 00, 15, 30 oder 45 eingegeben werden.\nAchtung zur Statistik-Historie: Jede Zone erhält einen eigenen Verbrauchssensor. Home Assistant erkennt diese Sensoren an ihrer Position in der Liste (erste Zone, zweite Zone …) und nicht am vergebenen Namen.\nUhrzeiten ändern oder weitere Zonen am Ende anfügen ist somit unkritisch – bestehende Sensoren behalten ihre Historie. Sortierst oder benennst du die Zonen aber so um, so dass an einer bisher bereits belegten Position jetzt eine andere Zone liegt als zuvor, werden in der Home-Assistant-Historie an die Daten der alten Zone von nun an die Daten der neuen Zone angefügt, d.h. die Statistik des Sensors wird vermischt.",
           "update_time": "Tageszeit für den automatischen Abruf der Vortageswerte",
-          "device_name": "Sprechender Name (z.B. „SMGW Verbrauch\" / „SMGW Einspeisung\") für den Fall, dass du mehrere Logins zum selben SMGW als separate Einträge betreibst. Sonst leer lassen."
+          "device_name": "Sprechender Name für dieses Gerät, nötig sobald mehrere Einträge auf dasselbe SMGW zeigen — zwei Auswertungen desselben Zählers (Stromtarif vs. Modul-3-Zeitfenster) oder getrennte Logins für Verbrauch und Einspeisung. Sonst leer lassen."
         }
       },
       "export": {

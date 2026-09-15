@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Select your tariff",
-        "description": "Pick your electricity tariff. The matching switch times are then prefilled — you can review and adjust them in the next step. (Octopus windows as of 2026-07; please verify against your contract.)",
+        "description": "Pick your electricity tariff. The matching switch times are then prefilled — you can review and adjust them in the next step. (Octopus windows as of 2026-07; please verify against your contract.) For your grid operator's network-fee windows (section 14a EnWG, module 3) pick \"Enter my own times\".",
         "menu_options": {
           "tariff_go": "Octopus Go / Intelligent Octopus Go (cheap 00:00–05:00)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
@@ -25,7 +25,7 @@
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\".\nEqual zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00.\nMinutes must be 00, 15, 30 or 45.",
           "update_time": "Time of day for the automatic daily data fetch",
-          "device_name": "Leave empty unless you set this integration up multiple times against the same SMGW (e.g. separate logins for grid import and feed-in). In that case enter a distinct name to tell the devices apart."
+          "device_name": "A telling name for this device. Fill it in as soon as you run more than one entry against the same SMGW — whether because you evaluate the same meter by two sets of time windows (e.g. your supplier's tariff and your grid operator's module-3 windows), or because your metering operator issued separate credentials for consumption (1.8.0) and feed-in (2.8.0). Good pairs are \"SMGW Octopus\" / \"SMGW Modul 3\" and \"SMGW Import\" / \"SMGW Export\". Leave it empty only while this stays the single entry for this SMGW — otherwise Home Assistant just numbers the identically named devices. The name feeds into the entity ids, so it is worth picking the right one now."
         }
       },
       "select_meter": {
@@ -75,6 +75,7 @@
     "step": {
       "init": {
         "title": "SMGW HAN",
+        "description": "These settings apply to **{device}**.\n\nTo evaluate the same meter *additionally* by different time windows — your grid operator's network-fee windows under section 14a EnWG (module 3), for example — add a **separate entry** under \"Add integration\" instead of changing the zones here.",
         "menu_options": {
           "settings": "Change settings",
           "tariff_template": "Apply a tariff-zone template",
@@ -84,7 +85,7 @@
       },
       "tariff_template": {
         "title": "Apply a tariff-zone template",
-        "description": "Pick a template. The switch times are prefilled into the form that follows and only replace your current zones once you submit it. (Octopus windows as of 2026-07; please verify against your contract.)",
+        "description": "Pick a template. The switch times are prefilled into the form that follows and only replace your current zones once you submit it. (Octopus windows as of 2026-07; please verify against your contract.) This replaces the zones of the device you are editing.",
         "menu_options": {
           "tariff_go": "Octopus Go / Intelligent Octopus Go (cheap 00:00–05:00)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
@@ -119,7 +120,7 @@
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\".\nEqual zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00.\nMinutes must be 00, 15, 30 or 45.\nNote on statistics history: each zone gets its own consumption sensor. Home Assistant identifies these sensors by their position in the list (first zone, second zone …), not by the name you enter.\nChanging times or appending further zones at the end is therefore safe – existing sensors keep their history. But if you reorder or rename the zones so that a different zone now occupies a previously used position, the new zone's data is appended to the old zone's data in the Home Assistant history, i.e. the sensor's statistics get mixed.",
           "update_time": "Time of day for the automatic daily data fetch",
-          "device_name": "Custom name (e.g. \"SMGW Import\" / \"SMGW Export\") for the case where you run multiple logins against the same SMGW as separate entries. Otherwise leave empty."
+          "device_name": "A telling name for this device, needed as soon as several entries point at the same SMGW — two evaluations of one meter (supplier tariff vs. module-3 windows), or separate logins for import and feed-in. Otherwise leave it empty."
         }
       },
       "export": {

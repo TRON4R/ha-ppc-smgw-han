@@ -659,6 +659,13 @@ class SmgwOptionsFlow(OptionsFlow):
         # plain "settings" entry always shows the stored zones. Without this a
         # back-navigation would leave the template overlaying the form.
         self._template_zones = None
+        # The tariff-template submenu is reached from HERE and from the setup
+        # flow, and does opposite things in the two places: here it rewrites
+        # this entry's zones, there it creates a new entry. Nothing in the
+        # menu labels said so, and the repo owner walked into it while trying
+        # to add a second evaluation. Naming the device this menu acts on —
+        # and the way to a second one — is the cheapest fix that removes both
+        # ambiguities at once.
         return self.async_show_menu(
             step_id="init",
             menu_options=[
@@ -667,7 +674,13 @@ class SmgwOptionsFlow(OptionsFlow):
                 "schedule_zones",
                 "export",
             ],
+            description_placeholders={"device": self._device_label()},
         )
+
+    def _device_label(self) -> str:
+        """How to call this entry's device in the menu text."""
+        name = (self.config_entry.data.get(CONF_DEVICE_NAME) or "").strip()
+        return name or self.config_entry.title
 
     # ------------------------------------------------------------------
     # Scheduled tariff-zone change (see zone_schedule.py)
