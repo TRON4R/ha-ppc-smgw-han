@@ -17,7 +17,8 @@ from __future__ import annotations
 import logging
 import re
 import secrets
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +51,8 @@ from .const import (
     SERVICE_EXPORT_PERIOD,
     SERVICE_EXPORT_READINGS,
     SMGW_HISTORY_DAYS,
+    ZONE_NAME,
+    ZONE_TIME,
 )
 from .export_files import write_readings_csv, write_xlsx
 from .smgw_client import MeterReading, TariffZones
@@ -235,15 +238,17 @@ def _write_export_files(
 
 
 def _parse_and_aggregate(
-    cms_bytes: bytes, zones: TariffZones
+    cms_bytes: bytes, zones_for: Callable[[date], TariffZones]
 ) -> tuple[list[MeterReading], list[DailySummary]]:
     """Parse CMS bytes and build the daily summary (blocking; run in executor).
 
     Both steps are CPU-bound on large ranges (multi-MB XML, per-day reading
-    scans), so they belong off the event loop.
+    scans), so they belong off the event loop. ``zones_for`` is the
+    coordinator's snapshotted resolver, so each day is split by the layout
+    that was valid on it even when the range crosses a scheduled change.
     """
     readings = parse_cms_readings(cms_bytes)
-    daily_summary = build_daily_summary(readings, zones)
+    daily_summary = build_daily_summary(readings, zones_for)
     return readings, daily_summary
 
 
@@ -262,7 +267,7 @@ async def run_export(
     ``coordinator`` is a loaded :class:`SmgwCoordinator`. Returns the
     response dict (download links first, then meter data).
     """
-    zones = coordinator.tariff_zones
+    zones_for = coordinator.zone_resolver()
 
     # The signed CMS export delivers the whole range in a single request and is
     # the authoritative source. Download once, then parse + aggregate off the
@@ -276,7 +281,7 @@ async def run_export(
             translation_domain=DOMAIN, translation_key="no_data_in_range"
         )
     readings, daily_summary = await hass.async_add_executor_job(
-        _parse_and_aggregate, cms_bytes, zones
+        _parse_and_aggregate, cms_bytes, zones_for
     )
     if not readings:
         raise ServiceValidationError(
@@ -295,12 +300,29 @@ async def run_export(
             f"Zaehlerstaende_{from_dt:%Y-%m-%d_%H%M%S}_bis_"
             f"{to_dt:%Y-%m-%d_%H%M%S}_{meter_id or 'meter'}"
         )
+        # Document every layout the range touches, not just the current one:
+        # an export crossing a scheduled change is split by two of them, and
+        # a workbook that names only one would misrepresent half its rows.
+        periods = coordinator.zone_periods(
+            from_dt.date(), to_dt.date()
+        )
         meta = {
             "meter_id": meter_id or "",
             "from": from_str,
             "to": to_str,
             "zones": [
-                (t.strftime("%H:%M"), name) for t, name in zones
+                (t.strftime("%H:%M"), name)
+                for t, name in zones_for(from_dt.date())
+            ],
+            "zone_periods": [
+                {
+                    "valid_from": period["valid_from"],
+                    "zones": [
+                        (zone[ZONE_TIME], zone[ZONE_NAME])
+                        for zone in period["zones"]
+                    ],
+                }
+                for period in periods
             ],
         }
 

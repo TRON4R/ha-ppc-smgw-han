@@ -45,6 +45,21 @@ class FakeCoordinator:
     async def async_download_cms(self, from_dt, to_dt):
         return FIXTURE.read_bytes(), "export.sm_data.xml.cms"
 
+    def zone_resolver(self):
+        """Day -> zones. One layout for the whole range (no scheduled change)."""
+        return lambda _day: self.tariff_zones
+
+    def zone_periods(self, first_day, last_day):
+        return [
+            {
+                "valid_from": first_day.isoformat(),
+                "zones": [
+                    {"time": t.strftime("%H:%M"), "name": name}
+                    for t, name in self.tariff_zones
+                ],
+            }
+        ]
+
 
 async def test_resolve_auto_detects_single_loaded_entry(hass: HomeAssistant):
     entry = MockConfigEntry(domain=DOMAIN, state=ConfigEntryState.LOADED)

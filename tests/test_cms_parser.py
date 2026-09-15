@@ -15,6 +15,16 @@ from custom_components.smgw_han.cms_parser import (
 )
 from custom_components.smgw_han.const import OBIS_EXPORT, OBIS_IMPORT
 
+
+def _fixed(zones):
+    """Zone resolver for a range without a scheduled change.
+
+    ``build_daily_summary`` resolves the layout per day so an export crossing
+    a scheduled zone change splits each side by its own windows; these tests
+    use one layout for the whole range.
+    """
+    return lambda _day: zones
+
 FIXTURE = Path(__file__).parent / "fixtures" / "cms_sample.xml.cms"
 
 
@@ -59,7 +69,7 @@ def test_utc_is_converted_to_berlin_local():
 
 def test_end_to_end_daily_summary():
     zones = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
-    summary = build_daily_summary(_readings(), zones)
+    summary = build_daily_summary(_readings(), _fixed(zones))
     assert [s.day for s in summary] == [date(2026, 5, 15)]
     s = summary[0]
     assert s.zone_consumptions == {"Go": 2.5, "Standard": 7.5}

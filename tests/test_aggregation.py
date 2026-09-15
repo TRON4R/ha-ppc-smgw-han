@@ -8,6 +8,16 @@ from custom_components.smgw_han.aggregation import _diff, build_daily_summary
 from custom_components.smgw_han.const import OBIS_EXPORT, OBIS_IMPORT
 from custom_components.smgw_han.smgw_client import MeterReading
 
+
+def _fixed(zones):
+    """Zone resolver for a range without a scheduled change.
+
+    ``build_daily_summary`` resolves the layout per day so an export crossing
+    a scheduled zone change splits each side by its own windows; these tests
+    use one layout for the whole range.
+    """
+    return lambda _day: zones
+
 GO_ZONES = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
 
 HEAT_ZONES = [
@@ -30,7 +40,7 @@ def _exp(ts: datetime, value: float) -> MeterReading:
 
 
 def test_empty_returns_empty():
-    assert build_daily_summary([], GO_ZONES) == []
+    assert build_daily_summary([], _fixed(GO_ZONES)) == []
 
 
 def test_diff_none_propagation():
@@ -47,7 +57,7 @@ def test_single_complete_day_is_summarized():
         _exp(datetime(2026, 5, 15, 0, 0, 1), 500.0),
         _exp(datetime(2026, 5, 16, 0, 0, 1), 503.0),
     ]
-    out = build_daily_summary(readings, GO_ZONES)
+    out = build_daily_summary(readings, _fixed(GO_ZONES))
     # Day 15 has a closing value (the 16th 00:00 reading); day 16 has only a
     # start reading and no end value, so it must be dropped.
     assert [s.day for s in out] == [date(2026, 5, 15)]
@@ -75,7 +85,7 @@ def test_heat_zones_summed_per_name():
     ]
     readings.append(_imp(datetime(2026, 5, 16, 0, 0, 1), 1028.0))
 
-    out = build_daily_summary(readings, HEAT_ZONES)
+    out = build_daily_summary(readings, _fixed(HEAT_ZONES))
     assert len(out) == 1
     s = out[0]
     assert s.zone_consumptions == {
@@ -100,7 +110,7 @@ def test_to_dict_keys_and_boundary_timestamps():
         _imp(datetime(2026, 5, 15, 5, 0, 1), 1002.5),
         _imp(datetime(2026, 5, 16, 0, 0, 1), 1010.0),
     ]
-    d = build_daily_summary(readings, GO_ZONES)[0].to_dict()
+    d = build_daily_summary(readings, _fixed(GO_ZONES))[0].to_dict()
     assert d["day_of_summary"] == "2026-05-15"  # renamed from "date"
     assert "date" not in d
     assert d["start_timestamp"] == "2026-05-15T00:00:01"  # D 00:00 reading
@@ -112,7 +122,7 @@ def test_to_dict_keys_and_boundary_timestamps():
 def test_day_without_end_value_is_excluded():
     # Only a start reading -> no closing value -> no date-only row emitted.
     readings = [_imp(datetime(2026, 5, 15, 0, 0, 1), 1000.0)]
-    assert build_daily_summary(readings, GO_ZONES) == []
+    assert build_daily_summary(readings, _fixed(GO_ZONES)) == []
 
 
 def test_missing_tariff_switch_leaves_partial_values_none():
@@ -121,7 +131,7 @@ def test_missing_tariff_switch_leaves_partial_values_none():
         _imp(datetime(2026, 5, 15, 0, 0, 1), 1000.0),
         _imp(datetime(2026, 5, 16, 0, 0, 1), 1010.0),
     ]
-    out = build_daily_summary(readings, GO_ZONES)
+    out = build_daily_summary(readings, _fixed(GO_ZONES))
     assert len(out) == 1
     s = out[0]
     assert s.consumption_total == 10.0  # start..end still computable
@@ -147,7 +157,7 @@ def test_missing_inner_boundary_affects_only_adjacent_zones():
     ]
     readings.append(_imp(datetime(2026, 5, 16, 0, 0, 1), 1028.0))
 
-    s = build_daily_summary(readings, HEAT_ZONES)[0]
+    s = build_daily_summary(readings, _fixed(HEAT_ZONES))[0]
     assert s.zone_consumptions["Hoch"] == 6.0
     assert s.zone_consumptions["Standard"] is None  # 06-12 segment broken
     assert s.zone_consumptions["Niedrig"] is None  # 12-16 segment broken

@@ -120,6 +120,16 @@ Your existing configuration remains untouched — all entities and the Energy Da
 > [!NOTE]
 > **Upgrading from v2.x:** Existing entries are migrated to the tariff-zone model automatically on first start. That means your entities, names and the Energy Dashboard history are preserved. The migration is **one-way** (downgrading below 3.0.0 requires a backup or re-adding the entry).
 
+## Scheduling a tariff-zone change in advance
+
+Tariff times change on a date that is known well in advance: grid operators publish their module-3 windows for the next year in autumn, and switching supplier or tariff usually happens mid-year. Either way the new layout can be entered ahead of time: **Integration → Configure → "Schedule a tariff-zone change"**. Enter the date the new layout applies from and the new switch points. The date field is prefilled with the next 1 January (the most common case), but any future date works — for example the day your new tariff starts. The zone list is prefilled with the zones active today, so usually only a few times need correcting.
+
+The switch happens automatically at 00:00 on that date. While the date is still in the future nothing changes: no new sensors, no refetch, no effect on values already recorded. A scheduled change can be reviewed, corrected or discarded again in the same dialog at any time.
+
+**Why this is more than a timer:** the integration keeps *both* layouts and splits every day by the one that was valid on it. That matters because the nightly fetch on the effective date still reads the **day before** — a day that has to be split by the old windows. Changing the zones by hand on that day would give the previous day the new windows, and every later data export would retroactively re-split all older days by the new layout as well. A scheduled change keeps both correct, including in the export: a range spanning the date is split correctly day by day and documented with both layouts on the "Definition" sheet.
+
+> **Keep the zone names if you can:** if the names stay the same (e.g. still `NT`/`ST`/`HT`) and only the times change, each sensor's history continues as one series. A renamed zone creates a new sensor with new statistics instead.
+
 ## Multiple SMGWs / multiple logins
 
 Since version 2.0, the integration can manage any number of SMGW instances in parallel. Just click "Add Integration" again and configure another login. Each entry gets its own set of entities and its own device in the device registry.

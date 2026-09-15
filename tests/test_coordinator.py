@@ -6,7 +6,8 @@ import asyncio
 from datetime import date, datetime, time, timedelta
 
 import pytest
-from unittest.mock import patch
+from freezegun import freeze_time
+from unittest.mock import AsyncMock, patch
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -24,6 +25,7 @@ from custom_components.smgw_han.const import (
     CONF_METER_ID,
     CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
+    CONF_ZONE_SCHEDULE,
     DOMAIN,
     ISSUE_FETCH_FAILED,
     ISSUE_FETCH_RETRYING,
@@ -1004,3 +1006,185 @@ async def test_issue_placeholders_carry_the_localized_date(
     expected = (fixed.date() - timedelta(days=1)).strftime("%d.%m.%Y")
     assert issue.translation_placeholders["date"] == expected
     await coord.async_unload()
+
+
+# ----------------------------------------------------------------------
+# Scheduled tariff-zone changes (zone_schedule.py)
+# ----------------------------------------------------------------------
+
+M3_2026 = [
+    {"time": "00:00", "name": "NT"},
+    {"time": "05:45", "name": "ST"},
+    {"time": "17:00", "name": "HT"},
+    {"time": "19:30", "name": "ST"},
+    {"time": "23:45", "name": "NT"},
+]
+M3_2027 = [
+    {"time": "00:00", "name": "NT"},
+    {"time": "06:00", "name": "ST"},
+    {"time": "16:30", "name": "HT"},
+    {"time": "20:00", "name": "ST"},
+    {"time": "23:30", "name": "NT"},
+]
+SCHEDULE_2027 = [
+    {"valid_from": None, "zones": M3_2026},
+    {"valid_from": "2027-01-01", "zones": M3_2027},
+]
+
+
+class _ZoneCapturingStub(_FetchStub):
+    """Fetch stub that remembers the zones it was called with."""
+
+    def __init__(self, result: DailyData) -> None:
+        super().__init__(result=result)
+        self.zones = None
+
+    async def async_fetch_daily_data(
+        self, target_date, zones=None, target_meter_id=None,
+    ):
+        self.zones = zones
+        return await super().async_fetch_daily_data(
+            target_date, zones, target_meter_id
+        )
+
+
+async def _scheduled_coordinator(
+    hass: HomeAssistant,
+    stub,
+    *,
+    active_zones: list[dict[str, str]],
+    schedule: list[dict] | None = SCHEDULE_2027,
+) -> SmgwCoordinator:
+    # Every assertion here is about a CALENDAR date, and the schedule resolves
+    # in local time. The test harness defaults to US/Pacific, where a frozen
+    # UTC midnight is still the previous day — which silently shifts "which
+    # day is yesterday" and made one of these tests pass for the wrong reason.
+    await hass.config.async_set_time_zone("Europe/Berlin")
+    data = {CONF_METER_ID: "M", CONF_TARIFF_ZONES: active_zones}
+    if schedule is not None:
+        data[CONF_ZONE_SCHEDULE] = schedule
+    entry = MockConfigEntry(domain=DOMAIN, data=data)
+    entry.add_to_hass(hass)
+    return SmgwCoordinator(hass, entry, stub)
+
+
+async def test_old_day_is_split_by_the_old_zones(hass: HomeAssistant):
+    """The case the whole feature exists for.
+
+    On 1 January the new layout is already active, but the nightly run that
+    morning fetches 31 December — a day that was billed by LAST year's
+    windows. Splitting it by the new ones would silently misreport it.
+    """
+    stub = _ZoneCapturingStub(_daily_data(date(2026, 12, 31)))
+    coordinator = await _scheduled_coordinator(
+        hass, stub, active_zones=M3_2027
+    )
+    with freeze_time("2027-01-01 00:15:00"):
+        await coordinator._async_do_daily_fetch()
+
+    assert stub.calls == 1
+    assert [name for _t, name in stub.zones] == ["NT", "ST", "HT", "ST", "NT"]
+    # 05:45 / 19:30 are the 2026 boundaries; the 2027 layout has 06:00 / 20:00.
+    assert [t.strftime("%H:%M") for t, _name in stub.zones] == [
+        "00:00",
+        "05:45",
+        "17:00",
+        "19:30",
+        "23:45",
+    ]
+
+
+async def test_new_day_is_split_by_the_new_zones(hass: HomeAssistant):
+    stub = _ZoneCapturingStub(_daily_data(date(2027, 1, 1)))
+    coordinator = await _scheduled_coordinator(
+        hass, stub, active_zones=M3_2027
+    )
+    with freeze_time("2027-01-02 00:15:00"):
+        await coordinator._async_do_daily_fetch()
+
+    assert [t.strftime("%H:%M") for t, _name in stub.zones] == [
+        "00:00",
+        "06:00",
+        "16:30",
+        "20:00",
+        "23:30",
+    ]
+
+
+async def test_due_change_is_promoted_into_the_entry(hass: HomeAssistant):
+    """Covers Home Assistant being down over the turn of the year."""
+    stub = _FetchStub(result=_daily_data(date(2027, 1, 4)))
+    coordinator = await _scheduled_coordinator(
+        hass, stub, active_zones=M3_2026
+    )
+    with freeze_time("2027-01-05 09:00:00"):
+        changed = coordinator._promote_due_zone_change()
+
+    assert changed is True
+    assert coordinator.config_entry.data[CONF_TARIFF_ZONES] == M3_2027
+    # The schedule itself is kept — old days still need the old layout.
+    assert coordinator.config_entry.data[CONF_ZONE_SCHEDULE] == SCHEDULE_2027
+
+
+async def test_promotion_is_a_noop_before_the_date(hass: HomeAssistant):
+    stub = _FetchStub(result=_daily_data(date(2026, 12, 30)))
+    coordinator = await _scheduled_coordinator(
+        hass, stub, active_zones=M3_2026
+    )
+    with freeze_time("2026-12-31 09:00:00"):
+        assert coordinator._promote_due_zone_change() is False
+    assert coordinator.config_entry.data[CONF_TARIFF_ZONES] == M3_2026
+
+
+async def test_promotion_is_a_noop_without_a_schedule(hass: HomeAssistant):
+    stub = _FetchStub(result=_daily_data(date(2026, 12, 30)))
+    coordinator = await _scheduled_coordinator(
+        hass, stub, active_zones=M3_2026, schedule=None
+    )
+    with freeze_time("2027-06-01 09:00:00"):
+        assert coordinator._promote_due_zone_change() is False
+
+
+async def test_switch_timer_is_armed_and_released(hass: HomeAssistant):
+    """A stray timer on a discarded coordinator is the leak class that bit
+    the 00:15 listener before v3.0.0-beta.3 — this one unloads with it."""
+    stub = _FetchStub(result=_daily_data(date(2026, 12, 30)))
+    coordinator = await _scheduled_coordinator(
+        hass, stub, active_zones=M3_2026
+    )
+    with freeze_time("2026-12-01 09:00:00"):
+        coordinator._schedule_zone_switch()
+    assert coordinator._unsub_zone_switch is not None
+
+    await coordinator.async_unload()
+    assert coordinator._unsub_zone_switch is None
+
+
+async def test_no_timer_without_a_pending_change(hass: HomeAssistant):
+    stub = _FetchStub(result=_daily_data(date(2027, 6, 1)))
+    coordinator = await _scheduled_coordinator(
+        hass, stub, active_zones=M3_2027
+    )
+    # The change is in the past, so there is nothing left to wait for.
+    with freeze_time("2027-06-02 09:00:00"):
+        coordinator._schedule_zone_switch()
+    assert coordinator._unsub_zone_switch is None
+
+
+async def test_switch_promotes_and_reloads_the_entry(hass: HomeAssistant):
+    """Firing at midnight rebuilds the sensor set for the new zone names."""
+    stub = _FetchStub(result=_daily_data(date(2026, 12, 31)))
+    coordinator = await _scheduled_coordinator(
+        hass, stub, active_zones=M3_2026
+    )
+    with (
+        freeze_time("2027-01-01 00:00:00"),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ) as reload,
+    ):
+        coordinator._handle_zone_switch(dt_util.now())
+        await hass.async_block_till_done()
+
+    assert coordinator.config_entry.data[CONF_TARIFF_ZONES] == M3_2027
+    reload.assert_called_once_with(coordinator.config_entry.entry_id)

@@ -11,6 +11,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from freezegun import freeze_time
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -27,6 +28,8 @@ from custom_components.smgw_han.const import (
     CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_PASSWORD,
+    CONF_SCHEDULE_DISCARD,
+    CONF_SCHEDULE_VALID_FROM,
     CONF_TARIFF_SWITCH_HOUR,
     CONF_TARIFF_SWITCH_MINUTE,
     CONF_TARIFF_ZONES,
@@ -34,6 +37,7 @@ from custom_components.smgw_han.const import (
     CONF_URL,
     CONF_USERNAME,
     CONF_VIEW_ID,
+    CONF_ZONE_SCHEDULE,
     DOMAIN,
     TARIFF_TEMPLATE_HEAT,
     TARIFF_TEMPLATES,
@@ -944,3 +948,140 @@ async def test_returning_to_menu_drops_a_picked_template():
     await flow.async_step_init()
 
     assert flow._template_zones is None
+
+
+# ----------------------------------------------------------------------
+# Scheduled tariff-zone change (options flow)
+# ----------------------------------------------------------------------
+
+M3_ENTRIES = ["00:00 NT", "05:45 ST", "17:00 HT", "19:30 ST", "23:45 NT"]
+M3_2027_ENTRIES = ["00:00 NT", "06:00 ST", "16:30 HT", "20:00 ST", "23:30 NT"]
+
+
+async def _open_schedule(hass: HomeAssistant, entry: MockConfigEntry):
+    """Open the options flow and navigate to the 'schedule_zones' step."""
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == FlowResultType.MENU
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "schedule_zones"}
+    )
+    assert result["step_id"] == "schedule_zones"
+    return result
+
+
+async def test_schedule_zones_stores_a_dated_change(hass: HomeAssistant):
+    """The scheduled layout is recorded without touching the active one."""
+    entry = _entry("M")
+    entry.add_to_hass(hass)
+
+    with (
+        freeze_time("2026-09-15 12:00:00"),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ),
+    ):
+        result = await _open_schedule(hass, entry)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_SCHEDULE_VALID_FROM: "2027-01-01",
+                CONF_TARIFF_ZONES: M3_2027_ENTRIES,
+            },
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    schedule = entry.data[CONF_ZONE_SCHEDULE]
+    # The baseline preserves what was active, so old days keep their layout
+    # after the change is promoted.
+    assert [item["valid_from"] for item in schedule] == [None, "2027-01-01"]
+    assert schedule[0]["zones"] == GO_ZONES_STORED
+    assert [z[ZONE_NAME] for z in schedule[1]["zones"]] == [
+        "NT", "ST", "HT", "ST", "NT",
+    ]
+    # Nothing switches before the date.
+    assert entry.data[CONF_TARIFF_ZONES] == GO_ZONES_STORED
+
+
+async def test_schedule_zones_rejects_a_past_date(hass: HomeAssistant):
+    """Backdating would silently re-split days that are already recorded."""
+    entry = _entry("M")
+    entry.add_to_hass(hass)
+
+    with freeze_time("2026-09-15 12:00:00"):
+        result = await _open_schedule(hass, entry)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_SCHEDULE_VALID_FROM: "2026-01-01",
+                CONF_TARIFF_ZONES: M3_ENTRIES,
+            },
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"][CONF_SCHEDULE_VALID_FROM] == (
+        "schedule_date_not_future"
+    )
+    assert CONF_ZONE_SCHEDULE not in entry.data
+
+
+async def test_schedule_zones_validates_the_zone_entries(hass: HomeAssistant):
+    """The same field-level validation as every other zone input."""
+    entry = _entry("M")
+    entry.add_to_hass(hass)
+
+    with freeze_time("2026-09-15 12:00:00"):
+        result = await _open_schedule(hass, entry)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_SCHEDULE_VALID_FROM: "2027-01-01",
+                # 05:50 is off the SMGW's 15-minute grid.
+                CONF_TARIFF_ZONES: ["00:00 NT", "05:50 ST"],
+            },
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"][CONF_TARIFF_ZONES] == "zone_minute_grid"
+    assert CONF_ZONE_SCHEDULE not in entry.data
+
+
+async def test_schedule_zones_discards_a_pending_change(hass: HomeAssistant):
+    """Discarding restores exactly the state before anything was scheduled."""
+    entry = _entry(
+        "M",
+        **{
+            CONF_ZONE_SCHEDULE: [
+                {"valid_from": None, "zones": GO_ZONES_STORED},
+                {
+                    "valid_from": "2027-01-01",
+                    "zones": [
+                        {ZONE_TIME: "00:00", ZONE_NAME: "NT"},
+                        {ZONE_TIME: "06:00", ZONE_NAME: "ST"},
+                    ],
+                },
+            ]
+        },
+    )
+    entry.add_to_hass(hass)
+
+    with (
+        freeze_time("2026-09-15 12:00:00"),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ),
+    ):
+        result = await _open_schedule(hass, entry)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_SCHEDULE_VALID_FROM: "2027-01-01",
+                CONF_TARIFF_ZONES: M3_2027_ENTRIES,
+                CONF_SCHEDULE_DISCARD: True,
+            },
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert CONF_ZONE_SCHEDULE not in entry.data
+    assert entry.data[CONF_TARIFF_ZONES] == GO_ZONES_STORED

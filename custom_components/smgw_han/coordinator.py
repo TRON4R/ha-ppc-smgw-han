@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from functools import partial
 from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers import translation
 from homeassistant.helpers.event import (
     async_call_later,
+    async_track_point_in_time,
     async_track_time_change,
 )
 from homeassistant.helpers.storage import Store
@@ -29,10 +31,12 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.util import dt as dt_util
 
+from . import zone_schedule
 from .const import (
     CONF_METER_ID,
     CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
+    CONF_ZONE_SCHEDULE,
     DEFAULT_TARIFF_ZONES,
     DEFAULT_UPDATE_TIME,
     DOMAIN,
@@ -143,9 +147,18 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # leak class that bit the 00:15 listener before v3.0.0-beta.3.
         self._unsub_retry: CALLBACK_TYPE | None = None
         self._retry_attempt = 0
+        # Fires at midnight of a scheduled tariff-zone change (see
+        # zone_schedule.py). Cancelled on unload like every other timer.
+        self._unsub_zone_switch: CALLBACK_TYPE | None = None
 
     async def async_setup(self) -> None:
         """Set up the coordinator: load stored data, schedule daily fetch."""
+        # A scheduled zone change may have come due while Home Assistant was
+        # down or this entry was unloaded. Project the schedule onto today
+        # BEFORE anything reads the layout — the store guard below and the
+        # sensor platform both build on the active zones.
+        self._promote_due_zone_change()
+
         # Load persisted data (NotImplementedError = version mismatch, discard)
         try:
             stored = await self._store.async_load()
@@ -158,22 +171,36 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._store.async_remove()
             stored = None
         if stored and isinstance(stored, dict):
+            # Two different questions, deliberately answered by two different
+            # comparisons:
+            #
+            #  - Publication safety (here): may the cached per-zone values be
+            #    shown under the sensor set that exists RIGHT NOW? The sensors
+            #    are built from the ACTIVE layout, so that is what the cache
+            #    has to match. Otherwise the values are plausible-looking but
+            #    mislabeled.
+            #  - Data validity (below): was the cached day computed with the
+            #    layout valid ON THAT DAY? That decides whether a refetch
+            #    would produce anything better.
+            #
+            # After a scheduled change they disagree on purpose: yesterday is
+            # correctly split by the old layout (no refetch can improve it)
+            # yet must not be published under the new zone names.
             if stored.get("_tariff_zones") != self._zones_config:
-                # The cached day was computed with a DIFFERENT zone
-                # definition. Publishing its per-zone values would attach
-                # them to the new zone names/sensors — plausible-looking but
-                # mislabeled. Keep only the zone-independent values (total,
-                # feed-in, date, closing readings) until a refetch succeeds;
-                # dropping "_tariff_zones" keeps the refetch triggers armed.
+                # Keep only the zone-independent values (total, feed-in, date,
+                # closing readings) until a day of the active layout arrives.
+                # "_tariff_zones" itself is KEPT: it is the record of what the
+                # cache was computed with, and the validity check below needs
+                # it to tell a scheduled change (nothing to refetch) from a
+                # manual zone edit (refetch now).
                 stored = {
                     key: value
                     for key, value in stored.items()
                     if not key.startswith(_ZONE_DEPENDENT_KEY_PREFIXES)
-                    and key != "_tariff_zones"
                 }
                 _LOGGER.info(
-                    "Tariff zones changed since the cached day - withholding "
-                    "per-zone values until a refetch succeeds"
+                    "Cached day was computed with a different zone layout "
+                    "than the one now active - withholding per-zone values"
                 )
             self.async_set_updated_data(stored)
             _LOGGER.debug(
@@ -204,11 +231,12 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # stored data (any change — a switch time or a zone name — alters
             # the computed slots, so it must trigger a refetch).
             stored_zones = self.data.get("_tariff_zones")
-            if stored_zones != self._zones_config:
+            expected_zones = self.zones_config_for(yesterday)
+            if stored_zones != expected_zones:
                 _LOGGER.info(
                     "Tariff zones changed from %s to %s - refetching data",
                     stored_zones,
-                    self._zones_config,
+                    expected_zones,
                 )
                 needs_fetch = True
 
@@ -246,6 +274,7 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # must not leave an orphaned listener behind that keeps fetching on a
         # discarded coordinator instance across HA's setup retries.
         self._schedule_daily_fetch()
+        self._schedule_zone_switch()
 
         # A persistent notification does not survive a restart, so the
         # staleness check has to run here too - otherwise a gap that was
@@ -285,6 +314,78 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "Scheduled daily SMGW data fetch at %02d:%02d",
             fetch_time.hour,
             fetch_time.minute,
+        )
+
+    @callback
+    def _promote_due_zone_change(self) -> bool:
+        """Project the zone schedule onto today. Returns whether it changed.
+
+        ``CONF_TARIFF_ZONES`` is the materialized "valid today" layout, so
+        promoting a due change is simply writing that projection back into
+        the entry. Idempotent: with no schedule, or nothing due, it is a
+        no-op, which is why it can run unconditionally at every setup.
+        """
+        schedule = self.config_entry.data.get(CONF_ZONE_SCHEDULE)
+        if not schedule:
+            return False
+        current = self.config_entry.data.get(
+            CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES
+        )
+        due = zone_schedule.zones_for_day(
+            schedule, current, dt_util.now().date()
+        )
+        if due == [dict(zone) for zone in current]:
+            return False
+        _LOGGER.info(
+            "Scheduled tariff-zone change took effect - zones are now %s", due
+        )
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            data={**self.config_entry.data, CONF_TARIFF_ZONES: due},
+        )
+        return True
+
+    def _schedule_zone_switch(self) -> None:
+        """Arm a timer for midnight of the next scheduled zone change."""
+        if self._unsub_zone_switch:
+            self._unsub_zone_switch()
+            self._unsub_zone_switch = None
+
+        next_day = zone_schedule.next_change_at(
+            self.config_entry.data.get(CONF_ZONE_SCHEDULE),
+            dt_util.now().date(),
+        )
+        if next_day is None:
+            return
+
+        self._unsub_zone_switch = async_track_point_in_time(
+            self.hass,
+            self._handle_zone_switch,
+            dt_util.start_of_local_day(next_day),
+        )
+        _LOGGER.info(
+            "Tariff zones switch automatically at midnight on %s",
+            next_day.isoformat(),
+        )
+
+    @callback
+    def _handle_zone_switch(self, now: datetime) -> None:
+        """Promote the scheduled layout at midnight and rebuild the sensors.
+
+        The reload is what turns the new layout into the new sensor set, and
+        it unloads this very coordinator — so it must not run inside this
+        callback. Handing it to the event loop as its own task lets this one
+        finish first. The fresh setup re-arms the timer for whatever change
+        comes after this one.
+        """
+        self._unsub_zone_switch = None
+        if not self._promote_due_zone_change():
+            # Nothing actually moved (the schedule was edited between arming
+            # and firing) — just re-arm for the next one.
+            self._schedule_zone_switch()
+            return
+        self.hass.async_create_task(
+            self.hass.config_entries.async_reload(self.config_entry.entry_id)
         )
 
     async def _handle_daily_fetch(self, now: datetime) -> None:
@@ -553,8 +654,11 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         yesterday = target_date or dt_util.now().date() - timedelta(days=1)
 
-        # Skip if we already have data for yesterday with the same zones
-        zones_config = self._zones_config
+        # Skip if we already have data for yesterday with the same zones.
+        # Resolved for the TARGET day, so a retry chain or a catch-up fetch
+        # that runs after a scheduled change still uses the layout that was
+        # valid on the day being fetched.
+        zones_config = self.zones_config_for(yesterday)
 
         if (
             self.data
@@ -591,7 +695,7 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             daily_data = await self._client.async_fetch_daily_data(
                 yesterday,
-                zones=self.tariff_zones,
+                zones=self.tariff_zones_for(yesterday),
                 target_meter_id=target_meter_id,
             )
         except SmgwAuthError as err:
@@ -688,23 +792,84 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """The configured meter id for this entry (one meter per entry)."""
         return self.config_entry.data.get(CONF_METER_ID)
 
+    def zones_config_for(self, day: date) -> list[dict[str, str]]:
+        """The raw tariff-zone definition valid on ``day`` (JSON shape).
+
+        Every day is split by the layout that was valid on THAT day, not by
+        whatever is configured right now. That is what makes a scheduled
+        change safe: the nightly run on 1 January fetches 31 December and
+        still splits it by the old windows, even though the new ones are
+        already active (see zone_schedule.py).
+
+        The JSON shape survives the Store's round trip unchanged, so a plain
+        ``==`` compares reliably for the change detection.
+        """
+        return zone_schedule.zones_for_day(
+            self.config_entry.data.get(CONF_ZONE_SCHEDULE),
+            self.config_entry.data.get(
+                CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES
+            ),
+            day,
+        )
+
+    def tariff_zones_for(self, day: date) -> TariffZones:
+        """Tariff zones valid on ``day`` as parsed ``(time, name)`` pairs."""
+        return [
+            (time.fromisoformat(zone[ZONE_TIME]), zone[ZONE_NAME])
+            for zone in self.zones_config_for(day)
+        ]
+
     @property
     def _zones_config(self) -> list[dict[str, str]]:
-        """The raw tariff-zone definition from the config entry (JSON shape).
-
-        Used for the store's change detection: this survives the Store's JSON
-        round trip unchanged, so a plain ``==`` compares reliably.
-        """
-        raw = self.config_entry.data.get(CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES)
-        return [dict(zone) for zone in raw]
+        """The raw tariff-zone definition valid today."""
+        return self.zones_config_for(dt_util.now().date())
 
     @property
     def tariff_zones(self) -> TariffZones:
-        """Configured tariff zones as parsed ``(time, name)`` pairs."""
-        return [
-            (time.fromisoformat(zone[ZONE_TIME]), zone[ZONE_NAME])
-            for zone in self._zones_config
+        """Tariff zones valid today, as parsed ``(time, name)`` pairs."""
+        return self.tariff_zones_for(dt_util.now().date())
+
+    def zone_resolver(self) -> Callable[[date], TariffZones]:
+        """A pure ``day -> zones`` function, safe to hand to an executor.
+
+        The export parses and aggregates off the event loop, so the resolver
+        it uses must not reach into Home Assistant state. Snapshotting the
+        schedule here keeps the returned closure self-contained — and pins
+        the layout for the whole export, so a change promoted mid-run cannot
+        split one half of the range differently from the other.
+        """
+        schedule = zone_schedule.normalize(
+            self.config_entry.data.get(CONF_ZONE_SCHEDULE)
+        )
+        fallback = [
+            dict(zone)
+            for zone in self.config_entry.data.get(
+                CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES
+            )
         ]
+
+        def resolve(day: date) -> TariffZones:
+            return [
+                (time.fromisoformat(zone[ZONE_TIME]), zone[ZONE_NAME])
+                for zone in zone_schedule.zones_for_day(
+                    schedule, fallback, day
+                )
+            ]
+
+        return resolve
+
+    def zone_periods(
+        self, first_day: date, last_day: date
+    ) -> list[dict[str, Any]]:
+        """The dated layouts covering a range, for the export's documentation."""
+        return zone_schedule.periods_in_range(
+            self.config_entry.data.get(CONF_ZONE_SCHEDULE),
+            self.config_entry.data.get(
+                CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES
+            ),
+            first_day,
+            last_day,
+        )
 
     async def async_download_cms(
         self, from_dt: datetime, to_dt: datetime
@@ -765,4 +930,7 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._unsub_time_listener:
             self._unsub_time_listener()
             self._unsub_time_listener = None
+        if self._unsub_zone_switch:
+            self._unsub_zone_switch()
+            self._unsub_zone_switch = None
         await self._client.close()

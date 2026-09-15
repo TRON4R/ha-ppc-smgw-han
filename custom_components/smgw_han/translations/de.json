@@ -78,6 +78,7 @@
         "menu_options": {
           "settings": "Einstellungen ändern",
           "tariff_template": "Tarifzonen aus Vorlage setzen",
+          "schedule_zones": "Tarifzonen-Umschaltung planen (Jahreswechsel, Tarifwechsel)",
           "export": "SMGW-Daten für einen wählbaren Zeitraum exportieren"
         }
       },
@@ -88,6 +89,19 @@
           "tariff_go": "Octopus Go / Intelligent Octopus Go (00:00–05:00 günstig)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
           "tariff_custom": "Eigene Zeiten eingeben"
+        }
+      },
+      "schedule_zones": {
+        "title": "Tarifzonen-Umschaltung planen",
+        "description": "Trag ein künftiges Zonen-Schema schon jetzt ein — die Integration schaltet um Mitternacht des Stichtags selbst um.\n\nTarifzeiten ändern sich zu einem Stichtag, der lange vorher feststeht: Netzbetreiber veröffentlichen ihre Modul-3-Zeitfenster für das Folgejahr im Herbst, ein Wechsel von Anbieter oder Tarif fällt meist mitten ins Jahr. Die Zonen erst am Stichtag selbst zu ändern wäre in beiden Fällen zu spät: Der nächtliche Abruf holt an diesem Morgen noch den Vortag, und der muss nach den alten Zeitfenstern aufgeteilt werden. Eine geplante Umschaltung behält beide Schemata und teilt jeden Tag nach dem auf, das an diesem Tag galt — auch im Datenexport.\n\nAktuell aktiv: {active}\nGeplante Umschaltung: {pending}",
+        "data": {
+          "valid_from": "Gültig ab",
+          "tariff_zones": "Tarifzonen (Umschaltpunkte) ab diesem Datum",
+          "discard_pending": "Geplante Umschaltung verwerfen"
+        },
+        "data_description": {
+          "valid_from": "Der erste Tag, an dem das neue Schema gilt. Vorbelegt mit dem nächsten 1. Januar als häufigstem Fall — es geht aber jedes künftige Datum, etwa der Starttag eines neuen Stromtarifs. Umgeschaltet wird um 00:00 Uhr dieses Tages; der Abruf in derselben Nacht teilt den Vortag weiterhin nach den alten Zeitfenstern auf.",
+          "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format \"HH:MM Zonenname\", beginnend mit 00:00, Minuten 00, 15, 30 oder 45. Vorbelegt mit den heute aktiven Zonen, es sind also nur die geänderten Zeiten zu korrigieren. Bleiben die Zonennamen gleich, bleibt auch die Historie je Sensor eine durchgehende Reihe; ein umbenannter Zonenname beginnt eine neue."
         }
       },
       "settings": {
@@ -148,7 +162,9 @@
       "zone_too_few": "Mindestens zwei Einträge angeben (00:00 plus ein Umschaltpunkt).",
       "zone_first_not_midnight": "Der erste Eintrag muss bei 00:00 beginnen.",
       "zone_times_not_ascending": "Die Umschaltzeiten müssen innerhalb des Tages strikt aufsteigend sein.",
-      "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster)."
+      "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster).",
+      "schedule_date_invalid": "Bitte ein Datum für die Umschaltung wählen.",
+      "schedule_date_not_future": "Das Datum muss in der Zukunft liegen. Wenn die Zonen sofort gelten sollen, nutze stattdessen „Einstellungen ändern“."
     },
     "abort": {
       "export_done": "Export erstellt.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."

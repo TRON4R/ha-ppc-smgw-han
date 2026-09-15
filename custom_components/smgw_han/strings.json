@@ -78,6 +78,7 @@
         "menu_options": {
           "settings": "Change settings",
           "tariff_template": "Apply a tariff-zone template",
+          "schedule_zones": "Schedule a tariff-zone change (new year, new tariff)",
           "export": "Export SMGW data for a custom time range"
         }
       },
@@ -88,6 +89,19 @@
           "tariff_go": "Octopus Go / Intelligent Octopus Go (cheap 00:00–05:00)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
           "tariff_custom": "Enter my own times"
+        }
+      },
+      "schedule_zones": {
+        "title": "Schedule a tariff-zone change",
+        "description": "Enter a future zone layout now and let it switch itself over at midnight on the date it takes effect.\n\nTariff times change on a date known well in advance: grid operators publish their module-3 windows for the next year in autumn, and a change of supplier or tariff usually falls mid-year. Editing the zones on the effective date itself would be too late either way: the nightly fetch that morning still reads the previous day, which has to be split by the old windows. A scheduled change keeps both layouts and splits every day by the one that was valid on it — including in the data export.\n\nCurrently active: {active}\nScheduled change: {pending}",
+        "data": {
+          "valid_from": "Valid from",
+          "tariff_zones": "Tariff zones (switch points) from that date",
+          "discard_pending": "Discard the scheduled change"
+        },
+        "data_description": {
+          "valid_from": "The first day the new layout applies. Prefilled with the next 1 January, the most common case — but any future date works, for example the day a new supplier tariff starts. It switches at 00:00 on that day; the fetch later that night still splits the previous day by the old windows.",
+          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00, minutes 00, 15, 30 or 45. Prefilled with the zones active today, so only the changed times have to be corrected. Keeping the zone names identical keeps each sensor's history in one series; a renamed zone starts a new one."
         }
       },
       "settings": {
@@ -148,7 +162,9 @@
       "zone_too_few": "Define at least two entries (00:00 plus one switch point).",
       "zone_first_not_midnight": "The first entry must start at 00:00.",
       "zone_times_not_ascending": "The switch times must be strictly ascending within the day.",
-      "zone_minute_grid": "Minutes must be 00, 15, 30 or 45 (the SMGW records on a 15-minute grid)."
+      "zone_minute_grid": "Minutes must be 00, 15, 30 or 45 (the SMGW records on a 15-minute grid).",
+      "schedule_date_invalid": "Please pick a date for the change.",
+      "schedule_date_not_future": "The date has to be in the future. To change the zones with immediate effect, use “Change settings” instead."
     },
     "abort": {
       "export_done": "Export created.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."

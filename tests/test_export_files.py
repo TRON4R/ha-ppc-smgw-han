@@ -18,6 +18,16 @@ from custom_components.smgw_han.export_files import (
 from custom_components.smgw_han.smgw_client import MeterReading
 
 
+def _fixed(zones):
+    """Zone resolver for a range without a scheduled change.
+
+    ``build_daily_summary`` resolves the layout per day so an export crossing
+    a scheduled zone change splits each side by its own windows; these tests
+    use one layout for the whole range.
+    """
+    return lambda _day: zones
+
+
 def _imp(ts: datetime, value: float) -> MeterReading:
     return MeterReading(ts, OBIS_IMPORT, value, "kWh", "valid")
 
@@ -61,7 +71,7 @@ GO_ZONES = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
 
 def test_write_xlsx_sheets_and_rowcount(tmp_path):
     path = tmp_path / "out.xlsx"
-    summary = build_daily_summary(READINGS, GO_ZONES)
+    summary = build_daily_summary(READINGS, _fixed(GO_ZONES))
     meta = {
         "meter_id": "1lgz0072999211",
         "from": "2026-05-15 00:00:00",
@@ -132,7 +142,7 @@ def test_formula_injection_is_neutralized(tmp_path):
     assert row.split(";")[3] == "'=2+2"  # apostrophe forces text
 
     zones = [(time(0, 0), "=EVIL"), (time(5, 0), "Standard")]
-    summary = build_daily_summary(evil_readings, zones)
+    summary = build_daily_summary(evil_readings, _fixed(zones))
     meta = {
         "meter_id": "m",
         "from": "x",
@@ -165,7 +175,7 @@ def test_write_xlsx_multi_window_zone_definition(tmp_path):
         (time(2, 0), "Niedrig"),
         (time(6, 0), "Standard"),
     ]
-    summary = build_daily_summary(READINGS, zones)
+    summary = build_daily_summary(READINGS, _fixed(zones))
     meta = {
         "meter_id": "m",
         "from": "x",
