@@ -1,0 +1,72 @@
+name: Problem oder Frage
+description: Etwas funktioniert nicht wie erwartet, oder du kommst bei der Einrichtung nicht weiter.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke, dass du dir die Zeit nimmst! Die meisten Einrichtungsprobleme sind in der **[FAQ](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md)** schon beantwortet, besonders häufig diese:
+
+        - [E1](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#e1) – Home Assistant und SMGW liegen in unterschiedlichen Netzen
+        - [E2](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#e2) – Die Einrichtung bricht mit einer Fehlermeldung ab
+        - [S1](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#s1) – Der Verbrauch kommt an, die Einspeisung bleibt aber 0
+        - [S5](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#s5) – Die Werte erscheinen einen Tag zu spät
+
+        _English is fine, too – see the [English FAQ](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.en.md). The IDs (E1, S1, …) are the same in both languages._
+  - type: checkboxes
+    id: vorab
+    attributes:
+      label: Vorab
+      options:
+        - label: Ich habe die [FAQ](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md) ([English](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.en.md)) gelesen, und mein Thema wird dort nicht beantwortet.
+          required: true
+        - label: Ich nutze die neueste Version der Integration.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version der Integration
+      placeholder: z. B. v3.5.2
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home-Assistant-Version
+      placeholder: z. B. 2026.9.3
+    validations:
+      required: true
+  - type: input
+    id: gateway
+    attributes:
+      label: Gateway und Messstellenbetreiber
+      description: Hersteller und Typ vom Typenschild des Gateways, dazu dein Messstellenbetreiber (MSB).
+      placeholder: z. B. PPC SMGW-K-2A-111-30, Octopus Energy Metering
+  - type: textarea
+    id: beschreibung
+    attributes:
+      label: Was passiert, und was hättest du erwartet?
+      description: Fehlermeldungen bitte im Wortlaut oder als Screenshot.
+    validations:
+      required: true
+  - type: textarea
+    id: smgw
+    attributes:
+      label: Was liefert das SMGW?
+      description: >-
+        Das Ergebnis des Exports für „Gestern" (welche OBIS-Kennzahlen stehen im Blatt „Rohdaten"?) und – wenn möglich –
+        ein Screenshot der direkten Anmeldung im Browser oder mit TRuDI. Anleitungen in der FAQ unter
+        [S1](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#s1) und
+        [E6](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#e6).
+  - type: textarea
+    id: log
+    attributes:
+      label: Debug-Log
+      description: >-
+        Die Zeilen mit `custom_components.smgw_han`. Wie du das Log erzeugst, steht in der FAQ unter
+        [H1](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#h1).
+        Diagnosedaten kannst du unten im Beschreibungsfeld per Drag & Drop anhängen.
+      render: text
+  - type: markdown
+    attributes:
+      value: |
+        > ⚠️ Poste **niemals** dein HAN-Passwort – auch nicht „nur als Beispiel". Sieh Logs und Screenshots vor dem Hochladen kurz durch.

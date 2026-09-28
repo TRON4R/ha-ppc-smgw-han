@@ -1,0 +1,22 @@
+name: Idee oder Verbesserung
+description: Vorschlag für eine neue Funktion oder eine Verbesserung.
+labels: ["enhancement"]
+body:
+  - type: checkboxes
+    id: vorab
+    attributes:
+      label: Vorab
+      options:
+        - label: Ich habe die [FAQ](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md) ([English](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.en.md)) und das [README](https://github.com/TRON4R/ha-ppc-smgw-han#readme) gelesen, und meine Idee ist dort nicht schon abgedeckt.
+          required: true
+  - type: textarea
+    id: idee
+    attributes:
+      label: Was wünschst du dir?
+    validations:
+      required: true
+  - type: textarea
+    id: anwendungsfall
+    attributes:
+      label: Wofür brauchst du das?
+      description: Dein konkreter Anwendungsfall hilft bei der Entscheidung, ob und wie sich die Idee umsetzen lässt.

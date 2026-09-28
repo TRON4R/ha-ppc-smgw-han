@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: FAQ – häufige Fragen
+    url: https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md
+    about: Die meisten Fragen zur Einrichtung sind hier schon beantwortet – bitte zuerst hier nachsehen.
+  - name: FAQ – frequently asked questions (English)
+    url: https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.en.md
+    about: Most setup questions are already answered here – please check it first.
