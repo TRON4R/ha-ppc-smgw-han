@@ -50,8 +50,10 @@ series:
       type: change
       period: day
       align: start
+    offset: '+1d'
     show:
       datalabels: false
+      offset_in_name: false
   - entity: sensor.octopus_smgw_tagesverbrauch_zeitfenster_1
     type: column
     name: Go
@@ -61,5 +63,7 @@ series:
       type: change
       period: day
       align: start
+    offset: '+1d'
     show:
       datalabels: false
+      offset_in_name: false
