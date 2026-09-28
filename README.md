@@ -57,7 +57,7 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 >
 > Das SMGW ist in der Regel unveränderbar auf `192.168.100.100` konfiguriert, Home Assistant läuft meist auf einer lokalen IP wie z.B. `192.168.2.x` o.ä.
 > Wie du deinem HA-Server ganz einfach eine zweite IP im `192.168.100.x`-Netz gibst und damit die Verbindung herstellst, erklärt die
-> [Netzwerk-Einrichtungsanleitung](docs/network-setup.md).
+> [Netzwerk-Einrichtungsanleitung](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/network-setup.md).
 
 ## Installation
 
@@ -301,6 +301,10 @@ Diese Integration wurde anfangs für den **Octopus Energy (Intelligent) Go-Tarif
 Die **Tarifzonen** sind für andere Tarife **frei konfigurierbar** — beliebig viele Umschaltpunkte pro Tag, direkt über das GUI.
 
 Falls du eine völlig andere Tarifstruktur nutzen solltest, eröffne bitte ein [Issue](https://github.com/TRON4R/ha-ppc-smgw-han/issues) oder idealerweise gleich einen [Pull Request](https://github.com/TRON4R/ha-ppc-smgw-han/pulls), damit wir gemeinsam die Integration entsprechend erweitern können.
+
+## Häufige Fragen (FAQ)
+
+Antworten auf typische Fragen zur Einrichtung – etwa zur Netzwerkverbindung, zu Fehlermeldungen oder zu fehlenden Einspeisewerten – stehen in der [FAQ](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md). Bitte schau dort nach, bevor du ein Issue eröffnest.
 
 ## Lizenz
 
