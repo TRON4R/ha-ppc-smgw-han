@@ -281,7 +281,9 @@ The card displays the last 30 days as a stacked bar chart:
 - **Go** (blue): Consumption during the discounted tariff slot (slot 1)
 - **Standard** (pink): Consumption during the standard tariff slot (slot 2)
 - Tooltip (mouse-over): Individual values per tariff segment per day
-- Header: Cumulative total per segment over the displayed period
+- Header: Consumption of the most recent recorded day per segment
+
+Each bar sits on the day the energy was actually used. That is not a given: the daily values only reach Home Assistant after midnight, and Home Assistant books them on the day they arrive. The card therefore shifts every series back by one day with `offset: '+1d'`. Do the same in your own cards that use `statistics:`.
 
 ### How to add it
 

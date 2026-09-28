@@ -280,7 +280,9 @@ Die Kachel zeigt die letzten 30 Tage als gestapeltes Balkendiagramm:
 - **Go** (blau): Verbrauch im vergünstigten Zeitfenster (Zeitfenster 1)
 - **Standard** (pink): Verbrauch im Normalpreis-Zeitfenster (Zeitfenster 2)
 - **Tooltip** (mouse-over): Einzelwerte je Tarifsegment pro Tag
-- **Kopfzeile**: kumulierter Gesamtverbrauch je Segment im angezeigten Zeitraum
+- **Kopfzeile**: Verbrauch des zuletzt erfassten Tages je Segment
+
+Jeder Balken steht bei dem Tag, an dem der Strom verbraucht wurde. Das ist nicht selbstverständlich: Die Tageswerte kommen erst nach Mitternacht in Home Assistant an, und Home Assistant verbucht sie an dem Tag, an dem sie eintreffen. Die Kachel schiebt jede Serie deshalb mit `offset: '+1d'` um einen Tag zurück. Übernimm das auch in eigene Karten, die mit `statistics:` arbeiten.
 
 ### Einbindung
 
