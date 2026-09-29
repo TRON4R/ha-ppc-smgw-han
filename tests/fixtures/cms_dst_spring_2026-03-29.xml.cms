@@ -1,0 +1,2318 @@
+0É)9	*ÜHÜ˜†É))0É)$10	`ÜHe0É$π	*ÜHÜ˜†É$©É$§<?xml version="1.0" encoding="UTF-8"?>
+<ns1:object class_id="7" class_version="1" id="01005e31803c.1lgz0072999211.sm" xmlns:ns1="urn:k461-dke-de:profile_generic-1" xmlns:ns2="urn:k461-dke-de:extension-1">
+  <ns1:attributes count="3">
+   <ns2:logical_name id="1">01005e31803c.1lgz0072999211.sm</ns2:logical_name>
+   <ns1:capture_objects id="2" count="2">
+   <ns1:capture_object id="1">
+        <ns2:logical_name>0100010800ff.1lgz0072999211.sm</ns2:logical_name>
+        <ns2:class_id>32822</ns2:class_id>
+        <ns2:class_version>1</ns2:class_version>
+        <ns2:attr_reference>0</ns2:attr_reference>
+        <ns2:index_reference>0</ns2:index_reference>
+   </ns1:capture_object>
+   <ns1:capture_object id="2">
+        <ns2:logical_name>0100020800ff.1lgz0072999211.sm</ns2:logical_name>
+        <ns2:class_id>32822</ns2:class_id>
+        <ns2:class_version>1</ns2:class_version>
+        <ns2:attr_reference>0</ns2:attr_reference>
+        <ns2:index_reference>0</ns2:index_reference>
+   </ns1:capture_object>
+    </ns1:capture_objects>
+    <ns1:buffer id="3">
+       <ns1:simple_data count="2">
+        <ns1:column count="95" id="1">
+          <ns1:entry_gateway_signed id="1">
+            <ns2:value>
+              <ns2:long64>115144307</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T22:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>059b9bc3951ca061909c6115f09c708a4bac566755a0641ee3ce64db6d20ceeca9625fe627a2513d1a091bf62c5a75c34c55fb322c7688e3e5d4033a77b6f5d60bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="2">
+            <ns2:value>
+              <ns2:long64>115138216</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T21:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>55a7578189389b942606e01755bf8be548dfb8c035fe3146190639b8c7386cad591fd988313455bf9a6cc9437cf91a9bf9c8e9d92f6a7053ac0381d0a3cade190bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="3">
+            <ns2:value>
+              <ns2:long64>115132492</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T21:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>715f93a9451ca9e689c5176df74a7c8ed8faf70e1513e86c0b10314a99a8b26e27a27cdb759e7e5dd92e5b97db7451ab2e115ba5083312f59a49344fba4dbe220bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="4">
+            <ns2:value>
+              <ns2:long64>115126602</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T21:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2fb0bc765167cabfefbd60a7dd0fb4b4c655cb136a8f10fcd6eda6142ac8aa91637e26f3cceafc029bcbc89f7ecd69ab710e5627554a5eef6c4c122d775c64fe0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="5">
+            <ns2:value>
+              <ns2:long64>115120479</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T21:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>9b56545cfd3dd665fb7e6e27212da8819dbd6d9a5e4caa4c91fc3a0d05d55c3b05d5cbc5699cb7ff317dcf950802a7a63311acc4dae09e7d92ad73f502c132be0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="6">
+            <ns2:value>
+              <ns2:long64>115114330</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T20:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>96f3d3d02f14851ca9ef198ff4549f55ec257f6c92d1493b1774c1f96197fe5a097d982ac07a2abfd9ec7a178962c87ae7db95969ec210115ae8cb777ccb9b380bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="7">
+            <ns2:value>
+              <ns2:long64>115111752</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T20:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4330d2cb4fea7a5ded77db9127d0716d9dd7e7170bf5bd4c8ba9cef29d81763a789fa96050f1edaffed697bc733c77b4bd3cfcc17a2f3ddade93f8665a99ec650bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="8">
+            <ns2:value>
+              <ns2:long64>115111703</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T20:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>08be0f5f74f277b61ce3b032a6d4042bedc45f345e1ff63f1063308afdd9a78b4d9bfd56d94d2671bbbac2e43e9191ac1f42f96af2567aade16a21df85785a9a0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="9">
+            <ns2:value>
+              <ns2:long64>115111572</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T20:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>78a06537d3c1bdcf50f91f9542613c5023595b99884c0adbc1df72f4de1d5811337f99d6097a55e30585a0e670acf2bb7c0a8a6cfdf33d099a9bb1018a612db10bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="10">
+            <ns2:value>
+              <ns2:long64>115111435</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T19:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>03a8fb7975b3393236e229ae871d98fb5fdb639925a5631c36d74a433626d102a0be825882b78faa021c617a0575fa991d0116028ab0737fc9e4ec83a0f5ce600bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="11">
+            <ns2:value>
+              <ns2:long64>115111388</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T19:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4af5f685fe261eecbf3d8d50ea4faf4f94f92cb65643851ee065ecc4b0f4f9f88f86b8c97606d6aabeee0c18306557aada216d2be37ceb52dcddc38c39045ae80bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="12">
+            <ns2:value>
+              <ns2:long64>115111349</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T19:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2e64a867d16ab06ee64e465439c6c2479eeef368ac2d2f97790610d44336955b132bedf4ff65b5272ee33b65a41897c2ffe3d120f345f286a7a49242c53e1d0e0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="13">
+            <ns2:value>
+              <ns2:long64>115111302</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T19:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>9de7defdd9e0437ae9e1df3c3cd357e713cd9936fb84064b740160e9bae9a3443f63508f465f50a702451140a1c9e4845b2b19526bc29c29a5b7b7f16de346220bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="14">
+            <ns2:value>
+              <ns2:long64>115111264</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T18:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a3e5be833a0e6bde75cce97259ae4978bf2f875ca43b2f92a55455b44a1864c409d16a567e55419ff6f32677897274e5702ba5fa32f2289d5e5342c1795e88d40bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="15">
+            <ns2:value>
+              <ns2:long64>115111224</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T18:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>06622617f8923a4c41399045e2d25438fa91519d031a368f5398cf7b64c56a755a1978ebe377ff4b0447d55c182b04649daf09d6752b3ede5f87b28bb3b29b820bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="16">
+            <ns2:value>
+              <ns2:long64>115111125</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T18:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>35edc626a1c4d1acccb929b5b9e44a36b30a6f3fa215dd81a3b827a7fd0b8fa008e89dc0522b79a96512d2007f02fe0e8e28435cd534b99489853b0a0995270e0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="17">
+            <ns2:value>
+              <ns2:long64>115110361</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T18:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>9aa38bcfb5358f8094b7bf4304608225487d498f6208c06c26affbbfb65c30371f179a1b3a01af50bfd5e830db985944c6573f64ce58fc348d8f95eaa34bbb880bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="18">
+            <ns2:value>
+              <ns2:long64>115108510</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T17:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a1db272d97388ea32a7a5e284c4f1217f0b19d03f81b1b6d1ab2cb79b4340d6b30ecca3d910ce14038e0a81cee710616906924c5a525e4bb03f7c92ce06e41bf0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="19">
+            <ns2:value>
+              <ns2:long64>115106082</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T17:30:04Z</ns2:capture_time>
+            <ns2:smgw_signature>29f31da7fd9bb75c343ac080947f9eec495cd6b044842b6de4acc190c28afcb01fb8296dd41968da93c3c6a293f7393c2d2f6e1dde3a9c8a35bd62878dc88d320bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="20">
+            <ns2:value>
+              <ns2:long64>115105941</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T17:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>36074a16c8e619f82a5662cda95498672fe746d031a746a15c6f940c3c700c68991edf1273f7ab05b104bc15bfae05e21583294e7b06dd0508fbe915cf3925b70bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="21">
+            <ns2:value>
+              <ns2:long64>115105798</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T17:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>44c47e9ab0aeaf969a6f22bb34c19379d68528bba4f1a2aee615333e1a6db54d80c5e1a14083de7873c2ef00a630f62e5c048f3933c8613385d64ebe13976a680bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="22">
+            <ns2:value>
+              <ns2:long64>115105624</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T16:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>530a68bebed0a76d022f10934d69779a2af55b32b96f434edd7699dd1cb33c565c00bbabaed0dc3659616ac915e7b2c6f6589182761d7eb1348744c310576c6b0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="23">
+            <ns2:value>
+              <ns2:long64>115105401</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T16:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1f3680fe73d0dc6fdbec725cc9ae2d7026ae790cc1577828ebe88c6bd1c97bcf129f1eacbc64e2e815ad1752bb95a3e922f3d68a2b8d42bb2416e1d59d6d00ac0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="24">
+            <ns2:value>
+              <ns2:long64>115105257</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T16:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>51288d692e262bdb3d1d3bf675465c527e781897ade7ecb5e52c1062d8549a522a8e550f84dd01bdff85e53886a9bc9f41e759d68fa080d13420dc1a9b5bd5220bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="25">
+            <ns2:value>
+              <ns2:long64>115105082</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T16:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a1ddd76887f5198202701234dcc240af12b88cf54293e09940c2e72484a4618b54f5d0c60f7b0a62e0900f5342f6df3d85203d19be64e761956c1eff6db271bd0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="26">
+            <ns2:value>
+              <ns2:long64>115104929</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T15:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>93b1244f41171842120fdde5dfe6abdb0d58f7a80abb8d0c19f32241ae7301be0f64c507a663aa7ed149a2cb0ccaec2200f15a776ac182cf3efb26fecfd3862a0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="27">
+            <ns2:value>
+              <ns2:long64>115104785</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T15:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>6f9a01f31a49612103fb03f05a029805981872e60a4448292c0090cc9b84a0af3461c13b305eba61759e5a2e075ae0ffacb9d2e48352628a4c9c532063840ef80bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="28">
+            <ns2:value>
+              <ns2:long64>115104746</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T15:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>977515184445edebb7195278d5da25528613f47dd1f4dd1c3513ecc8557c72d92d2d3b03e021aeeb6436940d6642349ebc51efdc56abc3f785eddfd9c5fe989d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="29">
+            <ns2:value>
+              <ns2:long64>115104733</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T15:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>25c289e3a725f5cde2806915644cb6e199eeb694a4c0d03788a6cd237fed344d0e8bc8a8b7be51a8aacb6c2be08d4b96b9ad51e9ab61d6ac38013669e041477f0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="30">
+            <ns2:value>
+              <ns2:long64>115104722</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T14:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>55674c2ae88db03628d0217fc8feaa8f42b5a93605225a10c9e65151c24239274f1810ab2d73d03fd3d5be8d478255a789f28ca6b78c7f8a5c859875f3d026e80bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="31">
+            <ns2:value>
+              <ns2:long64>115104663</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T14:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>5bd45f344504a64060d409532397a88a677a85695abe2558a8da89ac458cd80a5c547cc8b10ae3cf226ff9b56b251e4c37d47e421d20068e174de86ee72e11910bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="32">
+            <ns2:value>
+              <ns2:long64>115104663</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T14:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1287e84221a2a54705d19583d9003c5bd70bc603094b20c2839560e95beaeb339edfc57eb322bf22d96f2a775a8508853e517aa209e060d97c9ef274321bdcaf0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="33">
+            <ns2:value>
+              <ns2:long64>115104663</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T14:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>5ebd64fda96317f65c7c7d09fcae559ec3804ccfcf4cf467dbd4d4ae0c386ebf2875cd22e25890b47f285033ee08263fd7f0fb6a857620af602e0e88f03b42020bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="34">
+            <ns2:value>
+              <ns2:long64>115104663</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T13:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>00558969e91cc6d4542d86c215327c3ba1b295c07f51ff85407bb2da95842ca980985ae75207ed1fe7828326a3140873d8e82d15ee5adf6ad728a4a6aa49ea5d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="35">
+            <ns2:value>
+              <ns2:long64>115104663</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T13:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a1a536519e025e6dfc93f2f1b5c4832baaf5e6202a74e78339c813d3b10ae4595e510ddbda9b1670a521e413b40d6badf0d22af8064364272acc63bf42ee73f20bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="36">
+            <ns2:value>
+              <ns2:long64>115104663</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T13:15:04Z</ns2:capture_time>
+            <ns2:smgw_signature>5774de9b39b14e9d80dcd9c9e4e0d37ebd0c5ef36f2552cc8978fd6b2d6d7f3c0bf7684c48bfd9f705871117bafd733d5a3a5316a2f936e3a845c22576f7a6790bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="37">
+            <ns2:value>
+              <ns2:long64>115104663</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T13:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>51bd6fc63858acb2c0dec914b9c3de052cbcf9626c08041797462352075ced417f99b343300d48b905eaa2090010ea6e9cada182dd0c8c551f3129db23bddfcf0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="38">
+            <ns2:value>
+              <ns2:long64>115104643</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T12:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a1e363c50d440eef11180c77a36150bd89bdbdd7ab93ca574938c9b0df282bc47d159ccf4705fe04d9c026788e8b71640cac74621a3dcef04a248b76a180077e0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="39">
+            <ns2:value>
+              <ns2:long64>115104572</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T12:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>9f7f784a57a18fe1bcd0b17bc0860a3a058d572c44ec84be180529db228362bb87aff169c02e531d55c2e3f95d6e14e371dbe1d7c2f37fc0ef871e01b418ebd30bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="40">
+            <ns2:value>
+              <ns2:long64>115104542</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T12:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a8fb078a1adc042b73a178d4724a66122424eeec793cd6566bd723f385876a6e6c962e688b89c12d53733aa0a4e68ea69827c4faae3b254ac23df2bd956670560bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="41">
+            <ns2:value>
+              <ns2:long64>115104512</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T12:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2d99785b9525a2cd6f20f99625bfd525474e90927795ade250553176c65e82d6105bc1ed3f2dcfaaac3d67b86725d1aba3bd7cfc6eea95180537abd3316839e30bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="42">
+            <ns2:value>
+              <ns2:long64>115104468</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T11:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1a84e5aab7699f4d4762be803c0398c6a736535504f598baa28c34c5807a6e992accd58af90005f4e15040f6205bfba4b8a9ae1df23cdad3d0483fdd9bf4c3810bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="43">
+            <ns2:value>
+              <ns2:long64>115104449</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T11:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2639f4721b430d589f8b77243481391d5d91efbc8e81da9b9d99dec1b12faf27010816773791b237903a7b72735cce9682a6d0bfc00de59068ea7ea3dfd1ec840bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="44">
+            <ns2:value>
+              <ns2:long64>115104449</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T11:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>8c5f8577d9668770f1056a16a2a5e9f0a9f2f69796b6ab7e6fa0141e9b09496035d49f23a3db70215b260cb45c109313c69ea5c0245f98b0cee91aded6d482260bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="45">
+            <ns2:value>
+              <ns2:long64>115104449</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T11:00:04Z</ns2:capture_time>
+            <ns2:smgw_signature>5c40560ab255f534df3249aac97f4758783c382d73cdd54c264c357e07ecf2b472afd5c731b749532ebd103424eb47a6b2a878db0c873b1a13f21f0d836df0be0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="46">
+            <ns2:value>
+              <ns2:long64>115104379</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T10:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a92ab49da1cef9e48b02b5185a20ed96ae9a072da1184023f9a402017bc0a62430a703167814c1a39346eb2ed6ee991b26b1f987f39bb54c53b647832f170de10bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="47">
+            <ns2:value>
+              <ns2:long64>115104367</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T10:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1ab47caa5556a0546ef81d72027ba74238f911f5f72dc967c8fde7379dd5380599dd86a993f52ff2f5d19c92e4d4b8c48a99b034746b6ee5796317a5433ad2610bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="48">
+            <ns2:value>
+              <ns2:long64>115104350</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T10:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4f0f200509d2a4128c0f93cd9704e74cfde57614bd525669430d29477d1ac7d2a489b12c66933dd715f29f504422d1f9de2bcce2b5466240ff7a569ff63126d20bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="49">
+            <ns2:value>
+              <ns2:long64>115104325</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T10:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2b6e53161ef337dbb83ae882a9418f30c844b28eb93f27f9bbc38f59ba2dc8a7007a14cc59eb225c88ae1c9aca5de7967cd2fe0903c71760349d1c80b20d7f650bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="50">
+            <ns2:value>
+              <ns2:long64>115104227</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T09:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>936613b6349be93640ca007a37fc82bbc09c868993c234ecbe8949896a51c09ca39f233ceb45cb5b1e5a44f6dd0a83df3fc5751adefeada2bb7fdf1a884765200bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="51">
+            <ns2:value>
+              <ns2:long64>115104094</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T09:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0eb750545477a790ad6854e19c5db169514b02ab475d706eb3d1081c238d9b6371a2005b15efa5a9da081986497b5c9c227940148ee398782cd5cf79b12f75ef0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="52">
+            <ns2:value>
+              <ns2:long64>115104071</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T09:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>876276eae527aa91aaa6ef8cac081ef643a4d964b6930d74e8b0df215d8a89da6f5a8e9b72977211ea71ed65660500139670aeb8828f7d9244f4ce50851bb4e80bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="53">
+            <ns2:value>
+              <ns2:long64>115104002</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T09:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>46a728243eeb7009de3b99a4118baf7b2c478b8beb537a7481c576ea32f1c68c95712097addeaad4631e1371c8d0395ec0763a1ee2985a72ab2171c784c352b70bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="54">
+            <ns2:value>
+              <ns2:long64>115103874</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T08:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>72f6819a989e2566893e1cd974ad9fb949f2a77cbe82759daf8d32eab6e077e10efb12c3ec9c86af39f2eae6785538347f627d3dcf0cb46727637688ba6aaa650bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="55">
+            <ns2:value>
+              <ns2:long64>115103804</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T08:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>35e52ce70d2d1ea6d249479a5d787b4f434fa19d678cd7dd75fb5775a07983dc38ea88f0584a0838e29e749f5a9f2f6fc3209f308dd263ee3525b6f8f18dc9f00bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="56">
+            <ns2:value>
+              <ns2:long64>115103479</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T08:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>361597009699d65f3fe483155653d7e625d941126411b26a3b8a0820e8286d3415457c4d573c2d5b5f7c0ea205986e3e5e1d79a3bfe29b7e274a56d9cb2c7a6d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="57">
+            <ns2:value>
+              <ns2:long64>115102277</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T08:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>08c4283c785b36d05aedbd0e181de7c7fcb7053c34ccadbd8a13f0e851391c1082c9f8fdd9817bf883a182f05709763f18f80a86add6af9f9d0c88532512c8210bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="58">
+            <ns2:value>
+              <ns2:long64>115100580</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T07:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1126e0aba416125d47bbd9546eb742a78cc01811b995ca55617e1d0abd10258ca9606f30afb520361c9ad2045897625c194bbdd2d04468f31826afeaeaf641cd0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="59">
+            <ns2:value>
+              <ns2:long64>115095949</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T07:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>52e8ecb5669e381c07b21b500b7fe4b367876a96be6ceaeba3cb840bcbf501284efaf1b50f3b1ccbfd399719a07d5ef4f45b9512770725a385941aae237df64e0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="60">
+            <ns2:value>
+              <ns2:long64>115093402</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T07:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>7048c60ed58d70fd3d30ba7df567a2d43a60854d6a10c45f597c1cf6720ffe19182db0b376db6059334a9dcb10c5285159f4b0fd7395763170fc527c7aa327d30bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="61">
+            <ns2:value>
+              <ns2:long64>115090832</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T07:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0ca00fd23d79fe4be105642b5e9ab35089a76ed439f404e13e7ce3ab3a03a2da1028bdbde95b079d9243a559c6bd80e6fb095bb20bf338d056696b3ad19f5f6a0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="62">
+            <ns2:value>
+              <ns2:long64>115084840</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T06:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2ee2a08a242b25400771d3ca0d0b8b28b113ab7397942588cce0613550cd41da546f0689b007cc736de8d878cb926319c0748fc8e2f92b2a67df63bec12bb9ca0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="63">
+            <ns2:value>
+              <ns2:long64>115078789</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T06:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>526d1fadb5c68808e1fd7c1b53d6ce6c974718fcaf997e34f48917d8002a78e5920085e122c27bff4308fea89aefd376cfcdd9234be30e6035a153816f30dbc60bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="64">
+            <ns2:value>
+              <ns2:long64>115072861</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T06:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>7ba40eb49df178f26b07c0f7a6d166e116959f4394cbbc8af9f33deead39dd54805068c0bcbdbbfe5033990f5e12e00538763ca5e7f661d0e0553a9f0d3d7d1e0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="65">
+            <ns2:value>
+              <ns2:long64>115067090</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T06:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>73c451ad3a86c95a66015114e7a382db85025c6669bed06a7c47e068fe66ba9449e7a64055af2f8d12e648dc181ef7ee38b8ac377181825ee63cc286d9378dee0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="66">
+            <ns2:value>
+              <ns2:long64>115061573</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T05:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0e20f29cb9733786a273961c0c71df87c7d60d2c5df8cbad74f3f49994ed37108a829b8e3a8f4416cda91d9b14fc8db32e397effab56405fa4d51ea9817cb8040bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="67">
+            <ns2:value>
+              <ns2:long64>115056165</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T05:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>06d59a378bfb82489f552934de74ec8f07113480b1fffca64c2d0ec0916d4d86484384528045f040fe5c6103c13f4135dc64d536646e192df91fd4629e32be890bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="68">
+            <ns2:value>
+              <ns2:long64>115050666</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T05:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4a95876f3e0e86ee7525913a721a489177c163d6455702c415e35b22f1a2dbc45a22fed93c430da04b1949d0026b9cac36fe5497e16e5d5b92f2fc0aae338afc0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="69">
+            <ns2:value>
+              <ns2:long64>115044778</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T05:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>144850f7fbbb403f04cd2fe26ada51d8f7b0eb7236cbc65a72f401fef811c85d7ff4a80cb6f01db19d841dd5286ae37f60485612c5f93000d300ebd18a42cecf0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="70">
+            <ns2:value>
+              <ns2:long64>115038365</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T04:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>42c7fc36e4d1ab1bc50e8882c0ddb9b638c8026d2b2f19e7c889814a9c77d85aa9d50e66da9f2de59a9b0ff29b0545844a2cc42afd0cf165166dd056b356676c0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="71">
+            <ns2:value>
+              <ns2:long64>115031717</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T04:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a830057244a3cf213ba39672fbe89c23e500aa4413cb127ae9905effb92b97e214f1df6be47764956b649333202c655e28266803dee8fe26f3a05e162a46b5970bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="72">
+            <ns2:value>
+              <ns2:long64>115025320</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T04:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>75a02b741aa98c6704f1b817f417efd7ab885eeab0cb7b92fab9f0aa79ad2e1e9fbb483980cc0612055c233afec4c2697bf871635ea7fa82ac1bd8a9fd3e24270bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="73">
+            <ns2:value>
+              <ns2:long64>115019586</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T04:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>8708b7fa7e8eff15070fa71162b051c1028c3dd614feb8f38e37f6737da2fe9b478a90f33ebc6179a6648336757a3b098f80a91f27752b17e3890a375243c6ec0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="74">
+            <ns2:value>
+              <ns2:long64>115014475</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T03:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a0ad20ef2acefe052630c5e4a594b6be88e546e47c5daa22a4eee0a3abccfea23e5bb48586471146af5dccba524fe447f9fad95af628a1e57062cf1d2259dea60bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="75">
+            <ns2:value>
+              <ns2:long64>115009707</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T03:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4d5e619cb90a9dcfcbd3f53de6f74871b42835f3be9cd30ae110ff2d94de0eb29d6585562b8a659305e14969b4e8535436581312c7958a90b7832884be6644480bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="76">
+            <ns2:value>
+              <ns2:long64>115004700</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T03:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>382b7052045101dadf37f8ffe61c1cb5bf92005219df8cbc3550631491902fec1030a3333805e0b8a698a983dcdb263e138a7cbe29acbd6635e94648df771ba30bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="77">
+            <ns2:value>
+              <ns2:long64>114998988</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T03:00:03Z</ns2:capture_time>
+            <ns2:smgw_signature>8d66cc87a0b4de0ca440e08f6635337d7c9bfc482a4b1d3b73d247ca7471a7be2eb78203f8e8d6c37a443acae5dc4bbecd4ded1b4cdf357ecc46bf198e9d9b470bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="78">
+            <ns2:value>
+              <ns2:long64>114992412</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T02:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2cc9f57d866738a62634a3b508125a13d3a1c8c33c3ee90d6c649b4417468c367cbc4838039e3615c14022072f0ce458733ed6f703ca2c220e5f4cb8ed336cfb0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="79">
+            <ns2:value>
+              <ns2:long64>114985483</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T02:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>3895565f6bde82cf67167f7ca32541070e926afa3a5da6ae684ba0f006c2b33a891e4f0398003a458c3cd58c799be7cf07d289c7742e92bd1c9ff12930eb1f090bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="80">
+            <ns2:value>
+              <ns2:long64>114978691</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T02:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a0e8f8c673b3f5329aacee0c30001430d77d4fbd0c5d3aa7837c7a5f1e9832b14b000ce8504275d01bcd70c14551f999195722555ca6e6766afa8c8876d595f60bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="81">
+            <ns2:value>
+              <ns2:long64>114972488</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T02:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>6ce389aae693b35acb499d6e9f1bd9e7959641c97de7a31b96ad9e44c8823fb401d1aec4d6d7709d832ecc77888ef19afe48ead5669491ad87a372bdc64fdc720bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="82">
+            <ns2:value>
+              <ns2:long64>114966919</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T01:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>134451d4d73c6946448963dda5cd7f7c3f35b23f3820daededbcadc4304618f54d76ba6cd82bef4ce493033dddb8406f85b035dce385a74a90f71ec0cba653d80bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="83">
+            <ns2:value>
+              <ns2:long64>114962038</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T01:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a30edb9ed4076d8e7bdf42a641efaa375f55c44dbda6aeed9146a67acba0e8e3623b69dc6996f1e5e5511e05fb7c8182efef9349ddb278212c1e3c83727544470bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="84">
+            <ns2:value>
+              <ns2:long64>114957309</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T01:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>753808dedd3b047d077a46b14953aeb5e930e766657a2cb07eb533d0614cd25f186ef92fb83dfb280647c85246940c8be27bcf3899515b36f2f4dbda3c82deb60bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="85">
+            <ns2:value>
+              <ns2:long64>114952085</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T01:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>95878325a9982bde540df137fb5ba8186b31e06190e796801f364fc129cf1fc6682c1e2d7b8daaf428aa17c8f66ba3dda99cb904d6be2c93499016394175485c0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="86">
+            <ns2:value>
+              <ns2:long64>114945505</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T00:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>46d6044a970eaa56256193562a6dd7ac303c1fba621fd7d1f27506561246825099606a7ab29579a671a10be6eb58a4c5aa89e88e6a58925a06cfc5ea350f27cc0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="87">
+            <ns2:value>
+              <ns2:long64>114938034</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T00:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2219cbaf35aa66b09ebc7b2d32cae25b6398bcd25b7ea6928765923c327eecdf22d862b128d1dff2ef96b409c826fb29f7d2f319fed822453f2152dba211f8850bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="88">
+            <ns2:value>
+              <ns2:long64>114930162</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T00:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>557e33d602ae8265ee032c0e375d6677c873fb7b1af07d67e80c391464d554b10fc2b81230020ac61db7f7e923f8ffc03c339ef23969fbc36717a40403d8bf310bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="89">
+            <ns2:value>
+              <ns2:long64>114922459</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T00:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>20f99f161eb59f8f9f8610e226dc46a07404e2b2f6a57ddf88e6265a9d67e95a1f84dbf477a4326fd020b7dcdd3681ada4e3c8419485383d46e5818392dbe6aa0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="90">
+            <ns2:value>
+              <ns2:long64>114915869</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T23:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>014aacdf7e38dd6d6e46f7b06fd34a5b143bfec9e8e84d30be9c9a7934a9289e2975bde81364f72d8ea12f1d2ad0f2f0cd8aafb1aaeb23d32adc793c32bf2d020bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="91">
+            <ns2:value>
+              <ns2:long64>114908903</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T23:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>3f4427d86c27569772438db7708e83cbab22c03c3a46801a71ddd2fe6024ec750812af89a96f79f889f901903c3eb07098790801da58acbba2fe7ac297eba7540bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="92">
+            <ns2:value>
+              <ns2:long64>114901694</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T23:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>17e0f2559593c590a49edda9e7e53af2d8aafa927767d9203e445a83ced224c03c95feeb03f463c63cb8e3221c6c5d937e9968964eeb70d13f7d6b5d895fabac0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="93">
+            <ns2:value>
+              <ns2:long64>114894150</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T23:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>07eb792251b306ce6f6a607bd89e221f0151b92ca22e82a7d296020ff7a07f886fa7640a857a61741a72d9c93a47aa9c6c1aeccf9d671141fc9427a46b2e3b640bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="94">
+            <ns2:value>
+              <ns2:long64>114886524</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T22:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a2e4a32380388209fba1985338712ad45bd7b6af609cd81b42a6b12e85dc03016d80fa6ecb934f290b2844919c4dc00ee9e82357017286814b11cd8b39b201b10bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="95">
+            <ns2:value>
+              <ns2:long64>114878422</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T22:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>7ae6c04a5da2c8db4fd91075ff9a238a0b80bd1db94636571f21544ed34bfdaa00aa1750c051a1f9037c1e074a7bf2626007385ad867c5cfa750bae412c793de0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+        </ns1:column>
+        <ns1:column count="95" id="2">
+          <ns1:entry_gateway_signed id="1">
+            <ns2:value>
+              <ns2:long64>76607700</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T22:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>584a933970dd6a05b731ca9fb29285fbb37d544f77fa5acd43f6904438e57dab47c6f213c2792bfcd93fd08309d809f31235f3c4c9dd1db2545c97f0b6ddf71d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="2">
+            <ns2:value>
+              <ns2:long64>76607700</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T21:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>44a1024780ae86d1133836dc3e4d2bca408b7d2dd35517dded31d11380ec39e79e1853a52e43d5699e451e02cbaceaed7b3dd1e8c75d6ac37f56bac388eb8bb90bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="3">
+            <ns2:value>
+              <ns2:long64>76607700</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T21:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1e408e178aeac1ca465c151c48b855750f79a1f6a090ce39abbf68597b0825f246ef4312f57bcf2b6e2c55c18b9ff6668eff95cf652e72df4a0f8021be71842b0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="4">
+            <ns2:value>
+              <ns2:long64>76607700</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T21:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1b03e90ca858502bfdab564b624c16278ac6a8368c30dd330e4496b1282f568a3885643aacfda315a708129c1fa8e74431348b85ed0a71480e6fea87f75c32350bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="5">
+            <ns2:value>
+              <ns2:long64>76607700</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T21:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>55208170431f5dbfffe1e6d22e26bdc28880e22bcc649fe87528b19e12b9f043119e98d8b307ce54e3f60b613d528bdbeed42e4f9b8eeaf75a456a770a62f1e70bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="6">
+            <ns2:value>
+              <ns2:long64>76607700</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T20:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>7f253f67ea1422acc287743501b215aa06d486a0f60819694b8de5bc71081c083945be0664e929979596810cbdad01c5b6f0f825d2f1e16830059ffe2fca89070bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="7">
+            <ns2:value>
+              <ns2:long64>76607700</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T20:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>426c0a002bb2cfaadf5b92994e1f5ffdbb4ee0249fb83231d88a78e918cf8be073e73d78ad54dc227cfed58ec44882c88e76efe499239f6db3870cd63cda8f7f0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="8">
+            <ns2:value>
+              <ns2:long64>76607700</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T20:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>32534baa72882679a5541ebc5e2dc818889d9941170cc26f01100e97b7899a1d8572384c0b983bf3655cc4c5336541a534cc78cbd1b35c9253648ebd098e293a0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="9">
+            <ns2:value>
+              <ns2:long64>76607683</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T20:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>93b05067e604dcec333d73a773b4da746b8231c905052fe898117d086cbc26e1a3271824d272794a71408f6f04775b4152906efb7f73a4e93f5d18f7aebdef1d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="10">
+            <ns2:value>
+              <ns2:long64>76607679</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T19:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>75f6ae69fcc6e06fa8aaeb1de39ae6f8e0dd52efd1e1bbb2fcd04ac8ded13dfb69297c08896758cae69867a52d460515420f4bc7b59b5c299d1e31618bd469d90bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="11">
+            <ns2:value>
+              <ns2:long64>76607677</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T19:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4f7c3bbbb338115e49f20b9a8c8f47b11726879698306d6c23bcf7ebb998eabb4dfa6e0210b92d477fe50e01a599722e216b2eb37a904edf9b71d81549c932aa0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="12">
+            <ns2:value>
+              <ns2:long64>76607677</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T19:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>3e71b408681370a7e06138dc1f904d17d673e78a00067653ff57d229a873a41964417d7079157d88cd5ec990549f2a8a4b96fd78e543f45ecc85f7a50dcc60230bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="13">
+            <ns2:value>
+              <ns2:long64>76607677</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T19:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a1f2672e52ca58475f40cd53477769f1ff39a9aeba106d0603d6f6eee37fd47e23c1be819923d44a8fa4c01d61cd3f16c2803c3ba9d1798e71f0d935a3f847e60bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="14">
+            <ns2:value>
+              <ns2:long64>76607676</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T18:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>12274ef776b2cde25b88282fe741d05e778ff7ed4d8e19aacca50f1956e2e4f2244c635b7011be40bc27bf0685b51ad4441b82a2e2bf4e91f8bf74599d1e4ea60bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="15">
+            <ns2:value>
+              <ns2:long64>76607676</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T18:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>6b71a7ddd361c9606b9e1461ed3d5352edb38fe2d428350be475fcc328a079ee9cb026567f417e51446ae3c84f4162e656484bc7cf151f130a77e110884bcec20bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="16">
+            <ns2:value>
+              <ns2:long64>76607671</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T18:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1a0a581f5280695f009066b346605e53a1d732b5491ec79bad509fe2dfaf88e11ac97cd5b73fe4aa1d5fd1dfe05911d02ba1eec1871755acf8881d1df02f08620bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="17">
+            <ns2:value>
+              <ns2:long64>76607664</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T18:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0e1b1f9a40978d0197f1898a38e6b4cc584e4c42e7bd8e1427cf46747467656f2ee88a00b49db2849f39df621f78d5f0ca442f0aaec4745069d01aa9c029ee830bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="18">
+            <ns2:value>
+              <ns2:long64>76607664</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T17:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>84a3f6ec93ca98a7142266dd2f23b001f10094189e74b278f5ae28d2b495a3be644b73329cb71a3c9bdbb60928e20ae81ae31ece90adf28fc947d28927cd1c5d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="19">
+            <ns2:value>
+              <ns2:long64>76607663</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T17:30:04Z</ns2:capture_time>
+            <ns2:smgw_signature>5db931629dd9468104decf59c786eb2c4472c486127bd089202f99f885c5a8ec10f8b2ffa57a05ab34c67de031db63b3efbf2a887db61c4056ce2a9bac44e7a70bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="20">
+            <ns2:value>
+              <ns2:long64>76607658</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T17:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0ef6f38aa8f973691047f54ed5f173e335940f23cd6fb87cb96033737dda710d599368e1be05629d3f5dd5f78f4c7181817a8f0d824e046d44b249d962dd98d40bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="21">
+            <ns2:value>
+              <ns2:long64>76607652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T17:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0a4ff97e8655a2020208587209f961c36605972c92e6f56d6d3d965bec1813878b2b9ed010c87ba27a94111d8e5475d48eac494d7b0aa6f1e04b14ff54875ef20bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="22">
+            <ns2:value>
+              <ns2:long64>76607628</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T16:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a49935ff96c0a811365e45e4fd1b818d529d191a568de5ee84b5bbb0363a3274879f693ff8752298b4fae39b5e9c2e7a21695ef03547987ae40a47235311e91e0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="23">
+            <ns2:value>
+              <ns2:long64>76607608</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T16:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>109144dc34393cd046e0f802553374f3c2b0d333d3622568883c85bf57059eb08aab337967b5b9a213f49b33694c22d6a41e57d29859cd37c9c7870c129014490bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="24">
+            <ns2:value>
+              <ns2:long64>76607595</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T16:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>066624e1f3dfcc6ae1c90cb70619136dc526ff3744f312c27183f6a6241203981cb43526ee772e5d1ab3479f44ae6042378b41ff5f4c78ea671fc40d56a244820bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="25">
+            <ns2:value>
+              <ns2:long64>76607576</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T16:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>216c28a4cd96db6c086a023f34a816d3826e7c0e1a37d919d7f886b1d5084d074a914ec0a9a78188f06e332e844827e461f4d4984f675512a942900cb85fa0ad0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="26">
+            <ns2:value>
+              <ns2:long64>76607544</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T15:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4d65f3834a78d0fd173f49808fcc50a0f212152b211ae39d9e5967ccd87bab3343772b7eaaa2d403c8a225818ff13a1f3ba115d0ca09142c7932097ea7bdc7410bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="27">
+            <ns2:value>
+              <ns2:long64>76607492</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T15:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>12aea03bc29fb9acf0ea30277eec0230a7ccd3589c7a0defe70533de5f9ffed13fb7e0fcf57c2451e7832a4df57baca635f3c09fa553a571fd21a076ad0e65560bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="28">
+            <ns2:value>
+              <ns2:long64>76606125</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T15:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>7459dd60c8c86996607248e3a11dd6c3587477972c58058586f1ddc3ff866c7b2e51a45c3b9317a83eeb6f42abd0e18674bd4cdf106fccc80d8b6b6f0c5ff3a40bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="29">
+            <ns2:value>
+              <ns2:long64>76603727</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T15:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1a2eb89ccb3a13c86fffd68789748f20b8f22ff68ca89c33bd86283dad1e0700a06d5061a547f2e1a11ef9049f1e19c7cc3499352b94ebc3c5679613f0fb7f700bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="30">
+            <ns2:value>
+              <ns2:long64>76600750</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T14:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>636430f52f2cd2b63ada8358694c011dc27ed8441da3ff3516d0e4aff36a4fb59a838e78c787682a8cc0577bb93cc1f94b357e89a068c1df9d22b9206ec7b6220bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="31">
+            <ns2:value>
+              <ns2:long64>76597441</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T14:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>3867251862682e06d726e8de9393ca7fe9df3dede67914ffd0ce2260922b3938227801191e69625d646fcd65a02490fa0b6fa27ae33a8843f9a8975751f5d5c50bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="32">
+            <ns2:value>
+              <ns2:long64>76585417</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T14:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>61c5dc0e8fc3cbe4205e6cd955536e8ba9cf0d52daab9fa74b58091982c87e3b9bcd4e70b43039ff372d495438a264a093ae3b5477509d227e90f4086e7120390bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="33">
+            <ns2:value>
+              <ns2:long64>76572574</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T14:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>22b6cdfd89c1783d933855ae0f39dcf725eea0599ee75e3a78ec1cddfe4f19aa1579b593267e8ab60271e986c5119590967ddb98eaeb9380ab82f5cbb83a3df50bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="34">
+            <ns2:value>
+              <ns2:long64>76556995</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T13:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>6187e9ba534c09a60c4a32d04cf486e2825073bfd163e9db5792bc6cab65ba9243529134848d59a6bf371546a53cd3f81ad4c3eb9c5d7660fd9e9538bc303d5c0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="35">
+            <ns2:value>
+              <ns2:long64>76538664</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T13:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4032c9c07d040d85d7e9a33f470c1bf5e389d293463ebf42db801aa88f45324e743d5b35a455fe8f409a88be398dee441e2065b59635f8d01c8a26af7695f1530bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="36">
+            <ns2:value>
+              <ns2:long64>76535868</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T13:15:04Z</ns2:capture_time>
+            <ns2:smgw_signature>a751766e349adfa9c6fb170b51ce2fdb15c5418ce22d1b0972825f754f53adb947cf3814e9fe045abb5639e29f0508019a31c771766e2d02b01562528dc65b2a0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="37">
+            <ns2:value>
+              <ns2:long64>76524599</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T13:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>503822809bac756daee4f5552506ac8e9ea3bc3d26e4a711f1b599505a99ef69168e65365256e29c87adc749fbdc058216bc8cede0f3d987b930a73b372891210bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="38">
+            <ns2:value>
+              <ns2:long64>76506672</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T12:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>013370c1a64c4fd92e868a368ba2b048eb2e633a9a49664f87f6a3969398fe44595685ca277b2b4146057e52435b1620cff512ef239a66ad135be44a3297b0eb0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="39">
+            <ns2:value>
+              <ns2:long64>76505580</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T12:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0c6640800395fef97db036423e37edb7f607fb1e9f9cfe2faa58f51e9e9cd4fa0fa07894cb41caf830542aefdf33a94564cacbe559127365168dd11c1f398c540bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="40">
+            <ns2:value>
+              <ns2:long64>76496252</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T12:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>1943799657f650e87322df68664de4a981548d46fc03d8efd5f05ff894b0d15c0da0f45eff309e37b6c17afeefdb96f64dbf03324f59d542a0e4573b8cd1b8130bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="41">
+            <ns2:value>
+              <ns2:long64>76484304</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T12:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4165ea863e66a90a86755bfa94441a9f0e4f06a913f21bea7459d11a91058a6913b8dd3c00318c53e0089b5986193cff70822e77a98a7802f223701f5058bdad0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="42">
+            <ns2:value>
+              <ns2:long64>76479250</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T11:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>12f42a2b4de282e5ae318cb0a8de59f9437000e1149b0f2d3b203211afa499faa1389450babdd6122133a22ccd9e0284f17d33dd7bc93569da4359287a7828150bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="43">
+            <ns2:value>
+              <ns2:long64>76469401</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T11:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>59b4522bcb2ac4ec2e2263bad2767b38f28cf9aee4998ae9fa74710a6787aca576ec5b78eae83d478f67dd4d38998d99c9ee3925c66811c4ac7c30b6662715070bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="44">
+            <ns2:value>
+              <ns2:long64>76452955</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T11:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4e834a49770629a3e5980afec426840307d9fd30006ba860aaddea98e336f69d4d8bc5323bf6be726f96f956b5811a9868d289bf63317d37088df95b4afe7b950bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="45">
+            <ns2:value>
+              <ns2:long64>76435841</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T11:00:04Z</ns2:capture_time>
+            <ns2:smgw_signature>4b58cd85596da712b10f24ae008e91d0bb5871246c1278d74bcd5e16dd5d6954136b30cf5996ddc54f0f67c15639a21edbc19f04177f0405220edecbd591783d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="46">
+            <ns2:value>
+              <ns2:long64>76434182</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T10:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>73438e25b5eb26d42652b6ad613f534ac55483dd37ad150dabc0f74082896e54a2a3952203f5a59e7548b8770c8ce701996e6a62de5da38157bfe749581a84e30bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="47">
+            <ns2:value>
+              <ns2:long64>76419698</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T10:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>31d5b21ab8ebd5a7be55c43d503547d5aaebd7c16f93e75911725b6de2c9c7ce5a9e5b79afda94c58b12928ec38a157dae3f4f63492f858311261fa7dafe1b920bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="48">
+            <ns2:value>
+              <ns2:long64>76409446</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T10:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2517bf8eeab5e4eff90ec0c6e0425d41aef2ea767c3dd8cb4f92c5f0acbacd50a7926a1f5969eb326900e12db9f0342cb40982ad523bb991c9ce0aa3bf0d79620bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="49">
+            <ns2:value>
+              <ns2:long64>76402205</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T10:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>625040c430ecb0d4736931f63f7a2de684ed994f939462457a9951cc0bb36ae80db8e74d8385c2f087eb84080054df546309e26387799d0041b170858c8d4e000bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="50">
+            <ns2:value>
+              <ns2:long64>76401213</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T09:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>249fb0bc031b0e92a29d3a6c6e615a0f796e6bf4e1b8314cdfce9a231b6233469eeab4eab0929a435e22a51cc95eaadcdce5abc7156619dcb22844b25477804a0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="51">
+            <ns2:value>
+              <ns2:long64>76398290</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T09:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>519536438ee8b4919f60e531ae4913024c64727a3fa2b7f267e428a03b7dec602aaaa1b9ec2e33ddf5c3c1b22ec6bad13a38d685d832e19a03829aec0111ffe50bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="52">
+            <ns2:value>
+              <ns2:long64>76392333</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T09:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>3da7480641134e1e0f5d96b66ccb1cebb3a596656f112933f4051205141346c5885f07723affe83b18396af3a76684bdfdc6fdd6fb4fc0a852760e0ca8d377b20bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="53">
+            <ns2:value>
+              <ns2:long64>76389927</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T09:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>3bc094f5f3934b5b9d8033f254331e803212fc17160a1d6219ad5644777fd1e2127d8f28d858b1d8b9e4f1dca1c5aea938b6041dd7aedb36d62d5a78107287680bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="54">
+            <ns2:value>
+              <ns2:long64>76389228</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T08:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>79916aebd68e8497a084e3d79c974e20b72d6bbb56b3d9233b5f07496f8f6bc666779d1f6f77162f8ddd83383a5d2df9387954c7eccd361dfb317e054680b2360bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="55">
+            <ns2:value>
+              <ns2:long64>76388849</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T08:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>8e910ffee86f1786403ee8b3eb544c6726a1b6520e0699ca819b231c5804fdcca6929b5c5a6a9971fa08b0ae3f92d68e9797e3dc8d46acb5c09f6fe6ae3b62330bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="56">
+            <ns2:value>
+              <ns2:long64>76388791</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T08:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>617edf239394df064c0f68bb921561f9eea3c2e49f54da42c13cbd572375b31e6c7f0823277cc214b2f18796d4b4699bfcf639c8fc75cab529419bc7d67a75720bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="57">
+            <ns2:value>
+              <ns2:long64>76388757</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T08:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>122d2f595958bb67304e2e798a10aa8deaa7df55af5c5e7e9f90d01b5ff80a3b4a16702a44648e1c52ac6eb0af96eabdfd2a89bb9e7538f0a9704fa378c2f48b0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="58">
+            <ns2:value>
+              <ns2:long64>76388668</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T07:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>267302c43e73b9836d4a1e8d1253e19b5215da908d7f2c4794074e7164fe8a6680986d3d5f034187bf28576f553becd8b603a36f64191e64d8e6e825415950010bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="59">
+            <ns2:value>
+              <ns2:long64>76388668</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T07:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>5b776357e2729662a0fdcd5827ab9375548bd99126947dcb6e218060383ba52e3d14e81197d22480c44100e2c9b8e62cec8eddb068e94824fa39447bb2ec53fc0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="60">
+            <ns2:value>
+              <ns2:long64>76388668</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T07:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>7e918ccb72a92a261d83fd7991aee0859726409c8db42ef30b95b4e7eb30f7020b3e99156e84e1165ca7aae5f75b87c3fc52093a49845a6cb6c0bc7113eac14a0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="61">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T07:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>5daa5c7e9adf2ea3daceb0f55be67b2c03413cf4067053b8ec140cc261b9d4f609d497d51bd9862cbdc855140eb090993262a79f739c3760ce85b64819e0baa40bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="62">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T06:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>01d18ed79ad77f0a867a95328398189aee14195c68b159d94681c2f52c22d0097274baf4af8ea4d1365bafa3759e6205626ed071c7b845587b895a929837ab270bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="63">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T06:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>5088ceff097d6c675818bc0f7b9d95c61b0028903cf708e007000665f125d260019fe4ec97572f8b3749c7088e3eb750a9123e84f0e0782f1e4a37651b63842d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="64">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T06:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>28187ed19291debbb6341380620828f15556dfe2b1baabb00b893155ab97c934164d097e9e761dbcb2c3062867e5342b0c31241f0c70541d83d6120f5c09d3390bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="65">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T06:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>9a86207977fbd03f00bc90e39e750f768efdcbe0573f33ec378c3c4ef52a8a732d5ed1b61b334b0c61187deedc4308359f3d65ea3792a38170092c790a41ad900bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="66">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T05:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0b4c5ca5406d9fcfff891724175ae2221e77e2308f19021533f33fc3fdd1e89040c9696f367214a0cdbe769babc226297028c2c08c7a37ede3379109ba2146070bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="67">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T05:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>61fa2a3750b73c6f7cb83a9c5501556cf865e36fb75e9089f01d67b4dc3e593d80d8a0a801e017c3ef8ce0587ee1d904310863edb9c0147d780fb61e9c5902340bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="68">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T05:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>01a0d2e1976cdcc94c4c8e8a26b331fefb7bae3569201c5bb759f450d14d430140d263e185a5462d09053c595e5db6b0e1f46ab7ab8598150d29ecb92375ba070bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="69">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T05:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>8675a32212bbb128af545c4d72984a26402f6491e31469bef47e7aceebc4689272b9fde1eac9d744555bb4fdbf97e7067f15ec83dcbc7439578cbae681cc009c0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="70">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T04:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>231e373fd930038a7cb6c4aeacf891d21e37e50bde763dbfe54f4d3c33a18d4f6c30592b757f6535b951bf505fafe8f47d70efffa66ffd505b9c152dd5f9145c0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="71">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T04:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>65caf70514a94f4c2fec09e0dc5c7b7686e5ecdde544962a58f46f046a931b96711076556e615d796972d89e9aa7ea89de040ce5d58905dad33868a82d5ba0b00bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="72">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T04:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0dc02731b4c646a7094c158febea59cf9cbcf87599d81bb87cf39a8a247beed18bd8cee7c015d08ca6e263712cd1840f06886b36e2655602f5592abd66841fc60bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="73">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T04:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0a012d2a7058de759fb236d7274675ce049ea221bef5084e396438b016e52d4b5c35143b95cdcf6385ea74d52e3eb26e5088261213935933abb88b974da1db800bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="74">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T03:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>59d2cf4e7f582f62840750f8e1f7b13749c6e1be49a77522d55c1d8fc372ff0c58d993bf1771974846f3a667b65eec63e2f1956208e385631d14eb11a831a0730bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="75">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T03:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4ba2b8e0b526653e1e5f66a84ea2796fe67fbdea720446617de132521df0e6323962d00fd5ff7e0e151a390f74d34d66d380c5e4d927f81a52f15863d5ddd5ac0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="76">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T03:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>6690f7681cba7eccbbde02af47c3f4f7585da0580cde9681ac6f77f4b912315f2ce78b6f5dd2cc1953d0b7018e437896a33c04d8f9632f4452ba49715543e3200bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="77">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T03:00:03Z</ns2:capture_time>
+            <ns2:smgw_signature>2ad8acb54ea8b367b98c7cb0f27efb4a00dfe9837e2421b2eb588a4ec6e03e133e71fa1c5b33473267132a5c3a077fe7d7e7593e3394155f98e7d6eed6e580d30bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="78">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T02:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>881109761dfd26d278b15986037a00a09758e788dcb55176e0c1779b794eee835bed4e479ce02721a17719cc3619e0fe00e3d507b4708248d492049b7f8b4d9b0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="79">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T02:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>2fb9cffa9df4d6e2ae366ca98da390243cde4c70f1bc27f78f47744ce995d49f3bc693022ec1bbbb6ecefa07b3202adce332098f529cd34778ccba577cc06fe90bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="80">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T02:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>33b0bfa80062fcd527de829ac7a3dc19a43048eeaf5f7c9c5a9b166ca3dd1e4f56e937fdca3f3e438d00cf71031f21e81aaea1d5ab100fc26cb3ada2ac98267f0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="81">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T02:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>3d842f053d4496956e56fc20a6ed26a9bb45448a07c60ea5e247081b650444310b770549a42a6bf88f9234cc41d7163d5bf4069adfcc0e59c25b8a632b39acda0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="82">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T01:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>6e595effe3627e56e3f25b355c780bfa3170b017b62ffbd9c80a2a47909d099a5afb522e075c44a74ef40f6f6317c6256dd617661c071261abd97e23ffc447590bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="83">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T01:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>3e1b6a73af5bf3aca492f6962f97dbbfd373481e065a6562069060db9668342b1bb439d717e4f3de80ef2604ee6e377ab3bc76e874a1a75a2ba8d59d66e425570bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="84">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T01:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>a96cfb8cf55bc355da688dac0dc8be49080e4c6fd75966d2c9752c510a6b8f558b711e4d9e818abb8a5e4e10e72d42812eb07ce22953ae526c513c09fb07a59d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="85">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T01:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>45751792938cc4fc1420485a5af30420ccee153af90b68b1f59087d5770f3e409db29da4a797d780c25ecae716a9938a81a5e65273bd7fb9d4f0b324eb63b8640bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="86">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T00:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>4292cf90a8b1a06436f4144e62a4d917a430985576b92c9433c50baa77419e3d0b249d7c24a837246d74404c1920392d30b34f37c3d63929e4742acc77027d340bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="87">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T00:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>0cda3363e00d4b8199029dee02fe9b40abb321b5ddc4f2f36fa674cd77f6c6c35aa2c9a3d3d30e4856c4ca1491b4a776f87d018722f7d821e375d70b466004f30bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="88">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T00:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>10345cefacfd0d506286178b0b3ee70f44f2879946e11d02002691f43e08db0b40810cb2ccd0fddd9b59e94e8fdbd826618498e391836f0dbde4ebce38ac846e0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="89">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-29T00:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>39e3973c13beb1e4566489dd29634926f028fd423c4dc3c00cfd8f7f8af395ef64c66858251d2191fd6d6808ff09364d2e927927a83328ccbc99c70dedb690580bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="90">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T23:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>6b7a61da37a0fccaf7f20a59c166c224f40f9434321ab6b0cd8e006563f129dc92e66f7f31d7bb6780125d0070d0b97247755b14150af7e387422f51ad8af6350bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="91">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T23:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>05a5bf2c75f2d67664844f1d8704ccd60a50302a5d2b850009668cd33ef0071f709066982ed2fff0cb9b6084624d84be843afc80867f995d943354edf35931500bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="92">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T23:15:01Z</ns2:capture_time>
+            <ns2:smgw_signature>66ea0668c1283e6c336b9a3b21f36f8942e768613348e3dcdc1273ee3d8c113575d96339c0d19e907dd22619494a5454019235bc38e08780518eebf14943109f0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="93">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T23:00:01Z</ns2:capture_time>
+            <ns2:smgw_signature>53e61b76736d8725d6f5a0067e5355899b87f16e241a1eb170df3e180bcf9134a4af49069c3a59fc3253d6436c461eee0cb7cb8a3b6e6dca79eaeed8a3950daf0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="94">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T22:45:01Z</ns2:capture_time>
+            <ns2:smgw_signature>98c12804ffb53cac30b9e53738dab92acb2b60eb6c6c2a35cc2cd17cc1c318613ad50192f6fc1f6de7fcd4178812f32ec8f357543fe181816ef07a584ea2382d0bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+          <ns1:entry_gateway_signed id="95">
+            <ns2:value>
+              <ns2:long64>76388652</ns2:long64>
+            </ns2:value>
+            <ns2:scaler>-1</ns2:scaler>
+            <ns2:unit>30</ns2:unit>
+            <ns2:status>
+              <ns2:unsigned>0</ns2:unsigned>
+            </ns2:status>
+            <ns2:capture_time>2026-03-28T22:30:01Z</ns2:capture_time>
+            <ns2:smgw_signature>68fca8cfb10d5990c6cf66ae3d8fadb1a08c9d15591da9858280f3c7512c97f05e427542c74518591b1ec52d7a49f6da76e95674973d573a805176a4d92570860bdb7dfcf502e0b2b8db24578a320729812cb67b889eec24be0b6b50e8880bb414d62b88358cadf9c162b55cafced52b36d54e37e1fc0ec1d44338b15002ea5a</ns2:smgw_signature>
+          </ns1:entry_gateway_signed>
+        </ns1:column>
+       </ns1:simple_data>
+    </ns1:buffer>
+  </ns1:attributes>
+</ns1:object>†Çe0Ça0Ç†=í'x?]˜*0
+*ÜHŒ=0M10UT-Systems-EnergyCA.CA10U
+	SM-PKI-DE10	UDE1
+0U40250321154047Z270321235959Z0f10UEPPC0215990320.SMGW10U
+	SM-PKI-DE10UAUXILIUS.GWA.PKI10	UDE1
+0U10Z0*ÜHŒ=	+$B €}¸ı‡≤∏€$Wä2)Å,∂{àûÏ$ækPËà¥÷+à5å≠˘¡bµ\ØŒ’+6’N7·¸¡‘C8±PÍZ£Çµ0Ç±0U#0Äs‡Yº£"Óv&~süπ]€Ñœ≤0UÇDb…GpásìO∂Ù≤øO¸˙To0UˇÄ0=U 60402	+ΩG$0%0#+www.telesec.de/energyca0FU?0=ÅEnergyCA_Support@telekom.deÜhttp://www.telesec.de/energyca0Uˇ0 0Å…UÅ¡0Åæ0Åª†Å∏†ÅµÜ?http://crl.energyca.telesec.de/rl/T-Systems-EnergyCA.CA_SN4.crlÜrldap://ldap.energyca.telesec.de/serialnumber=4,CN=T-Systems-EnergyCA.CA,O=SM-PKI-DE,C=DE?CertificateRevocationList0
+*ÜHŒ=H 0E! ë=È¡y?π∫S¿®Ee∏C9ñN"‚è"ŸÇ‰úCä`À Îq‘⁄-™◊ß˜ô O’©Ô˙,ÍRé8afr7Ûè1ÅË0ÅÂÄÇDb…GpásìO∂Ù≤øO¸˙To0	`ÜHe†i0	*ÜHÜ˜	1	*ÜHÜ˜0	*ÜHÜ˜	1260928231533Z0/	*ÜHÜ˜	1" r¶·˙Ç¥˝ËXO~£&ˇéã5ãµ∂∂w¬∫¨ï0
+*ÜHŒ=F0D 6eBûÀ„Å∆∆Ê`rg_yﬂ÷Yû‡ÓafËÃ\Rmf¿ $$#pW2∏˜u¿&æÅ˝˝ˆñ	∆Q1Æ
+uso«

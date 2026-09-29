@@ -7,7 +7,8 @@ import logging
 import re
 import urllib.parse
 from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 import httpx
 from bs4 import BeautifulSoup
@@ -140,6 +141,70 @@ def find_closest_value(
     """Value of the reading closest to ``target_dt`` (see find_closest_reading)."""
     reading = find_closest_reading(meter_readings, target_dt, tolerance_minutes)
     return reading.value if reading else None
+
+
+# German legal time (MEZ/MESZ). Reading timestamps are naive wall-clock times
+# in it, and tariff switch times describe a normalized day in it (BDEW UTILTS
+# AHB "Definitionen"), so the two DST days need an explicit rule.
+_LEGAL_TZ = ZoneInfo("Europe/Berlin")
+
+
+def _is_nonexistent(local: datetime) -> bool:
+    """True if the naive wall-clock time was skipped by the spring change."""
+    aware = local.replace(tzinfo=_LEGAL_TZ)
+    return aware.astimezone(UTC).astimezone(_LEGAL_TZ).replace(tzinfo=None) != local
+
+
+def _is_repeated(local: datetime) -> bool:
+    """True if the naive wall-clock time occurs twice (autumn change)."""
+    aware = local.replace(tzinfo=_LEGAL_TZ)
+    return aware.replace(fold=0).utcoffset() != aware.replace(fold=1).utcoffset()
+
+
+def find_boundary_reading(
+    meter_readings: list[MeterReading],
+    target_dt: datetime,
+    tolerance_minutes: int = 7,
+) -> MeterReading | None:
+    """Resolve a tariff boundary given as a wall-clock time in legal time.
+
+    Identical to :func:`find_closest_reading` on every ordinary day. On the
+    two DST days a boundary inside 02:00-03:00 needs a rule:
+
+    - Spring (clocks jump from 02:00 to 03:00): the boundary's wall-clock time
+      never occurs, so there is no reading for it. It takes effect at the
+      jump, i.e. at the first wall-clock time after the gap (03:00).
+    - Autumn (clocks go back from 03:00 to 02:00): the wall-clock time occurs
+      twice and two readings share the same naive timestamp. The first pass
+      wins ("2A" in PTB terms) - the first moment the clock shows that time.
+      The import register is cumulative, so the lower value is the earlier
+      reading; this holds whatever order the HTML table or the CMS export
+      lists the rows in.
+    """
+    probe = target_dt
+    for _ in range(8):  # the German gap is one hour, i.e. four grid steps
+        if not _is_nonexistent(probe):
+            break
+        probe += timedelta(minutes=15)
+    if probe != target_dt:
+        return find_closest_reading(meter_readings, probe, tolerance_minutes)
+
+    if not _is_repeated(target_dt):
+        return find_closest_reading(meter_readings, target_dt, tolerance_minutes)
+
+    window = timedelta(minutes=tolerance_minutes)
+    candidates = [
+        r for r in meter_readings if abs(r.timestamp - target_dt) <= window
+    ]
+    if not candidates:
+        return None
+    if len(candidates) == 1:
+        _LOGGER.warning(
+            "Only one reading near %s, which occurs twice on the DST change "
+            "day; it cannot be told which pass it belongs to, using it as is",
+            target_dt,
+        )
+    return min(candidates, key=lambda r: r.value)
 
 
 class SmgwClient:
@@ -806,7 +871,7 @@ class SmgwClient:
         # Resolve each boundary reading (the full MeterReading, so we keep the
         # gateway's validity flag alongside the value).
         import_rs = [
-            find_closest_reading(import_readings, bt) for bt in boundary_times
+            find_boundary_reading(import_readings, bt) for bt in boundary_times
         ]
         export_a_r = find_closest_reading(export_readings, boundary_times[0])
         export_c_r = find_closest_reading(export_readings, boundary_times[-1])

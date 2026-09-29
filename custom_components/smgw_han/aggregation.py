@@ -15,7 +15,12 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from .const import OBIS_EXPORT, OBIS_IMPORT
-from .smgw_client import MeterReading, TariffZones, find_closest_reading
+from .smgw_client import (
+    MeterReading,
+    TariffZones,
+    find_boundary_reading,
+    find_closest_reading,
+)
 
 
 @dataclass
@@ -111,7 +116,7 @@ def build_daily_summary(
         )
 
         boundary_rs = [
-            find_closest_reading(import_readings, bt) for bt in boundary_times
+            find_boundary_reading(import_readings, bt) for bt in boundary_times
         ]
         boundary_vals = [r.value if r else None for r in boundary_rs]
         export_start = find_closest_reading(export_readings, boundary_times[0])
