@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
+import math
 import re
 import urllib.parse
 from dataclasses import dataclass, field
@@ -22,6 +24,23 @@ _LOGGER = logging.getLogger(__name__)
 # clamped to 0. A delta below -NEGATIVE_TOLERANCE_KWH is real data corruption
 # (meter swap/reset, mis-attributed reading) and rejects the whole day.
 NEGATIVE_TOLERANCE_KWH = 0.001
+
+# Consumer-log export (action=exportLogData). The gateway refuses a range with
+# more entries than this and names the count instead of sending a file: "Die
+# Abfrage liefert 1260 Datensätze zurück. Es sind nur 1000 erlaubt." (PPC
+# handbook p. 51; reproduced on a real gateway 2026-10-01). The on-screen log
+# view (action=log) has no such limit, only the export does.
+LOG_EXPORT_MAX_ENTRIES = 1000
+# Splitting aims below the limit: equal time slices hold equal numbers of
+# entries only on average, and the log grows while the export runs (every
+# login, including this one, writes an entry).
+LOG_EXPORT_TARGET_ENTRIES = 900
+# Ceiling for gateway requests in one log export. A year with a polling client
+# logging in every 10 minutes holds ~50,000 entries, i.e. ~60 exports plus a
+# few refused attempts; anything far beyond that is a runaway, not a log.
+LOG_EXPORT_MAX_REQUESTS = 200
+
+_LOG_COUNT_RE = re.compile(r"liefert\s+(\d+)\s+Datens", re.IGNORECASE)
 
 
 class SmgwClientError(Exception):
@@ -54,6 +73,81 @@ class SmgwNoDataError(SmgwClientError):
 
 class SmgwParseError(SmgwClientError):
     """HTML parsing error."""
+
+
+class SmgwLogLimitError(SmgwClientError):
+    """A log range could not be split into pieces the gateway will export.
+
+    Raised when more than :data:`LOG_EXPORT_MAX_ENTRIES` entries share a
+    single second, or when the export would need more than
+    :data:`LOG_EXPORT_MAX_REQUESTS` gateway requests.
+    """
+
+
+@dataclass
+class LogChunk:
+    """One signed log export as delivered by the gateway."""
+
+    from_dt: datetime  # naive local time, as sent in the request
+    to_dt: datetime
+    content: bytes
+
+
+@dataclass
+class LogExportResult:
+    """Everything one (possibly split) log export brought back."""
+
+    chunks: list[LogChunk]
+    # Ranges the gateway refused as too large, with the entry count it named.
+    # Their entries must all turn up in the chunks they were split into.
+    refused: list[tuple[datetime, datetime, int]]
+    requests: int
+
+
+def classify_log_export(content: bytes) -> tuple[str, int | None]:
+    """Tell what the gateway sent back for an ``exportLogData`` request.
+
+    Returns ``("cms", None)`` for a signed export, ``("too_many", n)`` when
+    the gateway refused the range for holding ``n`` entries, ``("empty",
+    None)`` for a range without entries, and ``("unknown", None)`` otherwise.
+
+    Decided by content, not by HTTP status: the refusal arrives as a bare text
+    page whose status was never captured, and the meter-value export answers
+    "no data" with an HTTP 500. The text is HTML-escaped once or twice
+    ("Datens&auml;tze" was shown literally in the browser), so it is unescaped
+    before matching.
+    """
+    if not content.strip():
+        return "empty", None
+    if content[:1] == b"\x30" and b"<?xml" in content:  # DER SEQUENCE + payload
+        return "cms", None
+    text = html.unescape(html.unescape(content.decode("utf-8", "replace")))
+    match = _LOG_COUNT_RE.search(text)
+    if match:
+        return "too_many", int(match.group(1))
+    if "Keine Daten vorhanden" in text:
+        return "empty", None
+    return "unknown", None
+
+
+def _visible_text(content: bytes, limit: int = 200) -> str:
+    """The readable text of a gateway answer, for the log.
+
+    Tags are dropped before anything is logged, which also drops the session
+    token: the gateway's pages carry it only as an attribute value
+    (``<input name="tkn" value="...">``).
+    """
+    text = re.sub(r"<[^>]*>", " ", content.decode("utf-8", "replace"))
+    text = " ".join(html.unescape(html.unescape(text)).split())
+    return text if len(text) <= limit else text[:limit] + " …"
+
+
+@dataclass
+class _LogExportState:
+    chunks: list[LogChunk] = field(default_factory=list)
+    refused: list[tuple[datetime, datetime, int]] = field(default_factory=list)
+    requests: int = 0
+    relogins_left: int = 1
 
 
 @dataclass
@@ -338,18 +432,8 @@ class SmgwClient:
         parse a CSRF token from the body. All httpx exceptions are wrapped into
         SmgwClientError subtypes.
         """
-        if not self._token:
-            raise SmgwClientError("Not logged in - no CSRF token available")
-
-        client = await self._get_client()
-        post_data = {"tkn": self._token, **data}
-
+        response = await self._send(data)
         try:
-            response = await client.post(
-                self._base_url,
-                data=post_data,
-                auth=httpx.DigestAuth(self._username, self._password),
-            )
             response.raise_for_status()
         except httpx.HTTPStatusError as err:
             # The CMS export endpoint answers with an HTTP error for a range it
@@ -358,6 +442,31 @@ class SmgwClient:
             raise SmgwServerError(
                 f"HTTP error: {err.response.status_code}"
             ) from err
+
+        filename = self._parse_content_disposition_filename(
+            response.headers.get("content-disposition")
+        )
+        return response.content, filename
+
+    async def _send(self, data: dict) -> httpx.Response:
+        """POST with the current session and return the response unchecked.
+
+        Transport errors are wrapped into SmgwClientError subtypes; the HTTP
+        status is left to the caller. The log export needs the body of an
+        error answer too, because the gateway names the entry count there.
+        """
+        if not self._token:
+            raise SmgwClientError("Not logged in - no CSRF token available")
+
+        client = await self._get_client()
+        post_data = {"tkn": self._token, **data}
+
+        try:
+            return await client.post(
+                self._base_url,
+                data=post_data,
+                auth=httpx.DigestAuth(self._username, self._password),
+            )
         except (httpx.ConnectError, httpx.RemoteProtocolError) as err:
             raise SmgwConnectionError(
                 f"Connection lost during request: {err}"
@@ -370,11 +479,6 @@ class SmgwClient:
             raise SmgwConnectionError(
                 f"Request error: {err}"
             ) from err
-
-        filename = self._parse_content_disposition_filename(
-            response.headers.get("content-disposition")
-        )
-        return response.content, filename
 
     @staticmethod
     def _parse_content_disposition_filename(
@@ -834,6 +938,124 @@ class SmgwClient:
             return content, filename
         finally:
             await self._logout()
+
+    async def async_export_log(
+        self, from_dt: datetime, to_dt: datetime
+    ) -> LogExportResult:
+        """Download the signed consumer log for a range, split as needed.
+
+        The log belongs to the login, not to a meter, so no meter is selected.
+        A range the gateway refuses as too large is cut into equal time slices
+        sized by the count it names, recursively, until every slice is
+        accepted. Everything runs in one session: each login writes an entry
+        into the very log being exported.
+        """
+        async with self._lock:
+            return await self._export_log_locked(from_dt, to_dt)
+
+    async def _export_log_locked(
+        self, from_dt: datetime, to_dt: datetime
+    ) -> LogExportResult:
+        """Body of :meth:`async_export_log`, run under ``self._lock``."""
+        if from_dt >= to_dt:
+            raise SmgwClientError("from_dt must be before to_dt")
+
+        state = _LogExportState()
+        try:
+            await self._login()
+            await self._export_log_range(
+                from_dt.replace(microsecond=0), to_dt.replace(microsecond=0), state
+            )
+        finally:
+            await self._logout()
+        _LOGGER.info(
+            "Log export %s .. %s: %d file(s) in %d request(s), %d range(s) "
+            "refused as too large",
+            from_dt, to_dt, len(state.chunks), state.requests, len(state.refused),
+        )
+        return LogExportResult(
+            chunks=state.chunks, refused=state.refused, requests=state.requests
+        )
+
+    async def _export_log_range(
+        self, from_dt: datetime, to_dt: datetime, state: _LogExportState
+    ) -> None:
+        """Export one range, or split it and recurse (chronological order)."""
+        kind, count, content = await self._request_log_export(
+            from_dt, to_dt, state
+        )
+        if kind == "unknown" and state.relogins_left > 0:
+            # The likeliest cause of an unexpected answer midway is an expired
+            # session; one fresh login is cheap, a loop of them is not.
+            state.relogins_left -= 1
+            _LOGGER.debug("Unexpected log export answer, logging in again")
+            await self._login()
+            kind, count, content = await self._request_log_export(
+                from_dt, to_dt, state
+            )
+        if kind == "cms":
+            state.chunks.append(LogChunk(from_dt, to_dt, content))
+            return
+        if kind == "empty":
+            return
+        if kind == "unknown":
+            snippet = content[:200].decode("utf-8", "replace")
+            raise SmgwClientError(
+                f"Unexpected answer to the log export {from_dt} .. {to_dt}: "
+                f"{snippet!r}"
+            )
+
+        state.refused.append((from_dt, to_dt, count or 0))
+        span = int((to_dt - from_dt).total_seconds())
+        pieces = min(
+            max(2, math.ceil((count or 0) / LOG_EXPORT_TARGET_ENTRIES)), span
+        )
+        if pieces < 2:
+            raise SmgwLogLimitError(
+                f"{count} log entries between {from_dt} and {to_dt}; the range "
+                f"cannot be split any further"
+            )
+        bounds = [
+            from_dt + timedelta(seconds=span * i // pieces) for i in range(pieces)
+        ] + [to_dt]
+        _LOGGER.debug(
+            "Gateway refused %s .. %s (%s entries), splitting into %d",
+            from_dt, to_dt, count, pieces,
+        )
+        for start, end in zip(bounds, bounds[1:]):
+            await self._export_log_range(start, end, state)
+
+    async def _request_log_export(
+        self, from_dt: datetime, to_dt: datetime, state: _LogExportState
+    ) -> tuple[str, int | None, bytes]:
+        """One ``exportLogData`` request, classified (see classify_log_export)."""
+        if state.requests >= LOG_EXPORT_MAX_REQUESTS:
+            raise SmgwLogLimitError(
+                f"Log export needs more than {LOG_EXPORT_MAX_REQUESTS} requests"
+            )
+        state.requests += 1
+        response = await self._send(
+            {
+                "action": "exportLogData",
+                "from": from_dt.strftime("%Y-%m-%d %H:%M:%S"),
+                "to": to_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        )
+        kind, count = classify_log_export(response.content)
+        # Anything but a signed file is logged at INFO with what the gateway
+        # actually said: how it answers an empty range was never observed,
+        # and the status of a refusal was never captured.
+        _LOGGER.log(
+            logging.DEBUG if kind == "cms" else logging.INFO,
+            "exportLogData %s .. %s -> %s%s (HTTP %s, %s, %d bytes): %s",
+            from_dt, to_dt, kind,
+            f" {count}" if count is not None else "",
+            response.status_code,
+            response.headers.get("content-type", "no content type"),
+            len(response.content),
+            "" if kind == "cms" else _visible_text(response.content),
+        )
+        return kind, count, response.content
 
     def _process_readings(
         self,

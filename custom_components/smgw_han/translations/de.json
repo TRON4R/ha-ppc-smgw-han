@@ -80,7 +80,8 @@
           "settings": "Einstellungen ändern",
           "tariff_template": "Tarifzonen aus Vorlage setzen",
           "schedule_zones": "Tarifzonen-Umschaltung planen (Jahreswechsel, Tarifwechsel)",
-          "export": "SMGW-Daten für einen wählbaren Zeitraum exportieren"
+          "export": "SMGW-Daten für einen wählbaren Zeitraum exportieren",
+          "log_export": "SMGW-Logdaten exportieren (Menüpunkt „Logs“)"
         }
       },
       "tariff_template": {
@@ -143,6 +144,27 @@
           "from_datetime": "Von",
           "to_datetime": "Bis"
         }
+      },
+      "log_export": {
+        "title": "SMGW-Logdaten exportieren",
+        "description": "Lädt die Meldungen aus dem Menüpunkt „Logs“ des SMGW herunter. Wähle einen Zeitraum und welche Dateien erzeugt werden sollen; im nächsten Schritt kannst du den Zeitraum noch anpassen.\n\nDas SMGW gibt höchstens 1000 Einträge pro Abruf heraus. Größere Zeiträume teilt die Integration automatisch auf: Die signierten CMS-Originale kommen dann gemeinsam in eine ZIP-Datei, CSV und Excel bleiben je eine Datei.",
+        "data": {
+          "period": "Zeitraum",
+          "download_cms": "Signierte CMS-Datei(en) downloaden",
+          "write_csv": "CSV erzeugen",
+          "write_xlsx": "Excel (XLSX) erzeugen"
+        },
+        "data_description": {
+          "period": "„Alles“ beginnt am 01.01.2020 und holt alles, was das SMGW noch gespeichert hat."
+        }
+      },
+      "log_export_dates": {
+        "title": "Zeitraum bestätigen",
+        "description": "Passe den Zeitraum bei Bedarf an und sende ab, um den Abruf zu starten. Große Zeiträume brauchen mehrere Teilabrufe und können einige Minuten dauern.",
+        "data": {
+          "from_datetime": "Von",
+          "to_datetime": "Bis"
+        }
       }
     },
     "error": {
@@ -165,10 +187,19 @@
       "zone_times_not_ascending": "Die Umschaltzeiten müssen innerhalb des Tages strikt aufsteigend sein.",
       "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster).",
       "schedule_date_invalid": "Bitte ein Datum für die Umschaltung wählen.",
-      "schedule_date_not_future": "Das Datum muss in der Zukunft liegen. Wenn die Zonen sofort gelten sollen, nutze stattdessen „Einstellungen ändern“."
+      "schedule_date_not_future": "Das Datum muss in der Zukunft liegen. Wenn die Zonen sofort gelten sollen, nutze stattdessen „Einstellungen ändern“.",
+      "log_no_entries": "Das SMGW-Log enthält für den gewählten Zeitraum keine Einträge.",
+      "log_split_limit": "Der Zeitraum enthält zu viele Einträge, um ihn automatisch aufzuteilen. Bitte einen kürzeren Zeitraum wählen.",
+      "log_export_failed": "Der Abruf der Logdaten ist fehlgeschlagen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen."
     },
     "abort": {
-      "export_done": "Export erstellt.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
+      "export_done": "Export erstellt.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit.",
+      "log_export_done": "{count} Logeinträge exportiert.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit.",
+      "log_export_done_split": "{count} Logeinträge exportiert. Das SMGW gibt höchstens 1000 Einträge pro Abruf heraus, deshalb wurde der Zeitraum in {parts} Teilabrufe zerlegt. Die signierten CMS-Originale liegen einzeln in der ZIP-Datei; CSV und Excel enthalten alle Einträge.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit.",
+      "log_export_incomplete": "{count} Logeinträge exportiert, in {parts} Teil(en). Achtung: Die Vollständigkeitsprüfung hat Auffälligkeiten gefunden – Details im Blatt „Info“ der Excel-Datei und im Home-Assistant-Protokoll. Bitte den Zeitraum erneut exportieren.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
+    },
+    "progress": {
+      "log_export": "Die Logdaten werden vom SMGW abgerufen. Große Zeiträume brauchen mehrere Teilabrufe und können einige Minuten dauern. Bitte dieses Fenster offen lassen – Schließen bricht den Abruf ab."
     }
   },
   "entity": {
@@ -266,6 +297,16 @@
         "current_month": "Aktueller Monat (bisher)",
         "last_month": "Letzter Monat"
       }
+    },
+    "log_period": {
+      "options": {
+        "yesterday": "Gestern",
+        "last_7_days": "Letzte 7 Tage",
+        "last_30_days": "Letzte 30 Tage",
+        "current_month": "Aktueller Monat (bisher)",
+        "last_month": "Letzter Monat",
+        "all": "Alles, was das SMGW noch gespeichert hat"
+      }
     }
   },
   "exceptions": {
@@ -304,6 +345,15 @@
     },
     "cms_download_failed": {
       "message": "Der SMGW-Export konnte nicht heruntergeladen werden. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen."
+    },
+    "log_no_entries": {
+      "message": "Das SMGW-Log enthält für den gewählten Zeitraum keine Einträge."
+    },
+    "log_split_limit": {
+      "message": "Der Zeitraum enthält zu viele Einträge, um ihn automatisch aufzuteilen. Bitte einen kürzeren Zeitraum wählen."
+    },
+    "log_download_failed": {
+      "message": "Die SMGW-Logdaten konnten nicht heruntergeladen werden. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen."
     }
   },
   "issues": {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from datetime import date, datetime
@@ -64,6 +65,7 @@ from .const import (
     ZONE_TIME,
 )
 from . import gateway_lock, zone_schedule
+from .log_export import LOG_PERIOD_PRESETS, log_period_range, run_log_export
 from .services import (
     PERIOD_PRESETS,
     _period_range,
@@ -650,6 +652,14 @@ class SmgwOptionsFlow(OptionsFlow):
         # Zones from a template menu; prefills the settings form for review.
         # None means "keep the stored zones" (the normal settings path).
         self._template_zones: list[dict[str, str]] | None = None
+        # Log export: choices, the running download (progress step), and its
+        # outcome — a result for the final step or an error key for the form.
+        self._log_input: dict[str, Any] = {}
+        self._log_from: datetime | None = None
+        self._log_to: datetime | None = None
+        self._log_task: asyncio.Task[dict[str, Any]] | None = None
+        self._log_result: dict[str, Any] | None = None
+        self._log_error: str | None = None
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -673,6 +683,7 @@ class SmgwOptionsFlow(OptionsFlow):
                 "tariff_template",
                 "schedule_zones",
                 "export",
+                "log_export",
             ],
             description_placeholders={"device": self._device_label()},
         )
@@ -987,6 +998,191 @@ class SmgwOptionsFlow(OptionsFlow):
             message,
             title="SMGW Export",
             notification_id=f"smgw_export_{self.config_entry.entry_id}",
+        )
+
+    # ------------------------------------------------------------------
+    # Log export (period -> dates -> progress while fetching -> links)
+    # ------------------------------------------------------------------
+
+    async def async_step_log_export(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Step 1: pick a period preset and the file outputs."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            if not (
+                user_input[ATTR_DOWNLOAD_CMS]
+                or user_input[ATTR_WRITE_CSV]
+                or user_input[ATTR_WRITE_XLSX]
+            ):
+                errors["base"] = "no_outputs"
+            else:
+                self._log_input = user_input
+                self._log_from, self._log_to = log_period_range(
+                    user_input[ATTR_PERIOD]
+                )
+                return await self.async_step_log_export_dates()
+
+        d = user_input or {}
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    ATTR_PERIOD, default=d.get(ATTR_PERIOD, "last_month")
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=list(LOG_PERIOD_PRESETS),
+                        mode=SelectSelectorMode.DROPDOWN,
+                        translation_key="log_period",
+                    )
+                ),
+                vol.Required(
+                    ATTR_DOWNLOAD_CMS, default=d.get(ATTR_DOWNLOAD_CMS, True)
+                ): BooleanSelector(),
+                vol.Required(
+                    ATTR_WRITE_CSV, default=d.get(ATTR_WRITE_CSV, True)
+                ): BooleanSelector(),
+                vol.Required(
+                    ATTR_WRITE_XLSX, default=d.get(ATTR_WRITE_XLSX, True)
+                ): BooleanSelector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="log_export", data_schema=schema, errors=errors
+        )
+
+    async def async_step_log_export_dates(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Step 2: confirm/edit the prefilled range, then start the download.
+
+        Also the landing step when the download failed: the progress step
+        hands back here with the error, so the user can adjust and retry.
+        """
+        errors: dict[str, str] = {}
+        if self._log_error:
+            errors["base"] = self._log_error
+            self._log_error = None
+            # A download that fails before its first await finishes inside the
+            # submit call, and the flow manager then replays that same input
+            # into this step. Taking it as a new submission would restart the
+            # failing download in a loop, so show the form with the error.
+            user_input = None
+
+        if user_input is not None:
+            from_dt = self._coerce_dt(user_input.get(ATTR_FROM_DATETIME))
+            to_dt = self._coerce_dt(user_input.get(ATTR_TO_DATETIME))
+            if from_dt is None or to_dt is None:
+                errors["base"] = "invalid_range"
+            elif from_dt >= to_dt:
+                errors["base"] = "from_after_to"
+            elif to_dt.date() > dt_util.now().date():
+                errors["base"] = "to_in_future"
+            else:
+                # No age limit here, unlike the meter export: the gateway
+                # keeps a number of entries, not a number of days, and
+                # "everything" is exactly what this export is for.
+                self._log_from, self._log_to = from_dt, to_dt
+                return await self.async_step_log_export_run()
+
+        suggested = {
+            ATTR_FROM_DATETIME: (user_input or {}).get(ATTR_FROM_DATETIME)
+            or self._fmt(self._log_from),
+            ATTR_TO_DATETIME: (user_input or {}).get(ATTR_TO_DATETIME)
+            or self._fmt(self._log_to),
+        }
+        schema = self.add_suggested_values_to_schema(
+            vol.Schema(
+                {
+                    vol.Required(ATTR_FROM_DATETIME): DateTimeSelector(),
+                    vol.Required(ATTR_TO_DATETIME): DateTimeSelector(),
+                }
+            ),
+            suggested,
+        )
+        return self.async_show_form(
+            step_id="log_export_dates", data_schema=schema, errors=errors
+        )
+
+    async def async_step_log_export_run(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show progress while the log downloads.
+
+        A long range may take many gateway requests, so the download runs as
+        a task behind HA's progress screen instead of blocking the form.
+        """
+        if self._log_task is None:
+            self._log_task = self.hass.async_create_task(
+                run_log_export(
+                    self.hass,
+                    self.config_entry.runtime_data,
+                    self._log_from,
+                    self._log_to,
+                    download_cms=self._log_input[ATTR_DOWNLOAD_CMS],
+                    do_csv=self._log_input[ATTR_WRITE_CSV],
+                    do_xlsx=self._log_input[ATTR_WRITE_XLSX],
+                )
+            )
+        if not self._log_task.done():
+            return self.async_show_progress(
+                step_id="log_export_run",
+                progress_action="log_export",
+                progress_task=self._log_task,
+            )
+
+        task, self._log_task = self._log_task, None
+        try:
+            self._log_result = task.result()
+        except ServiceValidationError as err:
+            self._log_error = err.translation_key or "log_export_failed"
+        except Exception:  # noqa: BLE001 - surface as a form error
+            _LOGGER.exception("Log export via options flow failed")
+            self._log_error = "log_export_failed"
+        if self._log_error:
+            return self.async_show_progress_done(next_step_id="log_export_dates")
+        return self.async_show_progress_done(next_step_id="log_export_finish")
+
+    async def async_step_log_export_finish(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show the download links and keep a copy as a notification."""
+        result = self._log_result or {}
+        links = build_links_markdown(result.get("files", {})) or "_(keine Dateien)_"
+        parts = result.get("parts", 1)
+
+        message = f"{result.get('entry_count', 0)} Logeinträge"
+        if parts > 1:
+            message += (
+                f", in {parts} Teilabrufen geholt (das SMGW gibt höchstens "
+                "1000 Einträge pro Abruf heraus)"
+            )
+        message += "."
+        if not result.get("complete", True):
+            message += (
+                " Achtung: Die Vollständigkeitsprüfung hat Auffälligkeiten "
+                "gefunden, Details im Blatt „Info“ der Excel-Datei."
+            )
+        persistent_notification.async_create(
+            self.hass,
+            f"{message}\n\n{links}",
+            title="SMGW Logdaten",
+            notification_id=f"smgw_log_export_{self.config_entry.entry_id}",
+        )
+
+        if not result.get("complete", True):
+            reason = "log_export_incomplete"
+        elif parts > 1:
+            reason = "log_export_done_split"
+        else:
+            reason = "log_export_done"
+        return self.async_abort(
+            reason=reason,
+            description_placeholders={
+                "links": links,
+                "count": str(result.get("entry_count", 0)),
+                "parts": str(parts),
+            },
         )
 
     # ------------------------------------------------------------------

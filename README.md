@@ -33,12 +33,14 @@ Die Integration verbindet sich einmal täglich automatisch mit dem PPC SMGW und 
 - **Tageseinspeisung (gesamt)** - gesamte Netzeinspeisung des Vortags
 - **Energie-Dashboard-kompatibel** - alle Sensoren lassen sich direkt im Home Assistant Energie-Dashboard verwenden
 - **Separater Datenexport für beliebige Zeiträume** - auf Abruf und unabhängig von den Sensoren: Die Daten kommen direkt aus dem Speicher des SMGW (je nach Gerät 15–24 Monate Historie, also auch aus der Zeit **vor** der Installation der Integration) — bequem aus der Home-Assistant-Oberfläche, ohne umständliches manuelles Einloggen am SMGW-Webinterface. Ausgabe als CSV, Excel oder **signiertes CMS-Original**. Siehe [Datenexport für beliebige Zeiträume](https://github.com/TRON4R/ha-ppc-smgw-han#-datenexport-f%C3%BCr-beliebige-zeitr%C3%A4ume)
+- **Export der SMGW-Logdaten** - die Meldungen aus dem Menüpunkt „Logs" des SMGW (Anmeldungen, Datenübermittlungen an Marktteilnehmer, Neustarts, Störungen) für einen frei wählbaren Zeitraum, auch über das 1000-Einträge-Limit des SMGW hinweg. Ausgabe als lesbare CSV- und Excel-Datei und als **signiertes CMS-Original**. Siehe [SMGW-Logdaten exportieren](https://github.com/TRON4R/ha-ppc-smgw-han#-smgw-logdaten-exportieren)
 
 ## Unterschied zu anderen SMGW-Integrationen
 
 Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Minuten-Intervallen ab. Einige Nutzer berichten, dass sie deswegen von ihrem SMGW ausgesperrt wurden, weil die Abfragehäufigkeit als zu hoch eingestuft wurde. Diese Integration verfolgt einen anderen Ansatz:
 
 - **Ein Abruf pro Tag** (5 HTTP-Requests insgesamt, zu einer konfigurierbaren Uhrzeit. Damit kein Risiko einer SMGW-Sperrung wegen Überbeanspruchung)
+- **Kein volllaufendes SMGW-Log** - jede Abfrage ist eine Anmeldung am SMGW, und jede Anmeldung schreibt einen Eintrag in dein Logbuch. Schon bei Abfragen im 15-Minuten-Takt sind das 96 Einträge pro Tag; nach gut zehn Tagen liegen über 1000 Einträge im Log. Wichtige Meldungen wie Störungen oder fehlgeschlagene Datenübermittlungen gehen darin unter. Das SMGW löscht die ältesten Einträge außerdem früher, weil es nur eine begrenzte Anzahl vorhält. Und sein eigener Log-Export verweigert Zeiträume mit mehr als 1000 Einträgen. Diese Integration meldet sich einmal pro Nacht an, das sind etwa 30 Einträge im Monat.
 - **Geeichte Werte** vom Zählerstand-Endpunkt des SMGW (keine Live-Momentaufnahmen)
 - **Exakte Tarifaufteilung** anhand der sekundengenauen Zählerstände an den konfigurierten Tarif-Umschaltpunkten
 - **Keine Timing-Probleme** - die Werte basieren auf den offiziellen Tagesgrenzen des SMGW, nicht auf der lokalen Uhrzeit des „Home Assistant"-Servers
@@ -269,6 +271,25 @@ Damit die Links **anklickbar** werden, die Antwort in einem Folgeschritt nutzen 
 > - **SMGW schonen:** Jeder Aufruf öffnet eine echte SMGW-Sitzung. Den Dienst **nicht in Schleifen** aufrufen — das SMGW erlaubt nur eine aktive Sitzung und kann bei Überlastung kurzzeitig sperren. Der nächtliche Abruf und ein manueller Export blockieren sich gegenseitig automatisch (kein Konflikt), laufen aber nacheinander.
 > - **Download-Links sind unauthentifiziert:** Die Dateien landen unter `config/www/smgw_han_exports/<zufallscode>/` und sind als `/local/…`-Link **ohne Anmeldung** erreichbar. Wer den Link kennt, kann die Datei laden. Der Zufallscode im Pfad erschwert das Erraten; lösche nicht mehr benötigte Export-Ordner gelegentlich.
 > - Erscheinen die `/local/`-Links beim allerersten Export nicht, lege den Ordner `config/www/` einmal manuell an und starte HA neu (Home Assistant bindet `www/` nur beim Start ein).
+
+## 📜 SMGW-Logdaten exportieren
+
+Das SMGW führt ein Logbuch (Menüpunkt „Logs" im Webinterface): jede Anmeldung, jede Übermittlung von Messwerten an einen Marktteilnehmer, Neustarts, Zeitsynchronisation und Störungen. Über das Webinterface ist das mühsam: Die Anzeige blättert in Seiten zu 100 Einträgen, und der Export bricht ab, sobald ein Zeitraum mehr als 1000 Einträge enthält („Die Abfrage liefert … Datensätze zurück. Es sind nur 1000 erlaubt."). Dann bleibt nur, den Zeitraum von Hand so lange zu verkleinern, bis es passt.
+
+Die Integration nimmt dir das ab: **Einstellungen → Geräte & Dienste → dein SMGW → Zahnrad „Konfigurieren"** → **„SMGW-Logdaten exportieren (Menüpunkt „Logs")"**. Zeitraum wählen (auch **„Alles, was das SMGW noch gespeichert hat"**), Dateien wählen, Zeitraum bestätigen. Meldet das SMGW zu viele Einträge, teilt die Integration den Zeitraum selbstständig auf und holt alle Teile in **einer** Sitzung ab. Am Ende stehen höchstens drei Download-Links bereit, im Abschluss-Schritt und als Benachrichtigung 🔔:
+
+- **CMS** – das signierte Original des SMGW. Musste aufgeteilt werden, liegen alle Teile unverändert in **einer ZIP-Datei**, denn signierte Dateien lassen sich nicht zusammenfügen, ohne die Signatur zu zerstören.
+- **CSV** – eine Zeile pro Eintrag: Zeitpunkt (Ortszeit und UTC), Level, Status, Meldungs-ID, laufende Nummer und ganz rechts der Meldungstext im Klartext.
+- **Excel** – das Blatt **„Logbuch"** wie die CSV, mit Filter und farbig hinterlegten Warnungen (gelb) und Fehlern (rot); das Blatt **„Übersicht"** zählt die Einträge je Monat und je Meldungstyp, so fällt etwa ein Monat voller Anmeldungen sofort auf; das Blatt **„Info"** dokumentiert Gateway, Zeitraum, Teilabrufe und die Vollständigkeitsprüfung.
+
+**Vollständigkeitsprüfung:** Jeder Logeintrag trägt eine fortlaufende Nummer des SMGW. Nach dem Zusammenführen prüft die Integration, dass diese Nummern lückenlos sind, und für jeden zu großen Bereich, dass so viele Einträge angekommen sind, wie das SMGW dort gemeldet hat. Auffälligkeiten stehen im Abschluss-Schritt, in der Benachrichtigung und im Blatt „Info".
+
+**Hinweise**
+
+- Jede Anmeldung schreibt selbst einen Eintrag ins Log („Der Endbenutzer … hat sich auf dem SMGW eingeloggt") – auch der nächtliche Abruf der Integration und der Log-Export selbst.
+- Das SMGW hält nur eine begrenzte Zahl an Logeinträgen vor, die der Gateway-Administrator festlegt; ältere Einträge werden gelöscht.
+- Das Fenster während des Abrufs bitte offen lassen; Schließen bricht den Abruf ab. Große Zeiträume brauchen mehrere Teilabrufe und können einige Minuten dauern.
+- Für die Download-Links gilt dasselbe wie beim Datenexport: Sie sind ohne Anmeldung erreichbar (siehe oben).
 
 ## Dashboard-Kachel: Verbrauchshistorie (täglich)
 
