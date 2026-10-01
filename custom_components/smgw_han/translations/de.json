@@ -155,12 +155,12 @@
           "write_xlsx": "Excel (XLSX) erzeugen"
         },
         "data_description": {
-          "period": "„Alles“ beginnt am 01.01.2020 und holt alles, was das SMGW noch gespeichert hat."
+          "period": "„Alles“ beginnt am 01.01.2000 und holt alles, was das SMGW noch gespeichert hat."
         }
       },
       "log_export_dates": {
         "title": "Zeitraum bestätigen",
-        "description": "Passe den Zeitraum bei Bedarf an und sende ab, um den Abruf zu starten. Große Zeiträume brauchen mehrere Teilabrufe und können einige Minuten dauern.",
+        "description": "Passe den Zeitraum bei Bedarf an und sende ab, um den Abruf zu starten. Große Zeiträume brauchen mehrere Teilabrufe und können im Extremfall einige Minuten dauern.",
         "data": {
           "from_datetime": "Von",
           "to_datetime": "Bis"
@@ -199,7 +199,7 @@
       "log_export_incomplete": "{count} Logeinträge exportiert, in {parts} Teil(en). Achtung: Die Vollständigkeitsprüfung hat Auffälligkeiten gefunden. Details und mögliche Ursachen stehen im Blatt „Info“ der Excel-Datei.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
     },
     "progress": {
-      "log_export": "Die Logdaten werden vom SMGW abgerufen. Große Zeiträume brauchen mehrere Teilabrufe und können einige Minuten dauern. Bitte dieses Fenster offen lassen – Schließen bricht den Abruf ab."
+      "log_export": "Die Logdaten werden vom SMGW abgerufen. Große Zeiträume brauchen mehrere Teilabrufe und können im Extremfall einige Minuten dauern. Bitte dieses Fenster offen lassen – Schließen bricht den Abruf ab."
     }
   },
   "entity": {

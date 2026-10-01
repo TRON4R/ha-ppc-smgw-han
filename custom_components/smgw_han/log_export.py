@@ -46,10 +46,13 @@ _LOGGER = logging.getLogger(__name__)
 
 LOG_PERIOD_ALL = "all"
 LOG_PERIOD_PRESETS = (*PERIOD_PRESETS, LOG_PERIOD_ALL)
-# Start of "everything the gateway still holds". The gateway accepts this date
-# (a request for January 2020 answered "Keine Daten vorhanden" on a real
-# gateway, 2026-10-01), and it predates every PPC smart meter gateway rollout.
-LOG_ALL_FROM = datetime(2020, 1, 1)
+# Start of "everything the gateway still holds": the earliest start known to be
+# accepted. Measured on a real gateway (2026-10-01): 2000-01-01 is accepted,
+# 1970-01-01 (00:00 and 01:00) is refused with "Ungültige Zeitangabe 'von
+# (Datum)'". Reaching back that far is not about the gateway's age: a clock
+# that lost its time after a power cut stamps entries with a default date,
+# and only a range that reaches back to it can return them.
+LOG_ALL_FROM = datetime(2000, 1, 1)
 
 
 def log_period_range(

@@ -46,6 +46,7 @@ Back to the [README](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.
 - [X1](#x1) The download links lead nowhere or to the dashboard
 - [X2](#x2) My export "until 23:59:59" is incomplete
 - [X3](#x3) Can I automate the export?
+- [X4](#x4) How do I download the SMGW log – and why do I get a ZIP?
 
 **Dashboard card**
 - [K1](#k1) The daily consumption history card shows no bars
@@ -285,6 +286,10 @@ The SMGW only writes the meter reading for the last quarter-hour of a day at **0
 ### <a id="x3"></a>X3 · Can I automate the export?
 
 Yes, via the actions `smgw_han.export_readings` and `smgw_han.export_period`, e.g. in a monthly automation. Parameters and examples are in the README under [Data export for user-defined time ranges](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#-data-export-for-user-defined-time-ranges). Please don't call them in loops or at short intervals – each call opens a real session on the SMGW.
+
+### <a id="x4"></a>X4 · How do I download the SMGW log – and why do I get a ZIP?
+
+Via **Configure → "Export the SMGW log for a custom time range"**, details in the README under [Exporting the SMGW log](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#-exporting-the-smgw-log). The SMGW hands out at most 1000 entries per export and otherwise answers "Die Abfrage liefert … Datensätze zurück. Es sind nur 1000 erlaubt." ("the query returns … records; only 1000 are allowed"). If your range holds more, the integration splits it automatically. Each part is a separate original signed by the SMGW, and signed files cannot be merged without breaking the signature. That is why the parts come together in one ZIP file. CSV and Excel still contain all entries in one file each.
 
 ---
 

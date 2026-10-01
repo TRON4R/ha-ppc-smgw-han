@@ -40,7 +40,7 @@ Die Integration verbindet sich einmal täglich automatisch mit dem PPC SMGW und 
 Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Minuten-Intervallen ab. Einige Nutzer berichten, dass sie deswegen von ihrem SMGW ausgesperrt wurden, weil die Abfragehäufigkeit als zu hoch eingestuft wurde. Diese Integration verfolgt einen anderen Ansatz:
 
 - **Ein Abruf pro Tag** (5 HTTP-Requests insgesamt, zu einer konfigurierbaren Uhrzeit. Damit kein Risiko einer SMGW-Sperrung wegen Überbeanspruchung)
-- **Kein volllaufendes SMGW-Log** - jede Abfrage ist eine Anmeldung am SMGW, und jede Anmeldung schreibt einen Eintrag in dein Logbuch. Schon bei Abfragen im 15-Minuten-Takt sind das 96 Einträge pro Tag; nach gut zehn Tagen liegen über 1000 Einträge im Log. Wichtige Meldungen wie Störungen oder fehlgeschlagene Datenübermittlungen gehen darin unter. Das SMGW löscht die ältesten Einträge außerdem früher, weil es nur eine begrenzte Anzahl vorhält. Und sein eigener Log-Export verweigert Zeiträume mit mehr als 1000 Einträgen. Diese Integration meldet sich einmal pro Nacht an, das sind etwa 30 Einträge im Monat.
+- **Kein volllaufendes SMGW-Log** - jede Abfrage ist eine Anmeldung am SMGW, und jede Anmeldung schreibt einen Eintrag in dein Logbuch. Schon bei Abfragen im 15-Minuten-Takt sind das 96 Einträge pro Tag; nach gut zehn Tagen liegen über 1000 Einträge im Log. Wichtige Meldungen wie Störungen oder fehlgeschlagene Datenübermittlungen gehen darin unter. Außerdem ist das Log ein Ringspeicher: Laut BSI-Vorgabe bleiben Einträge mindestens 15 Monate erhalten, läuft der Speicher aber voll, überschreibt das SMGW die ältesten Einträge früher. Und sein eigener Log-Export verweigert Zeiträume mit mehr als 1000 Einträgen (ebenfalls eine BSI-Vorgabe). Diese Integration meldet sich hingegen nur einmal pro Nacht an, das erzeugt also lediglich einen Eintrag pro Tag.
 - **Geeichte Werte** vom Zählerstand-Endpunkt des SMGW (keine Live-Momentaufnahmen)
 - **Exakte Tarifaufteilung** anhand der sekundengenauen Zählerstände an den konfigurierten Tarif-Umschaltpunkten
 - **Keine Timing-Probleme** - die Werte basieren auf den offiziellen Tagesgrenzen des SMGW, nicht auf der lokalen Uhrzeit des „Home Assistant"-Servers
@@ -274,9 +274,9 @@ Damit die Links **anklickbar** werden, die Antwort in einem Folgeschritt nutzen 
 
 ## 📜 SMGW-Logdaten exportieren
 
-Das SMGW führt ein Logbuch (Menüpunkt „Logs" im Webinterface): jede Anmeldung, jede Übermittlung von Messwerten an einen Marktteilnehmer, Neustarts, Zeitsynchronisation und Störungen. Über das Webinterface ist das mühsam: Die Anzeige blättert in Seiten zu 100 Einträgen, und der Export bricht ab, sobald ein Zeitraum mehr als 1000 Einträge enthält („Die Abfrage liefert … Datensätze zurück. Es sind nur 1000 erlaubt."). Dann bleibt nur, den Zeitraum von Hand so lange zu verkleinern, bis es passt.
+Das SMGW führt ein Logbuch (Menüpunkt „Logs" im Webinterface): jede Anmeldung, jede Übermittlung von Messwerten an einen Marktteilnehmer, Neustarts, Zeitsynchronisation und Störungen. Über das Webinterface ist das mühsam: Die Anzeige blättert in Seiten zu 100 Einträgen, und der Export bricht ab, sobald ein Zeitraum mehr als 1000 Einträge enthält (dann kommt die Meldung „Die Abfrage liefert [Zahl] Datensätze zurück. Es sind nur 1000 erlaubt."). Dann bleibt nur, den Zeitraum von Hand so lange zu verkleinern, bis es passt.
 
-Die Integration nimmt dir das ab: **Einstellungen → Geräte & Dienste → dein SMGW → Zahnrad „Konfigurieren"** → **„SMGW-Logdaten für einen wählbaren Zeitraum exportieren"**. Zeitraum wählen (auch **„Alles, was das SMGW noch gespeichert hat"**), Dateien wählen, Zeitraum bestätigen. Meldet das SMGW zu viele Einträge, teilt die Integration den Zeitraum selbstständig auf und holt alle Teile in **einer** Sitzung ab. Am Ende stehen höchstens drei Download-Links bereit, im Abschluss-Schritt und als Benachrichtigung 🔔:
+Die Integration nimmt dir das ab: **Einstellungen → Geräte & Dienste → dein SMGW → Zahnrad „Konfigurieren"** → **„SMGW-Logdaten für einen wählbaren Zeitraum exportieren"**. Zeitraum wählen, Dateien wählen, Zeitraum bestätigen. Meldet das SMGW zu viele Einträge, teilt die Integration den Zeitraum selbstständig auf und holt alle Teile weiterhin in derselben Sitzung ab. Am Ende werden alle Dateien mit höchstens 3 Download-Links bereitgestellt, sowohl im Abschluss-Schritt als auch in der Benachrichtigung:
 
 - **CMS** – das signierte Original des SMGW. Musste aufgeteilt werden, liegen alle Teile unverändert in **einer ZIP-Datei**, denn signierte Dateien lassen sich nicht zusammenfügen, ohne die Signatur zu zerstören.
 - **CSV** – eine Zeile pro Eintrag: Zeitpunkt (Ortszeit und UTC), Level, Status, Meldungs-ID, laufende Nummer und ganz rechts der Meldungstext im Klartext.
@@ -287,8 +287,8 @@ Die Integration nimmt dir das ab: **Einstellungen → Geräte & Dienste → dein
 **Hinweise**
 
 - Jede Anmeldung schreibt selbst einen Eintrag ins Log („Der Endbenutzer … hat sich auf dem SMGW eingeloggt") – auch der nächtliche Abruf der Integration und der Log-Export selbst.
-- Das SMGW hält nur eine begrenzte Zahl an Logeinträgen vor, die der Gateway-Administrator festlegt; ältere Einträge werden gelöscht.
-- Das Fenster während des Abrufs bitte offen lassen; Schließen bricht den Abruf ab. Große Zeiträume brauchen mehrere Teilabrufe und können einige Minuten dauern.
+- Das SMGW hält nur eine begrenzte Zahl an Logeinträgen vor, die der Gateway-Administrator (also der Messstellenbetreiber) festgelegt hat; ältere Einträge werden automatisch gelöscht.
+- Das Fenster während des Abrufs bitte offen lassen; Schließen bricht den Abruf ab. Große Zeiträume brauchen mehrere Teilabrufe und können im Extremfall einige Minuten dauern.
 - Für die Download-Links gilt dasselbe wie beim Datenexport: Sie sind ohne Anmeldung erreichbar (siehe oben).
 
 ## Dashboard-Kachel: Verbrauchshistorie (täglich)

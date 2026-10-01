@@ -155,12 +155,12 @@
           "write_xlsx": "Create Excel (XLSX)"
         },
         "data_description": {
-          "period": "\"Everything\" starts on 2020-01-01 and fetches whatever the SMGW still holds."
+          "period": "\"Everything\" starts on 2000-01-01 and fetches whatever the SMGW still holds."
         }
       },
       "log_export_dates": {
         "title": "Confirm time range",
-        "description": "Adjust the range if needed, then submit to start the download. Long ranges need several requests and can take a few minutes.",
+        "description": "Adjust the range if needed, then submit to start the download. Long ranges need several requests and can take a few minutes in extreme cases.",
         "data": {
           "from_datetime": "From",
           "to_datetime": "To"
@@ -199,7 +199,7 @@
       "log_export_incomplete": "{count} log entries exported in {parts} part(s). Warning: the completeness check found irregularities. Details and possible causes are on the \"Info\" sheet of the Excel file.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
     },
     "progress": {
-      "log_export": "Fetching the log from the SMGW. Long ranges need several requests and can take a few minutes. Please keep this dialog open - closing it cancels the download."
+      "log_export": "Fetching the log from the SMGW. Long ranges need several requests and can take a few minutes in extreme cases. Please keep this dialog open - closing it cancels the download."
     }
   },
   "entity": {
