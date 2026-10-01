@@ -166,7 +166,7 @@ Meter readings can be fetched for an **arbitrary time range** straight from Home
 
 **Three ways, easiest to most flexible** (details below):
 
-- 🛠️ **Easiest – via the integration:** on the SMGW device click the **gear "Configure"** → **"Export SMGW data for a custom time range"**. A guided form, no prior knowledge and no helpers are necessary.
+- 🛠️ **Easiest – via the integration:** on the SMGW device click the **gear "Configure"** → **"Export SMGW meter data for a custom time range"**. A guided form, no prior knowledge and no helpers are necessary.
 - 📊 **One click, presets only – dashboard tile:** buttons for "Yesterday", "Last month" etc.
 - ⚙️ **Full control – Developer Tools → Actions:** any parameters, the response (incl. download links) is shown right there.
 
@@ -181,7 +181,7 @@ Both return the same result: a response variable with `readings` + `daily_summar
 
 ### Way 1: Via the integration ("Configure") – easiest
 
-Without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → gear "Configure"** → menu entry **"Export SMGW data for a custom time range"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear directly in the final step **and** as a notification 🔔. The initial setup is unaffected by this.
+Without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → gear "Configure"** → menu entry **"Export SMGW meter data for a custom time range"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear directly in the final step **and** as a notification 🔔. The initial setup is unaffected by this.
 
 ### Way 2: Via a dashboard tile (quick select)
 

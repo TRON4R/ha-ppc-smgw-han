@@ -79,9 +79,9 @@
         "menu_options": {
           "settings": "Einstellungen ändern",
           "tariff_template": "Tarifzonen aus Vorlage setzen",
-          "schedule_zones": "Tarifzonen-Umschaltung planen (Jahreswechsel, Tarifwechsel)",
-          "export": "SMGW-Daten für einen wählbaren Zeitraum exportieren",
-          "log_export": "SMGW-Logdaten exportieren (Menüpunkt „Logs“)"
+          "schedule_zones": "Tarifzonen-Umschaltung planen (z.B. wg. Jahreswechsel, Tarifwechsel)",
+          "export": "SMGW-Zählerdaten für einen wählbaren Zeitraum exportieren",
+          "log_export": "SMGW-Logdaten für einen wählbaren Zeitraum exportieren"
         }
       },
       "tariff_template": {
@@ -196,7 +196,7 @@
       "export_done": "Export erstellt.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit.",
       "log_export_done": "{count} Logeinträge exportiert.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit.",
       "log_export_done_split": "{count} Logeinträge exportiert. Das SMGW gibt höchstens 1000 Einträge pro Abruf heraus, deshalb wurde der Zeitraum in {parts} Teilabrufe zerlegt. Die signierten CMS-Originale liegen einzeln in der ZIP-Datei; CSV und Excel enthalten alle Einträge.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit.",
-      "log_export_incomplete": "{count} Logeinträge exportiert, in {parts} Teil(en). Achtung: Die Vollständigkeitsprüfung hat Auffälligkeiten gefunden – Details im Blatt „Info“ der Excel-Datei und im Home-Assistant-Protokoll. Bitte den Zeitraum erneut exportieren.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
+      "log_export_incomplete": "{count} Logeinträge exportiert, in {parts} Teil(en). Achtung: Die Vollständigkeitsprüfung hat Auffälligkeiten gefunden. Details und mögliche Ursachen stehen im Blatt „Info“ der Excel-Datei.\n\n{links}\n\nDie Links liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
     },
     "progress": {
       "log_export": "Die Logdaten werden vom SMGW abgerufen. Große Zeiträume brauchen mehrere Teilabrufe und können einige Minuten dauern. Bitte dieses Fenster offen lassen – Schließen bricht den Abruf ab."

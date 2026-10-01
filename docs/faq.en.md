@@ -159,7 +159,7 @@ You can check this in two ways. In both, the OBIS code is what counts: `1-0:1.8.
 
 **a) Quick: with the integration's export**
 
-1. **Settings → Devices & services → PPC SMGW HAN Daily Import → Configure** (gear) → "Export SMGW data for a custom time range".
+1. **Settings → Devices & services → PPC SMGW HAN Daily Import → Configure** (gear) → "Export SMGW meter data for a custom time range".
 2. Choose the period **"Yesterday"**, tick **"Create Excel (XLSX)"** and run the export.
 3. In the Excel file, open the sheet **"Rohdaten"** (raw data – the sheet names are always German) and look for `1-0:2.8.0` in the "OBIS" column.
 

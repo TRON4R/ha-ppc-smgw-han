@@ -167,7 +167,7 @@ Die Zählerdaten lassen sich für einen **frei wählbaren Zeitraum** direkt aus 
 
 **Drei Wege – vom einfachsten zum flexibelsten** (Details jeweils unten):
 
-- 🛠️ **Am einfachsten – über die Integration:** Beim SMGW-Gerät auf das **Zahnrad „Konfigurieren"** → **„SMGW-Daten für einen wählbaren Zeitraum exportieren"**. Geführtes Formular, keine Vorkenntnisse und keine Helfer erforderlich.
+- 🛠️ **Am einfachsten – über die Integration:** Beim SMGW-Gerät auf das **Zahnrad „Konfigurieren"** → **„SMGW-Zählerdaten für einen wählbaren Zeitraum exportieren"**. Geführtes Formular, keine Vorkenntnisse und keine Helfer erforderlich.
 - 📊 **Ein-Klick, nur Vorgaben – Dashboard-Kachel:** Buttons für „Gestern", „Letzter Monat" usw.
 - ⚙️ **Volle Kontrolle – Entwicklerwerkzeuge → Aktionen:** beliebige Parameter, Antwort inkl. Download-Links direkt sichtbar.
 
@@ -182,7 +182,7 @@ Beide liefern dasselbe Ergebnis: eine Antwort-Variable mit `readings` + `daily_s
 
 ### Weg 1: Über die Integration („Konfigurieren") – am einfachsten
 
-Ganz ohne Entwicklerwerkzeuge, Helfer oder Dashboard: **Einstellungen → Geräte & Dienste → dein SMGW → Zahnrad „Konfigurieren"** → Menüpunkt **„SMGW-Daten für einen wählbaren Zeitraum exportieren"**. Dort wählst du einen Zeitraum (Vorgabe), bestätigst bzw. änderst im nächsten Schritt die **vorausgefüllten** Von/Bis-Felder, und nach dem Export erscheinen die Download-Links direkt im Abschluss-Schritt **und** als Benachrichtigung 🔔. Die normale Erst-Einrichtung bleibt davon unberührt.
+Ganz ohne Entwicklerwerkzeuge, Helfer oder Dashboard: **Einstellungen → Geräte & Dienste → dein SMGW → Zahnrad „Konfigurieren"** → Menüpunkt **„SMGW-Zählerdaten für einen wählbaren Zeitraum exportieren"**. Dort wählst du einen Zeitraum (Vorgabe), bestätigst bzw. änderst im nächsten Schritt die **vorausgefüllten** Von/Bis-Felder, und nach dem Export erscheinen die Download-Links direkt im Abschluss-Schritt **und** als Benachrichtigung 🔔. Die normale Erst-Einrichtung bleibt davon unberührt.
 
 ### Weg 2: Über eine Dashboard-Kachel (Schnellwahl)
 
@@ -276,7 +276,7 @@ Damit die Links **anklickbar** werden, die Antwort in einem Folgeschritt nutzen 
 
 Das SMGW führt ein Logbuch (Menüpunkt „Logs" im Webinterface): jede Anmeldung, jede Übermittlung von Messwerten an einen Marktteilnehmer, Neustarts, Zeitsynchronisation und Störungen. Über das Webinterface ist das mühsam: Die Anzeige blättert in Seiten zu 100 Einträgen, und der Export bricht ab, sobald ein Zeitraum mehr als 1000 Einträge enthält („Die Abfrage liefert … Datensätze zurück. Es sind nur 1000 erlaubt."). Dann bleibt nur, den Zeitraum von Hand so lange zu verkleinern, bis es passt.
 
-Die Integration nimmt dir das ab: **Einstellungen → Geräte & Dienste → dein SMGW → Zahnrad „Konfigurieren"** → **„SMGW-Logdaten exportieren (Menüpunkt „Logs")"**. Zeitraum wählen (auch **„Alles, was das SMGW noch gespeichert hat"**), Dateien wählen, Zeitraum bestätigen. Meldet das SMGW zu viele Einträge, teilt die Integration den Zeitraum selbstständig auf und holt alle Teile in **einer** Sitzung ab. Am Ende stehen höchstens drei Download-Links bereit, im Abschluss-Schritt und als Benachrichtigung 🔔:
+Die Integration nimmt dir das ab: **Einstellungen → Geräte & Dienste → dein SMGW → Zahnrad „Konfigurieren"** → **„SMGW-Logdaten für einen wählbaren Zeitraum exportieren"**. Zeitraum wählen (auch **„Alles, was das SMGW noch gespeichert hat"**), Dateien wählen, Zeitraum bestätigen. Meldet das SMGW zu viele Einträge, teilt die Integration den Zeitraum selbstständig auf und holt alle Teile in **einer** Sitzung ab. Am Ende stehen höchstens drei Download-Links bereit, im Abschluss-Schritt und als Benachrichtigung 🔔:
 
 - **CMS** – das signierte Original des SMGW. Musste aufgeteilt werden, liegen alle Teile unverändert in **einer ZIP-Datei**, denn signierte Dateien lassen sich nicht zusammenfügen, ohne die Signatur zu zerstören.
 - **CSV** – eine Zeile pro Eintrag: Zeitpunkt (Ortszeit und UTC), Level, Status, Meldungs-ID, laufende Nummer und ganz rechts der Meldungstext im Klartext.

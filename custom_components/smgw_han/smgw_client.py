@@ -115,7 +115,9 @@ def classify_log_export(content: bytes) -> tuple[str, int | None]:
     page whose status was never captured, and the meter-value export answers
     "no data" with an HTTP 500. The text is HTML-escaped once or twice
     ("Datens&auml;tze" was shown literally in the browser), so it is unescaped
-    before matching.
+    before matching. An empty range is answered with the bare text
+    "Keine Daten" (observed on a real gateway 2026-10-01); the on-screen view
+    says "Keine Daten vorhanden.", which the same check covers.
     """
     if not content.strip():
         return "empty", None
@@ -125,7 +127,7 @@ def classify_log_export(content: bytes) -> tuple[str, int | None]:
     match = _LOG_COUNT_RE.search(text)
     if match:
         return "too_many", int(match.group(1))
-    if "Keine Daten vorhanden" in text:
+    if "Keine Daten" in text:
         return "empty", None
     return "unknown", None
 

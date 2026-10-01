@@ -53,6 +53,8 @@ class FakeGateway(SmgwClient):
         self.logins = 0
         self.logouts = 0
         self.ranges: list[tuple[datetime, datetime]] = []
+        # What the real gateway's exportLogData sends for an empty range.
+        self.empty_answer = "Keine Daten\n"
 
     async def _login(self) -> str:
         self.logins += 1
@@ -75,7 +77,7 @@ class FakeGateway(SmgwClient):
         if len(inside) > smgw_client.LOG_EXPORT_MAX_ENTRIES:
             return httpx.Response(200, text=REFUSAL.format(n=len(inside)))
         if not inside:
-            return httpx.Response(200, text=EMPTY_PAGE)
+            return httpx.Response(200, text=self.empty_answer)
         return httpx.Response(200, content=self.build_cms(inside))
 
 
@@ -99,6 +101,9 @@ def test_classify_cms_empty_and_unknown(log_cms, log_row):
     assert classify_log_export(cms) == ("cms", None)
     assert classify_log_export(EMPTY_PAGE.encode()) == ("empty", None)
     assert classify_log_export(b"") == ("empty", None)
+    # The export's own answer for an empty range, as the real gateway sent it
+    # for 2020-01-01 .. 2022-04-01 (beta.1 failed on it).
+    assert classify_log_export(b"Keine Daten\n") == ("empty", None)
     assert classify_log_export(b"<html>Invalide Session</html>") == (
         "unknown", None,
     )
@@ -200,6 +205,7 @@ async def test_non_cms_answers_are_logged_without_token(log_cms, log_row, caplog
     rows = [log_row(n, datetime(2026, 3, 25, 6, 0) + timedelta(minutes=n))
             for n in range(1200)]
     gateway = FakeGateway(rows, log_cms)
+    gateway.empty_answer = EMPTY_PAGE  # an HTML answer carrying the token
     with caplog.at_level(logging.INFO, logger=smgw_client.__name__):
         await gateway.async_export_log(datetime(2020, 1, 1), datetime(2026, 7, 1))
 

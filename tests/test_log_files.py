@@ -125,6 +125,30 @@ def test_log_xlsx_reports_gaps_and_shortfalls(tmp_path, log_cms, log_row):
     assert "Lücke in den laufenden Nummern: 14 bis 20" in info
     assert "vom SMGW gemeldet 9 Einträge, angekommen 4" in info
     assert "lückenlos" not in info
+    # 13 and 21 do not exist here, so there is no clock-jump hint.
+    assert "springt die Uhrzeit" not in info
+
+
+def test_log_xlsx_points_out_clock_jump_at_gap(tmp_path, log_cms, log_row):
+    # The real case of 2026-03-02: power loss, entries 497-499 missing, and
+    # the entry after the gap stamped 35 minutes before the one before it.
+    entries = parse_log_cms(
+        log_cms(
+            [
+                log_row(496, datetime(2026, 3, 2, 14, 37, 27)),
+                log_row(500, datetime(2026, 3, 2, 14, 2, 36)),
+            ]
+        )
+    ).entries
+    path = tmp_path / "log.xlsx"
+    write_log_xlsx(path, entries, {"gaps": [(497, 499)]})
+    info = "\n".join(str(c.value or "") for c in load_workbook(path)["Info"]["A"])
+    assert "Lücke in den laufenden Nummern: 497 bis 499" in info
+    assert (
+        "springt die Uhrzeit des SMGW zurück (Nr. 496: 2026-03-02 14:37:27, "
+        "Nr. 500: 2026-03-02 14:02:36)" in info
+    )
+    assert "Ein erneuter Export desselben Zeitraums zeigt, ob es am Abruf lag." in info
 
 
 def test_cms_zip_keeps_parts_byte_identical(tmp_path):

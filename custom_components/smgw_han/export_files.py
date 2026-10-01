@@ -501,14 +501,32 @@ def write_log_xlsx(
                 False,
             )
         )
+    by_number = {e.record_number: e for e in entries}
     for first, last in gaps:
         missing = f"{first}" if first == last else f"{first} bis {last}"
         lines.append((f"Lücke in den laufenden Nummern: {missing}", False))
+        before, after = by_number.get(first - 1), by_number.get(last + 1)
+        if before and after and after.timestamp_utc < before.timestamp_utc:
+            # Seen on a real gateway after a power loss: the entry after the
+            # gap is stamped EARLIER than the one before it.
+            lines.append(
+                (
+                    "An dieser Stelle springt die Uhrzeit des SMGW zurück "
+                    f"(Nr. {before.record_number}: "
+                    f"{_fmt_dt(before.timestamp_local)}, Nr. "
+                    f"{after.record_number}: {_fmt_dt(after.timestamp_local)}).",
+                    False,
+                )
+            )
     if gaps:
         lines.append(
             (
-                "Eine Lücke bedeutet, dass im Ergebnis Einträge fehlen können. "
-                "Bitte den betroffenen Zeitraum erneut exportieren.",
+                "Diese Einträge fehlen in der Antwort des SMGW. Mögliche "
+                "Ursachen: Das SMGW hat sie mit falscher Uhrzeit gespeichert, "
+                "z. B. nach einem Stromausfall, bevor seine Uhr wieder "
+                "synchronisiert war; dann liegen sie außerhalb des abgefragten "
+                "Zeitraums. Oder der Abruf war unvollständig. Ein erneuter "
+                "Export desselben Zeitraums zeigt, ob es am Abruf lag.",
                 False,
             )
         )
@@ -538,6 +556,12 @@ def write_log_xlsx(
             "Zeitpunkt (UTC) ist der vom SMGW signierte Zeitstempel. Zeitpunkt "
             "(Ortszeit) ist derselbe Zeitpunkt in deutscher Zeit (MEZ/MESZ), "
             "wie ihn die SMGW-Oberfläche zeigt.",
+            False,
+        ),
+        (
+            "Die Zeilen stehen in der Reihenfolge der laufenden Nummer, also so, "
+            "wie das SMGW sie geschrieben hat. Springt die Uhrzeit dabei "
+            "zurück, ging die Uhr des SMGW zu diesem Zeitpunkt falsch.",
             False,
         ),
         (

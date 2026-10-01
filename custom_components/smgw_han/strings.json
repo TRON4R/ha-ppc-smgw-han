@@ -79,9 +79,9 @@
         "menu_options": {
           "settings": "Change settings",
           "tariff_template": "Apply a tariff-zone template",
-          "schedule_zones": "Schedule a tariff-zone change (new year, new tariff)",
-          "export": "Export SMGW data for a custom time range",
-          "log_export": "Export the SMGW log (\"Logs\" menu)"
+          "schedule_zones": "Schedule a tariff-zone change (e.g. new year, new tariff)",
+          "export": "Export SMGW meter data for a custom time range",
+          "log_export": "Export the SMGW log for a custom time range"
         }
       },
       "tariff_template": {
@@ -196,7 +196,7 @@
       "export_done": "Export created.\n\n{links}\n\nThe links are also saved as a notification (bell icon).",
       "log_export_done": "{count} log entries exported.\n\n{links}\n\nThe links are also saved as a notification (bell icon).",
       "log_export_done_split": "{count} log entries exported. The SMGW hands out at most 1000 entries per request, so the range was split into {parts} requests. The signed CMS originals are in the ZIP file one by one; CSV and Excel contain all entries.\n\n{links}\n\nThe links are also saved as a notification (bell icon).",
-      "log_export_incomplete": "{count} log entries exported in {parts} part(s). Warning: the completeness check found irregularities - see the \"Info\" sheet of the Excel file and the Home Assistant log. Please export the range again.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
+      "log_export_incomplete": "{count} log entries exported in {parts} part(s). Warning: the completeness check found irregularities. Details and possible causes are on the \"Info\" sheet of the Excel file.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
     },
     "progress": {
       "log_export": "Fetching the log from the SMGW. Long ranges need several requests and can take a few minutes. Please keep this dialog open - closing it cancels the download."
