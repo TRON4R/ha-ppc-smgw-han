@@ -33,12 +33,14 @@ This integration automatically connects to your PPC SMGW once per day and retrie
 - **Daily feed-in (total)** - total electricity fed back to grid
 - **Energy Dashboard compatible** - all sensors can be used directly in the Home Assistant Energy Dashboard
 - **Separate data export for arbitrary time ranges** - on demand and independent of the sensors: the data comes straight from the SMGW's own storage (15–24 months of history depending on the device, i.e. also from **before** the integration was installed) — conveniently from the Home Assistant UI, without cumbersome manual logins to the SMGW web interface. Output as CSV, Excel or the **signed CMS original**. See [Data export for user-defined time ranges](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#-data-export-for-user-defined-time-ranges)
+- **Export of the SMGW log** - the messages from the SMGW's "Logs" menu (logins, data transmissions to market participants, restarts, faults) for any time range, even beyond the SMGW's 1000-entry limit. Output as readable CSV and Excel files and as the **signed CMS original**. See [Exporting the SMGW log](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#-exporting-the-smgw-log)
 
 ## How does this differ from other SMGW integrations?
 
 Another SMGW integration polls current meter readings at fixed 10 minute intervals. Some users have reported being locked out of their SMGW as a result, because the frequency of requests was deemed as too high by the SMGW. So this integration takes a different approach:
 
 - **One fetch per day** (5 HTTP requests total, at a configurable time - eliminating any risk of being locked out by the SMGW due to excessive polling)
+- **No flooded SMGW log** - every query is a login to the SMGW, and every login writes an entry into your log. Polling every 15 minutes already means 96 entries a day; after a little over ten days the log holds more than 1000 entries. Important messages such as faults or failed data transmissions get buried. On top of that, the log is a ring buffer: under the BSI rules entries are kept for at least 15 months, but once the buffer is full the SMGW overwrites the oldest entries sooner. And its own log export refuses ranges with more than 1000 entries (also a BSI rule). This integration, by contrast, logs in only once a night, which creates just one entry per day.
 - **Certified values** from the SMGW's Zählerstand endpoint (not live meter snapshots)
 - **Accurate tariff split** using the second-precise meter readings at the configured tariff switch points
 - **No timing issues** - values are based on the SMGW's official daily boundaries, not the local clock of the Home Assistant server
@@ -166,7 +168,7 @@ Meter readings can be fetched for an **arbitrary time range** straight from Home
 
 **Three ways, easiest to most flexible** (details below):
 
-- 🛠️ **Easiest – via the integration:** on the SMGW device click the **gear "Configure"** → **"Export SMGW data for a custom time range"**. A guided form, no prior knowledge and no helpers are necessary.
+- 🛠️ **Easiest – via the integration:** on the SMGW device click the **gear "Configure"** → **"Export SMGW meter data for a custom time range"**. A guided form, no prior knowledge and no helpers are necessary.
 - 📊 **One click, presets only – dashboard tile:** buttons for "Yesterday", "Last month" etc.
 - ⚙️ **Full control – Developer Tools → Actions:** any parameters, the response (incl. download links) is shown right there.
 
@@ -181,7 +183,7 @@ Both return the same result: a response variable with `readings` + `daily_summar
 
 ### Way 1: Via the integration ("Configure") – easiest
 
-Without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → gear "Configure"** → menu entry **"Export SMGW data for a custom time range"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear directly in the final step **and** as a notification 🔔. The initial setup is unaffected by this.
+Without Developer Tools, helpers or a dashboard: **Settings → Devices & Services → your SMGW → gear "Configure"** → menu entry **"Export SMGW meter data for a custom time range"**. Pick a period, confirm/edit the **pre-filled** From/To fields in the next step, and after the export the download links appear directly in the final step **and** as a notification 🔔. The initial setup is unaffected by this.
 
 ### Way 2: Via a dashboard tile (quick select)
 
@@ -270,6 +272,25 @@ To make the links **clickable**, consume the response in a follow-up step — e.
 > - **Be gentle with the SMGW:** Every call opens a real SMGW session. Do **not** call the service in loops — the SMGW allows only one active session and may briefly lock out on overload. The nightly fetch and a manual export block each other automatically (no conflict) but run sequentially.
 > - **Download links are unauthenticated:** Files are written to `config/www/smgw_han_exports/<random>/` and are reachable as `/local/…` links **without login**. Anyone who knows the link can fetch the file. The random path component makes guessing hard; delete export folders you no longer need from time to time.
 > - If the `/local/` links don't work on the very first export, create the `config/www/` folder once manually and restart HA (Home Assistant only mounts `www/` at startup).
+
+## 📜 Exporting the SMGW log
+
+The SMGW keeps a log (the "Logs" menu in its web interface): every login, every transmission of meter values to a market participant, restarts, time synchronisation and faults. The web interface makes this tedious: the view pages through 100 entries at a time, and the export fails as soon as a range holds more than 1000 entries (you then get the message "Die Abfrage liefert [number] Datensätze zurück. Es sind nur 1000 erlaubt." – "the query returns [number] records; only 1000 are allowed"). All that is left is to narrow the range by hand until it fits.
+
+The integration does that for you: **Settings → Devices & Services → your SMGW → gear "Configure"** → **"Export the SMGW log for a custom time range"**. Choose a period, choose the files, confirm the range. If the SMGW reports too many entries, the integration splits the range on its own and fetches all parts within the same session. At the end, all files are provided via at most 3 download links, both in the final step and in the notification:
+
+- **CMS** – the SMGW's signed original. If the range had to be split, all parts are kept unchanged in **one ZIP file**, because signed files cannot be merged without breaking the signature.
+- **CSV** – one row per entry: time (local and UTC), level, status, message ID, running number and, in the rightmost column, the message in plain text.
+- **Excel** – the **"Logbuch"** (log) sheet like the CSV, with filters and highlighted warnings (yellow) and errors (red); the **"Übersicht"** (overview) sheet counts the entries per month and per message type, so a month full of logins stands out at once; the **"Info"** sheet documents the gateway, the range, the partial requests and the completeness check.
+
+**Completeness check:** every log entry carries a running number assigned by the SMGW. After merging, the integration checks that these numbers have no gaps and, for every range that was too large, that as many entries arrived as the SMGW reported for it. Irregularities are shown in the final step, in the notification and on the "Info" sheet.
+
+**Notes**
+
+- Every login writes an entry into the log itself ("Der Endbenutzer … hat sich auf dem SMGW eingeloggt" – "the end user … logged in to the SMGW") – including the integration's nightly fetch and the log export itself.
+- The SMGW keeps only a limited number of log entries, set by the gateway administrator (i.e. the metering point operator); older entries are deleted automatically.
+- Please keep the dialog open while the download runs; closing it cancels the download. Long ranges need several requests and can take a few minutes in extreme cases.
+- The download links work the same way as for the data export: they are reachable without login (see above).
 
 ## Dashboard card: Daily consumption history
 

@@ -60,9 +60,11 @@ from .const import (
 )
 from .smgw_client import (
     DailyData,
+    LogExportResult,
     SmgwAuthError,
     SmgwClient,
     SmgwClientError,
+    SmgwLogLimitError,
     SmgwNoDataError,
     SmgwServerError,
     TariffZones,
@@ -900,6 +902,29 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except SmgwClientError as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN, translation_key="cms_download_failed"
+            ) from err
+
+    async def async_export_log(
+        self, from_dt: datetime, to_dt: datetime
+    ) -> LogExportResult:
+        """Download the signed consumer log for a range (read-only)."""
+        try:
+            return await self._client.async_export_log(from_dt, to_dt)
+        except SmgwLogLimitError as err:
+            # Not a fault: the range is simply too dense to split further.
+            # The user can narrow it, so this is a validation-style message.
+            _LOGGER.warning("Log export aborted: %s", err)
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="log_split_limit"
+            ) from err
+        except SmgwAuthError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="cms_auth_failed"
+            ) from err
+        except SmgwClientError as err:
+            _LOGGER.error("Log export failed: %s", err)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="log_download_failed"
             ) from err
 
     @staticmethod

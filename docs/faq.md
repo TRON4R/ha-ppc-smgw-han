@@ -46,6 +46,7 @@ Zurück zum [README](https://github.com/TRON4R/ha-ppc-smgw-han#readme) · [Engli
 - [X1](#x1) Die Download-Links führen ins Leere oder auf das Dashboard
 - [X2](#x2) Mein Export „bis 23:59:59" ist unvollständig
 - [X3](#x3) Kann ich den Export automatisieren?
+- [X4](#x4) Wie lade ich die Logdaten des SMGW herunter – und warum kommt dabei ein ZIP?
 
 **Dashboard-Kachel**
 - [K1](#k1) Die Kachel „Verbrauchshistorie" zeigt keine Balken
@@ -159,7 +160,7 @@ Prüfen kannst du das auf zwei Wegen. Entscheidend ist in beiden Fällen die OBI
 
 **a) Schnell: mit dem Export der Integration**
 
-1. **Einstellungen → Geräte & Dienste → PPC SMGW HAN Daily Import → Konfigurieren** (Zahnrad) → „SMGW-Daten für einen wählbaren Zeitraum exportieren".
+1. **Einstellungen → Geräte & Dienste → PPC SMGW HAN Daily Import → Konfigurieren** (Zahnrad) → „SMGW-Zählerdaten für einen wählbaren Zeitraum exportieren".
 2. Zeitraum **„Gestern"**, **„Excel (XLSX) erzeugen"** anhaken, exportieren.
 3. In der Excel-Datei das Blatt **„Rohdaten"** öffnen und in der Spalte „OBIS" nach `1-0:2.8.0` suchen.
 
@@ -285,6 +286,10 @@ Das SMGW schreibt den Zählerstand für das letzte Viertelstunden-Intervall eine
 ### <a id="x3"></a>X3 · Kann ich den Export automatisieren?
 
 Ja, über die Aktionen `smgw_han.export_readings` und `smgw_han.export_period`, z. B. in einer monatlichen Automation. Parameter und Beispiele stehen im README unter [Datenexport für beliebige Zeiträume](https://github.com/TRON4R/ha-ppc-smgw-han#-datenexport-f%C3%BCr-beliebige-zeitr%C3%A4ume). Bitte nicht in Schleifen oder kurzen Abständen aufrufen – jeder Aufruf öffnet eine echte Sitzung am SMGW.
+
+### <a id="x4"></a>X4 · Wie lade ich die Logdaten des SMGW herunter – und warum kommt dabei ein ZIP?
+
+Über **Konfigurieren → „SMGW-Logdaten für einen wählbaren Zeitraum exportieren"**, Details im README unter [SMGW-Logdaten exportieren](https://github.com/TRON4R/ha-ppc-smgw-han#-smgw-logdaten-exportieren). Das SMGW gibt pro Export höchstens 1000 Einträge heraus und meldet sonst „Die Abfrage liefert … Datensätze zurück. Es sind nur 1000 erlaubt." Enthält dein Zeitraum mehr, teilt die Integration ihn automatisch auf. Jeder Teil ist ein eigenes, vom SMGW signiertes Original, und signierte Dateien lassen sich nicht zusammenfügen, ohne die Signatur zu zerstören. Deshalb liegen die Teile gemeinsam in einer ZIP-Datei. CSV und Excel enthalten trotzdem alle Einträge in je einer Datei.
 
 ---
 

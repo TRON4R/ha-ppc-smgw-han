@@ -14,12 +14,15 @@ openpyxl), so they MUST be called from an executor thread via
 from __future__ import annotations
 
 import csv
+import zipfile
+from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from .aggregation import DailySummary
 from .const import OBIS_EXPORT, OBIS_IMPORT
+from .log_parser import LogEntry
 from .smgw_client import MeterReading
 
 # Wide-format column headers for the raw-dump CSV.
@@ -289,5 +292,293 @@ def write_xlsx(
             )
         ws.freeze_panes = "A2"
         ws.auto_filter.ref = ws.dimensions
+
+    wb.save(path)
+
+
+# ---------------------------------------------------------------------------
+# SMGW consumer log
+# ---------------------------------------------------------------------------
+
+# Same columns in CSV and XLSX; the long message text goes last so the short
+# columns stay readable side by side.
+LOG_HEADERS = [
+    "Zeitpunkt (Ortszeit)",
+    "Zeitpunkt (UTC)",
+    "Level",
+    "Status",
+    "ID",
+    "Lfd. Nr.",
+    "Meldungstext",
+]
+_LOG_LEVELS = ("INFO", "WARNING", "ERROR", "FATAL")
+
+
+def write_log_csv(path: Path, entries: list[LogEntry]) -> None:
+    """Write the log as a plain semicolon CSV, one entry per row, oldest first."""
+    with path.open("w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f, delimiter=";")
+        writer.writerow(LOG_HEADERS)
+        for e in entries:
+            writer.writerow(
+                [
+                    _fmt_dt(e.timestamp_local),
+                    _fmt_dt(e.timestamp_utc.replace(tzinfo=None)),
+                    _safe_text(e.level),
+                    _safe_text(e.outcome_label),
+                    _safe_text(e.event_id),
+                    e.record_number,
+                    _safe_text(e.message),
+                ]
+            )
+
+
+def write_cms_zip(path: Path, members: list[tuple[str, bytes]]) -> None:
+    """Bundle several signed CMS files unchanged into one ZIP archive."""
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for name, content in members:
+            zf.writestr(name, content)
+
+
+def _is_alert(entry: LogEntry) -> bool:
+    return entry.level in ("ERROR", "FATAL") or entry.outcome == "FAILURE"
+
+
+def write_log_xlsx(
+    path: Path, entries: list[LogEntry], meta: dict[str, Any]
+) -> None:
+    """Write the log workbook: Logbuch, Übersicht, Info. Imports openpyxl lazily.
+
+    ``meta`` keys: ``gateway_id``, ``from``, ``to``, ``created`` (strings),
+    ``parts`` (``(from, to, entry_count)`` per signed file), ``gaps``
+    (missing running-number ranges), ``refused`` (``(from, to, count)`` the
+    gateway named when refusing a range) and ``shortfalls`` (refused ranges
+    whose entries did not all arrive).
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+
+    bold = Font(bold=True)
+    alert_fill = PatternFill("solid", start_color="FFC7CE")
+    warning_fill = PatternFill("solid", start_color="FFEB9C")
+    datetime_format = "yyyy-mm-dd hh:mm:ss"
+
+    def _event_id(value: str) -> int | str:
+        return int(value) if value.isdigit() else _safe_text(value)
+
+    wb = Workbook()
+
+    # --- Sheet 1: the log itself ------------------------------------------
+    log = wb.active
+    log.title = "Logbuch"
+    log.append(LOG_HEADERS)
+    for cell in log[1]:
+        cell.font = bold
+    for e in entries:
+        log.append(
+            [
+                e.timestamp_local,
+                e.timestamp_utc.replace(tzinfo=None),
+                _safe_text(e.level),
+                _safe_text(e.outcome_label),
+                _event_id(e.event_id),
+                e.record_number,
+                _safe_text(e.message),
+            ]
+        )
+        row = log.max_row
+        log.cell(row=row, column=1).number_format = datetime_format
+        log.cell(row=row, column=2).number_format = datetime_format
+        if _is_alert(e):
+            fill = alert_fill
+        elif e.level == "WARNING":
+            fill = warning_fill
+        else:
+            continue
+        for cell in log[row]:
+            cell.fill = fill
+    for column, width in zip("ABCDEFG", (20, 20, 10, 15, 8, 10, 120)):
+        log.column_dimensions[column].width = width
+    log.freeze_panes = "A2"
+    log.auto_filter.ref = log.dimensions
+
+    # --- Sheet 2: where the entries are and what they are ------------------
+    summary = wb.create_sheet("Übersicht")
+    summary.append(["Einträge je Monat (Ortszeit)"])
+    summary.cell(row=1, column=1).font = bold
+    summary.append(["Monat", *_LOG_LEVELS, "Gesamt", "davon fehlgeschlagen"])
+    for cell in summary[2]:
+        cell.font = bold
+    per_month: dict[str, Counter[str]] = defaultdict(Counter)
+    for e in entries:
+        counts = per_month[e.timestamp_local.strftime("%Y-%m")]
+        counts[e.level] += 1
+        counts["_total"] += 1
+        if e.outcome == "FAILURE":
+            counts["_failed"] += 1
+    for month in sorted(per_month):
+        counts = per_month[month]
+        summary.append(
+            [
+                month,
+                *[counts[level] for level in _LOG_LEVELS],
+                counts["_total"],
+                counts["_failed"],
+            ]
+        )
+
+    summary.append([])
+    summary.append(["Einträge je Meldungstyp"])
+    summary.cell(row=summary.max_row, column=1).font = bold
+    summary.append(
+        ["ID", "Anzahl", "Erster Eintrag", "Letzter Eintrag", "Level",
+         "Meldung (Vorlage)"]
+    )
+    for cell in summary[summary.max_row]:
+        cell.font = bold
+    by_type: dict[str, list[LogEntry]] = defaultdict(list)
+    for e in entries:
+        by_type[e.event_id].append(e)
+    for event_id, group in sorted(
+        by_type.items(), key=lambda item: (-len(item[1]), item[0])
+    ):
+        summary.append(
+            [
+                _event_id(event_id),
+                len(group),
+                group[0].timestamp_local,
+                group[-1].timestamp_local,
+                _safe_text(", ".join(sorted({e.level for e in group}))),
+                _safe_text(group[0].template or group[0].message),
+            ]
+        )
+        row = summary.max_row
+        summary.cell(row=row, column=3).number_format = datetime_format
+        summary.cell(row=row, column=4).number_format = datetime_format
+    for column, width in zip("ABCDEFGH", (12, 10, 20, 20, 16, 120, 10, 22)):
+        summary.column_dimensions[column].width = width
+
+    # --- Sheet 3: provenance and completeness -------------------------------
+    info = wb.create_sheet("Info")
+    lines: list[tuple[str, bool]] = [
+        ("SMGW-Logdaten", True),
+        (f"Gateway: {meta.get('gateway_id', '')}", False),
+        (
+            f"Zeitraum: {meta.get('from', '')} bis {meta.get('to', '')} "
+            "(Ortszeit)",
+            False,
+        ),
+        (f"Erstellt: {meta.get('created', '')}", False),
+        (f"Einträge: {len(entries)}", False),
+        ("", False),
+        ("Abruf", True),
+    ]
+    parts = meta.get("parts", [])
+    if len(parts) <= 1:
+        lines.append(("Das SMGW hat den Zeitraum in einem Abruf geliefert.", False))
+    else:
+        lines.append(
+            (
+                "Das SMGW gibt höchstens 1000 Einträge pro Abruf heraus. Der "
+                f"Zeitraum wurde deshalb in {len(parts)} Teilabrufe zerlegt; "
+                "jeder Teil ist eine eigene, einzeln signierte CMS-Datei im "
+                "ZIP-Archiv.",
+                False,
+            )
+        )
+        lines += [
+            (f"Teil {index}: {start} bis {end}: {count} Einträge", False)
+            for index, (start, end, count) in enumerate(parts, 1)
+        ]
+
+    lines += [("", False), ("Vollständigkeitsprüfung", True)]
+    gaps = meta.get("gaps", [])
+    if entries and not gaps:
+        lines.append(
+            (
+                f"Laufende Nummern {entries[0].record_number} bis "
+                f"{entries[-1].record_number}: lückenlos.",
+                False,
+            )
+        )
+    by_number = {e.record_number: e for e in entries}
+    for first, last in gaps:
+        missing = f"{first}" if first == last else f"{first} bis {last}"
+        lines.append((f"Lücke in den laufenden Nummern: {missing}", False))
+        before, after = by_number.get(first - 1), by_number.get(last + 1)
+        if before and after and after.timestamp_utc < before.timestamp_utc:
+            # Seen on a real gateway after a power loss: the entry after the
+            # gap is stamped EARLIER than the one before it.
+            lines.append(
+                (
+                    "An dieser Stelle springt die Uhrzeit des SMGW zurück "
+                    f"(Nr. {before.record_number}: "
+                    f"{_fmt_dt(before.timestamp_local)}, Nr. "
+                    f"{after.record_number}: {_fmt_dt(after.timestamp_local)}).",
+                    False,
+                )
+            )
+    if gaps:
+        lines.append(
+            (
+                "Diese Einträge fehlen in der Antwort des SMGW. Mögliche "
+                "Ursachen: Das SMGW hat sie mit falscher Uhrzeit gespeichert, "
+                "z. B. nach einem Stromausfall, bevor seine Uhr wieder "
+                "synchronisiert war; dann liegen sie außerhalb des abgefragten "
+                "Zeitraums. Oder der Abruf war unvollständig. Ein erneuter "
+                "Export desselben Zeitraums zeigt, ob es am Abruf lag.",
+                False,
+            )
+        )
+    shortfalls = meta.get("shortfalls", [])
+    if meta.get("refused") and not shortfalls:
+        lines.append(
+            (
+                "Für jeden Bereich, den das SMGW als zu groß abgelehnt hat, "
+                "sind mindestens so viele Einträge angekommen, wie das SMGW "
+                "dort gemeldet hat.",
+                False,
+            )
+        )
+    lines += [
+        (
+            f"{start} bis {end}: vom SMGW gemeldet {expected} Einträge, "
+            f"angekommen {found}.",
+            False,
+        )
+        for start, end, expected, found in shortfalls
+    ]
+
+    lines += [
+        ("", False),
+        ("Hinweise", True),
+        (
+            "Zeitpunkt (UTC) ist der vom SMGW signierte Zeitstempel. Zeitpunkt "
+            "(Ortszeit) ist derselbe Zeitpunkt in deutscher Zeit (MEZ/MESZ), "
+            "wie ihn die SMGW-Oberfläche zeigt.",
+            False,
+        ),
+        (
+            "Die Zeilen stehen in der Reihenfolge der laufenden Nummer, also so, "
+            "wie das SMGW sie geschrieben hat. Springt die Uhrzeit dabei "
+            "zurück, ging die Uhr des SMGW zu diesem Zeitpunkt falsch.",
+            False,
+        ),
+        (
+            "Zeilen mit Level WARNING sind gelb hinterlegt, mit ERROR oder "
+            "FATAL bzw. Status „fehlgeschlagen“ rot.",
+            False,
+        ),
+        (
+            "Signiert sind nur die CMS-Dateien. CSV und Excel sind daraus "
+            "abgeleitet.",
+            False,
+        ),
+    ]
+    for row, (text, is_heading) in enumerate(lines, 1):
+        cell = info.cell(row=row, column=1, value=_safe_text(text))
+        if is_heading:
+            cell.font = bold
+    info.column_dimensions["A"].width = 140
 
     wb.save(path)

@@ -79,8 +79,9 @@
         "menu_options": {
           "settings": "Change settings",
           "tariff_template": "Apply a tariff-zone template",
-          "schedule_zones": "Schedule a tariff-zone change (new year, new tariff)",
-          "export": "Export SMGW data for a custom time range"
+          "schedule_zones": "Schedule a tariff-zone change (e.g. new year, new tariff)",
+          "export": "Export SMGW meter data for a custom time range",
+          "log_export": "Export the SMGW log for a custom time range"
         }
       },
       "tariff_template": {
@@ -143,6 +144,27 @@
           "from_datetime": "From",
           "to_datetime": "To"
         }
+      },
+      "log_export": {
+        "title": "Export the SMGW log",
+        "description": "Downloads the messages from the SMGW's \"Logs\" menu. Choose a period and which files to create; the next step lets you fine-tune the range.\n\nThe SMGW hands out at most 1000 entries per request. Longer ranges are split automatically: the signed CMS originals then come together in one ZIP file, CSV and Excel stay one file each.",
+        "data": {
+          "period": "Period",
+          "download_cms": "Download signed CMS file(s)",
+          "write_csv": "Create CSV",
+          "write_xlsx": "Create Excel (XLSX)"
+        },
+        "data_description": {
+          "period": "\"Everything\" starts on 2000-01-01 and fetches whatever the SMGW still holds."
+        }
+      },
+      "log_export_dates": {
+        "title": "Confirm time range",
+        "description": "Adjust the range if needed, then submit to start the download. Long ranges need several requests and can take a few minutes in extreme cases.",
+        "data": {
+          "from_datetime": "From",
+          "to_datetime": "To"
+        }
       }
     },
     "error": {
@@ -165,10 +187,19 @@
       "zone_times_not_ascending": "The switch times must be strictly ascending within the day.",
       "zone_minute_grid": "Minutes must be 00, 15, 30 or 45 (the SMGW records on a 15-minute grid).",
       "schedule_date_invalid": "Please pick a date for the change.",
-      "schedule_date_not_future": "The date has to be in the future. To change the zones with immediate effect, use “Change settings” instead."
+      "schedule_date_not_future": "The date has to be in the future. To change the zones with immediate effect, use “Change settings” instead.",
+      "log_no_entries": "The SMGW log holds no entries for the selected time range.",
+      "log_split_limit": "This range holds too many entries to split automatically. Please choose a shorter range.",
+      "log_export_failed": "Fetching the log failed. Check the SMGW connection and the Home Assistant log."
     },
     "abort": {
-      "export_done": "Export created.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
+      "export_done": "Export created.\n\n{links}\n\nThe links are also saved as a notification (bell icon).",
+      "log_export_done": "{count} log entries exported.\n\n{links}\n\nThe links are also saved as a notification (bell icon).",
+      "log_export_done_split": "{count} log entries exported. The SMGW hands out at most 1000 entries per request, so the range was split into {parts} requests. The signed CMS originals are in the ZIP file one by one; CSV and Excel contain all entries.\n\n{links}\n\nThe links are also saved as a notification (bell icon).",
+      "log_export_incomplete": "{count} log entries exported in {parts} part(s). Warning: the completeness check found irregularities. Details and possible causes are on the \"Info\" sheet of the Excel file.\n\n{links}\n\nThe links are also saved as a notification (bell icon)."
+    },
+    "progress": {
+      "log_export": "Fetching the log from the SMGW. Long ranges need several requests and can take a few minutes in extreme cases. Please keep this dialog open - closing it cancels the download."
     }
   },
   "entity": {
@@ -266,6 +297,16 @@
         "current_month": "Current month (so far)",
         "last_month": "Last month"
       }
+    },
+    "log_period": {
+      "options": {
+        "yesterday": "Yesterday",
+        "last_7_days": "Last 7 days",
+        "last_30_days": "Last 30 days",
+        "current_month": "Current month (so far)",
+        "last_month": "Last month",
+        "all": "Everything the SMGW still holds"
+      }
     }
   },
   "exceptions": {
@@ -304,6 +345,15 @@
     },
     "cms_download_failed": {
       "message": "The SMGW export could not be downloaded. Check the SMGW connection and the Home Assistant log."
+    },
+    "log_no_entries": {
+      "message": "The SMGW log holds no entries for the selected time range."
+    },
+    "log_split_limit": {
+      "message": "This range holds too many entries to split automatically. Please choose a shorter range."
+    },
+    "log_download_failed": {
+      "message": "The SMGW log could not be downloaded. Check the SMGW connection and the Home Assistant log."
     }
   },
   "issues": {

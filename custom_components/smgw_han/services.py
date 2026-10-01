@@ -231,6 +231,33 @@ def _resolve_coordinator(hass: HomeAssistant, device_id: str | None):
     return entry.runtime_data
 
 
+def _new_export_dir(hass: HomeAssistant) -> tuple[str, Path]:
+    """A fresh, unguessable export directory under ``www/`` and its token."""
+    token = secrets.token_urlsafe(8)
+    return token, Path(hass.config.path("www", EXPORT_WWW_SUBDIR, token))
+
+
+def export_links(
+    hass: HomeAssistant, token: str, written: dict[str, str]
+) -> dict[str, str]:
+    """Download URLs (``kind -> url``) for files written to the export dir.
+
+    Prefer an absolute URL so the link is directly usable (clickable in
+    markdown/notifications, copy-pasteable from Developer Tools). Prefer the
+    external URL so links work behind a reverse proxy / when accessed from
+    outside (get_url falls back to the internal URL if no external one is
+    configured). Falls back to a relative /local path if neither exists.
+    """
+    try:
+        base_url = get_url(hass, prefer_external=True).rstrip("/")
+    except NoURLAvailableError:
+        base_url = ""
+    return {
+        kind: f"{base_url}/local/{EXPORT_WWW_SUBDIR}/{token}/{fname}"
+        for kind, fname in written.items()
+    }
+
+
 def _validate_range(from_dt: datetime, to_dt: datetime) -> None:
     """Plausibility checks beyond the frontend's format/required validation."""
     if from_dt >= to_dt:
@@ -341,8 +368,6 @@ async def run_export(
 
     files: dict[str, str] = {}
     if download_cms or do_csv or do_xlsx:
-        token = secrets.token_urlsafe(8)
-        export_dir = Path(hass.config.path("www", EXPORT_WWW_SUBDIR, token))
         # An unnamed device yields an empty suffix, so a single-device
         # installation keeps exactly the filenames it had before.
         device_suffix = _device_suffix(coordinator.device_name)
@@ -354,6 +379,7 @@ async def run_export(
             + device_suffix
         )
         cms_name = _cms_name_with_device(cms_name, device_suffix)
+        token, export_dir = _new_export_dir(hass)
         # Document every layout the range touches, not just the current one:
         # an export crossing a scheduled change is split by two of them, and
         # a workbook that names only one would misrepresent half its rows.
@@ -387,19 +413,7 @@ async def run_export(
             do_csv, do_xlsx,
             cms_bytes if download_cms else None, cms_name,
         )
-        # Prefer an absolute URL so the link is directly usable (clickable in
-        # markdown/notifications, copy-pasteable from Developer Tools). Prefer
-        # the external URL so links work behind a reverse proxy / when accessed
-        # from outside (get_url falls back to the internal URL if no external one
-        # is configured). Falls back to a relative /local path if neither exists.
-        try:
-            base_url = get_url(hass, prefer_external=True).rstrip("/")
-        except NoURLAvailableError:
-            base_url = ""
-        files = {
-            kind: f"{base_url}/local/{EXPORT_WWW_SUBDIR}/{token}/{fname}"
-            for kind, fname in written.items()
-        }
+        files = export_links(hass, token, written)
         _LOGGER.info(
             "Export wrote %d file(s) for meter %s to %s",
             len(written), meter_id, export_dir,
