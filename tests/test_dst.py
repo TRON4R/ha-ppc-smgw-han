@@ -19,12 +19,14 @@ import pytest
 from custom_components.smgw_han.aggregation import build_daily_summary
 from custom_components.smgw_han.cms_parser import parse_cms_readings
 from custom_components.smgw_han.const import OBIS_EXPORT, OBIS_IMPORT
+from custom_components.smgw_han.export_files import write_readings_csv, write_xlsx
 from custom_components.smgw_han.smgw_client import (
     MeterReading,
     SmgwClient,
     SmgwNoDataError,
     find_boundary_reading,
     find_closest_reading,
+    utc_instant,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -228,6 +230,64 @@ def test_export_summary_matches_the_nightly_values(request, which, day, expected
         if r.day == day
     )
     assert row.zone_consumptions == pytest.approx(expected, abs=1e-4)
+
+
+# --- raw-data exports (CSV, XLSX "Rohdaten") --------------------------------
+# Up to v3.6.2 the CSV keyed its rows by the naive local time: the second pass
+# of the repeated autumn hour overwrote the first or landed between its values.
+
+
+def _csv_rows(readings, tmp_path) -> list[list[str]]:
+    path = tmp_path / "out.csv"
+    write_readings_csv(path, readings)
+    lines = path.read_text(encoding="utf-8-sig").splitlines()
+    return [line.split(";") for line in lines[1:]]
+
+
+def test_parser_lists_the_first_pass_first(autumn):
+    at_two = [
+        r.value for r in autumn
+        if r.obis_code == OBIS_IMPORT and r.timestamp == datetime(2025, 10, 26, 2, 0, 1)
+    ]
+    assert at_two == [1778.2671, 1785.0904]  # 2A, then 2B
+
+
+def test_csv_keeps_both_passes_of_the_repeated_hour(autumn, tmp_path):
+    rows = _csv_rows(autumn, tmp_path)
+    assert len(rows) == len({utc_instant(r.timestamp) for r in autumn}) == 103
+    imports = [float(row[2]) for row in rows if row[2]]
+    assert imports == sorted(imports)  # no negative quarter-hour any more
+    at_two = [(row[1], row[2]) for row in rows if row[0] == "2025-10-26 02:00:01"]
+    assert at_two == [
+        ("2025-10-26 00:00:01", "1778.2671"),  # 2A, CEST
+        ("2025-10-26 01:00:01", "1785.0904"),  # 2B, CET
+    ]
+    utc = [row[1] for row in rows]
+    assert utc == sorted(utc)
+
+
+def test_csv_spring_change_loses_nothing(spring, tmp_path):
+    rows = _csv_rows(spring, tmp_path)
+    assert len(rows) == len({r.timestamp for r in spring}) == 95
+    assert not any(row[0].startswith("2026-03-29 02:") for row in rows)
+    imports = [float(row[2]) for row in rows if row[2]]
+    assert imports == sorted(imports)
+
+
+def test_xlsx_raw_sheet_is_chronological_on_the_autumn_day(autumn, tmp_path):
+    from openpyxl import load_workbook
+
+    path = tmp_path / "out.xlsx"
+    summary = build_daily_summary(autumn, lambda _d: HEAT_ZONES)
+    write_xlsx(path, autumn, summary, {"zones": [("00:00", "Standard")]})
+    raw = load_workbook(path)["Rohdaten"]
+    assert [c.value for c in raw[1]][:2] == ["Zeitstempel (Ortszeit)", "Zeitstempel (UTC)"]
+    rows = [[c.value for c in row] for row in raw.iter_rows(min_row=2)]
+    assert len(rows) == len(autumn)
+    imports = [row[3] for row in rows if row[2] == OBIS_IMPORT]
+    assert imports == sorted(imports)
+    utc = [row[1] for row in rows]
+    assert utc == sorted(utc)
 
 
 # --- the rule in isolation -------------------------------------------------

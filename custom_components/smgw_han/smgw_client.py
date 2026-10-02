@@ -257,6 +257,19 @@ def _is_repeated(local: datetime) -> bool:
     return aware.replace(fold=0).utcoffset() != aware.replace(fold=1).utcoffset()
 
 
+def utc_instant(local: datetime) -> datetime:
+    """The real moment of a naive legal-time timestamp, as aware UTC.
+
+    In the repeated autumn hour both passes share one naive wall-clock time
+    and differ only in ``fold`` (the CMS parser sets ``fold=1`` on the second
+    pass). Naive datetimes compare and hash equal regardless of ``fold``, so
+    anything that sorts or groups readings across that hour must use this
+    instead. HTML-table readings carry no ``fold`` and are never grouped this
+    way (the nightly fetch resolves boundaries with find_boundary_reading).
+    """
+    return local.replace(tzinfo=_LEGAL_TZ).astimezone(UTC)
+
+
 def _clear_of_dst_change(
     points: list[datetime], from_dt: datetime, to_dt: datetime
 ) -> list[datetime]:
