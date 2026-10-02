@@ -275,7 +275,15 @@ def find_boundary_reading(
       wins ("2A" in PTB terms) - the first moment the clock shows that time.
       The import register is cumulative, so the lower value is the earlier
       reading; this holds whatever order the HTML table or the CMS export
-      lists the rows in.
+      lists the rows in. Both list both passes: the CMS by its UTC times,
+      the HTML table newest first (checked on a real gateway for
+      2025-10-26, 2026-10-02).
+    - Autumn with only ONE reading near the repeated time: it cannot be told
+      which pass it belongs to, and picking the wrong one moves an hour of
+      consumption into another zone (6.8 kWh on 2025-10-26). The boundary
+      counts as missing instead, so the nightly fetch rejects the day and
+      the export leaves the affected zones empty - never a guessed value.
+      Complete data always has both passes, so this needs a gap in the data.
     """
     probe = target_dt
     for _ in range(8):  # the German gap is one hour, i.e. four grid steps
@@ -297,9 +305,11 @@ def find_boundary_reading(
     if len(candidates) == 1:
         _LOGGER.warning(
             "Only one reading near %s, which occurs twice on the DST change "
-            "day; it cannot be told which pass it belongs to, using it as is",
+            "day; it cannot be told which pass it belongs to, so the boundary "
+            "is treated as missing",
             target_dt,
         )
+        return None
     return min(candidates, key=lambda r: r.value)
 
 
