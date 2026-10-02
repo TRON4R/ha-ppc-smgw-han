@@ -23,11 +23,14 @@ from typing import Any
 from .aggregation import DailySummary
 from .const import OBIS_EXPORT, OBIS_IMPORT
 from .log_parser import LogEntry
-from .smgw_client import MeterReading
+from .smgw_client import MeterReading, utc_instant
 
-# Wide-format column headers for the raw-dump CSV.
+# Wide-format column headers for the raw-dump CSV. The UTC column (since
+# v3.6.3) tells the two passes of the repeated autumn hour apart, which share
+# their local time; it sits next to the local time like in the log export.
 RAW_HEADERS = [
-    "Zeitstempel",
+    "Zeitstempel (Ortszeit)",
+    "Zeitstempel (UTC)",
     "1.8.0 Bezug (kWh)",
     "2.8.0 Einspeisung (kWh)",
     "Qualität",
@@ -36,6 +39,11 @@ RAW_HEADERS = [
 
 def _fmt_dt(dt: datetime | None) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S") if dt else ""
+
+
+def _fmt_utc(local: datetime) -> str:
+    """The UTC moment of a naive legal-time timestamp, as plain text."""
+    return _fmt_dt(utc_instant(local).replace(tzinfo=None))
 
 
 def _safe_text(value: str) -> str:
@@ -52,17 +60,25 @@ def _safe_text(value: str) -> str:
 def _pivot_by_timestamp(
     readings: list[MeterReading],
 ) -> list[tuple[datetime, float | None, float | None, str]]:
-    """Pivot long readings into one row per timestamp.
+    """Pivot long readings into one row per moment.
 
-    Returns ``(timestamp, import_value, export_value, quality)`` tuples sorted
-    by timestamp. A missing OBIS code for a timestamp yields ``None`` (an empty
-    cell) instead of a fabricated zero — so meters without feed-in simply leave
-    the 2.8.0 column blank.
+    Returns ``(timestamp, import_value, export_value, quality)`` tuples in
+    chronological order; ``timestamp`` is the reading's naive local time. A
+    missing OBIS code for a moment yields ``None`` (an empty cell) instead of
+    a fabricated zero — so meters without feed-in simply leave the 2.8.0
+    column blank.
+
+    Rows are keyed by the real UTC moment, not the naive timestamp: on the
+    autumn change day both passes of the repeated hour share their naive
+    time (they differ only in ``fold``, which naive comparisons ignore), and
+    keying by it merged the two passes into one row and lost the second
+    (bug in the CSV up to v3.6.2).
     """
     rows: dict[datetime, dict[str, object]] = {}
     for r in readings:
         row = rows.setdefault(
-            r.timestamp, {"import": None, "export": None, "quality": None}
+            utc_instant(r.timestamp),
+            {"local": r.timestamp, "import": None, "export": None, "quality": None},
         )
         if r.obis_code == OBIS_IMPORT:
             row["import"] = r.value
@@ -72,15 +88,21 @@ def _pivot_by_timestamp(
             if row["quality"] is None:
                 row["quality"] = r.quality
     return [
-        (ts, rows[ts]["import"], rows[ts]["export"], rows[ts]["quality"] or "")
-        for ts in sorted(rows)
+        (
+            rows[moment]["local"],
+            rows[moment]["import"],
+            rows[moment]["export"],
+            rows[moment]["quality"] or "",
+        )
+        for moment in sorted(rows)
     ]
 
 
 def write_readings_csv(path: Path, readings: list[MeterReading]) -> None:
     """Write the raw reading dump as a semicolon CSV (Excel-friendly).
 
-    Wide format: one row per timestamp with separate 1.8.0 / 2.8.0 columns.
+    Wide format: one row per moment with separate 1.8.0 / 2.8.0 columns,
+    local time first and the UTC moment next to it.
     """
     with path.open("w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f, delimiter=";")
@@ -89,6 +111,7 @@ def write_readings_csv(path: Path, readings: list[MeterReading]) -> None:
             writer.writerow(
                 [
                     _fmt_dt(ts),
+                    _fmt_utc(ts),
                     f"{imp:.4f}" if imp is not None else "",
                     f"{exp:.4f}" if exp is not None else "",
                     _safe_text(quality),
@@ -162,11 +185,17 @@ def write_xlsx(
     # --- Sheet 1: raw readings (long: one row per reading) --------------
     raw = wb.active
     raw.title = "Rohdaten"
-    raw.append(["Zeitstempel", "OBIS", "Wert (kWh)", "Einheit", "Qualitaet"])
-    for r in readings:
-        raw.append([_fmt_dt(r.timestamp), _safe_text(r.obis_code), r.value,
+    raw.append([
+        "Zeitstempel (Ortszeit)", "Zeitstempel (UTC)", "OBIS", "Wert (kWh)",
+        "Einheit", "Qualitaet",
+    ])
+    # Chronological by the real moment, so the repeated autumn hour lists
+    # its first pass before its second (same reason as _pivot_by_timestamp).
+    for r in sorted(readings, key=lambda r: (utc_instant(r.timestamp), r.obis_code)):
+        raw.append([_fmt_dt(r.timestamp), _fmt_utc(r.timestamp),
+                    _safe_text(r.obis_code), r.value,
                     _safe_text(r.unit), _safe_text(r.quality)])
-    for row in raw.iter_rows(min_row=2, min_col=3, max_col=3):
+    for row in raw.iter_rows(min_row=2, min_col=4, max_col=4):
         for cell in row:
             cell.number_format = "0.0000"
 
@@ -272,6 +301,18 @@ def write_xlsx(
     info[f"A{row}"] = (
         "Falls für einen Tag ein benötigter Messpunkt fehlt (00:00 oder "
         "eine Umschaltzeit), bleibt die betroffene berechnete Spalte leer."
+    )
+    row += 2
+    info[f"A{row}"] = "Zeitumstellung"
+    info[f"A{row}"].font = bold
+    row += 1
+    info[f"A{row}"] = (
+        "Am Tag der Umstellung auf Winterzeit (letzter Sonntag im Oktober) "
+        "erscheinen die Uhrzeiten 02:00 bis 02:59 im Blatt „Rohdaten“ "
+        "zweimal: zuerst vor, dann nach dem Zurückstellen der Uhr. Die "
+        "Spalte „Zeitstempel (UTC)“ unterscheidet die beiden. Am Tag der "
+        "Umstellung auf Sommerzeit (letzter Sonntag im März) fehlen diese "
+        "Uhrzeiten, weil es sie nicht gibt."
     )
     info.column_dimensions["A"].width = 140
 

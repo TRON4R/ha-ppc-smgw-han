@@ -30,7 +30,7 @@ from xml.parsers import expat
 from zoneinfo import ZoneInfo
 
 from .const import OBIS_EXPORT, OBIS_IMPORT
-from .smgw_client import MeterReading
+from .smgw_client import MeterReading, utc_instant
 
 # DKE profile namespaces. Everything is matched by URI — including the root
 # element check below — so the document's prefixes (ns1:/ns2:, pg:, or a
@@ -213,8 +213,11 @@ def _parse_entries(column: ET.Element, obis_code: str) -> list[MeterReading]:
 def parse_cms_readings(raw: bytes) -> list[MeterReading]:
     """Parse signed CMS bytes into MeterReadings (1.8.0 import + 2.8.0 feed-in).
 
-    Non-target OBIS series are skipped. Returns readings sorted by
-    ``(timestamp, obis_code)`` (matching the HTML export path).
+    Non-target OBIS series are skipped. Returns readings in chronological
+    order of the real moment, then OBIS code. Sorting by the naive timestamp
+    is not enough: on the autumn change day the repeated hour puts its two
+    passes on the same wall-clock times, and the CMS lists the newest first,
+    so the second pass came out ahead of the first.
     """
     xml_bytes = extract_embedded_xml(raw)
     try:
@@ -240,5 +243,5 @@ def parse_cms_readings(raw: bytes) -> list[MeterReading]:
             continue  # not a 1.8.0 / 2.8.0 series
         readings.extend(_parse_entries(column, obis_code))
 
-    readings.sort(key=lambda r: (r.timestamp, r.obis_code))
+    readings.sort(key=lambda r: (utc_instant(r.timestamp), r.obis_code))
     return readings

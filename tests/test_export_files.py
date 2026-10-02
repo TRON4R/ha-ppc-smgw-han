@@ -59,11 +59,13 @@ def test_write_csv_wide_format(tmp_path):
     write_readings_csv(path, READINGS)
     lines = path.read_text(encoding="utf-8-sig").splitlines()
     assert lines[0] == (
-        "Zeitstempel;1.8.0 Bezug (kWh);2.8.0 Einspeisung (kWh);Qualität"
+        "Zeitstempel (Ortszeit);Zeitstempel (UTC);1.8.0 Bezug (kWh);"
+        "2.8.0 Einspeisung (kWh);Qualität"
     )
     row = next(line for line in lines if line.startswith("2026-05-15 05:00:01"))
-    # Columns: timestamp;import;export;quality -> export must be blank.
-    assert row.split(";")[2] == ""
+    # Columns: local;UTC;import;export;quality -> export must be blank.
+    assert row.split(";")[1] == "2026-05-15 03:00:01"  # CEST = UTC+2
+    assert row.split(";")[3] == ""
 
 
 GO_ZONES = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
@@ -139,7 +141,7 @@ def test_formula_injection_is_neutralized(tmp_path):
         for line in csv_path.read_text(encoding="utf-8-sig").splitlines()
         if line.startswith("2026-05-15 00:00:01")
     )
-    assert row.split(";")[3] == "'=2+2"  # apostrophe forces text
+    assert row.split(";")[4] == "'=2+2"  # apostrophe forces text
 
     zones = [(time(0, 0), "=EVIL"), (time(5, 0), "Standard")]
     summary = build_daily_summary(evil_readings, _fixed(zones))
@@ -154,7 +156,7 @@ def test_formula_injection_is_neutralized(tmp_path):
 
     wb = load_workbook(xlsx_path)
     # Rohdaten: gateway quality text neutralized, no formula cells.
-    qualities = [row[4].value for row in wb["Rohdaten"].iter_rows(min_row=2)]
+    qualities = [row[5].value for row in wb["Rohdaten"].iter_rows(min_row=2)]
     assert "'=2+2" in qualities
     # Definition: zone-name-led line neutralized.
     definition_texts = [
