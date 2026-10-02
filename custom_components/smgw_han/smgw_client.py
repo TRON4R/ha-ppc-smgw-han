@@ -257,6 +257,32 @@ def _is_repeated(local: datetime) -> bool:
     return aware.replace(fold=0).utcoffset() != aware.replace(fold=1).utcoffset()
 
 
+def _clear_of_dst_change(
+    points: list[datetime], from_dt: datetime, to_dt: datetime
+) -> list[datetime]:
+    """Move log-export split points out of the hour a DST change touches.
+
+    The gateway reads ``from``/``to`` as local wall-clock time. On the two
+    change days 02:00-02:59 does not exist (spring) or exists twice
+    (autumn), and how PPC resolves such a string is unknown: a refusal
+    ("Ungültige Zeitangabe") would abort the export, two different passes on
+    either side of a split would leave a gap. A computed split point in that
+    hour therefore moves to 03:00, which exists exactly once on both days
+    (German legal time changes at 02:00/03:00). Which days are affected comes
+    from the tz database, so future and past changes need no list here.
+    Points pushed out of (from_dt, to_dt) or onto each other are dropped;
+    the user's own from/to are never moved. An empty result means the caller
+    keeps the original points (a range lying entirely inside that hour).
+    """
+    moved: list[datetime] = []
+    for point in points:
+        if _is_nonexistent(point) or _is_repeated(point):
+            point = point.replace(hour=3, minute=0, second=0, microsecond=0)
+        if from_dt < point < to_dt and point not in moved:
+            moved.append(point)
+    return sorted(moved)
+
+
 def find_boundary_reading(
     meter_readings: list[MeterReading],
     target_dt: datetime,
@@ -998,7 +1024,12 @@ class SmgwClient:
         )
         if kind == "unknown" and state.relogins_left > 0:
             # The likeliest cause of an unexpected answer midway is an expired
-            # session; one fresh login is cheap, a loop of them is not.
+            # session; one fresh login is cheap, a loop of them is not. No
+            # logout first: an expired session cannot be logged out, and if
+            # the cause was something else the retry fails and the export ends
+            # with a clear error. (External review 2026-10-02 asked about the
+            # missing logout; kept as is - the path runs at most once and has
+            # never triggered on a real gateway.)
             state.relogins_left -= 1
             _LOGGER.debug("Unexpected log export answer, logging in again")
             await self._login()
@@ -1027,12 +1058,15 @@ class SmgwClient:
                 f"{count} log entries between {from_dt} and {to_dt}; the range "
                 f"cannot be split any further"
             )
-        bounds = [
-            from_dt + timedelta(seconds=span * i // pieces) for i in range(pieces)
-        ] + [to_dt]
+        inner = [
+            from_dt + timedelta(seconds=span * i // pieces)
+            for i in range(1, pieces)
+        ]
+        inner = _clear_of_dst_change(inner, from_dt, to_dt) or inner
+        bounds = [from_dt, *inner, to_dt]
         _LOGGER.debug(
             "Gateway refused %s .. %s (%s entries), splitting into %d",
-            from_dt, to_dt, count, pieces,
+            from_dt, to_dt, count, len(bounds) - 1,
         )
         for start, end in zip(bounds, bounds[1:]):
             await self._export_log_range(start, end, state)

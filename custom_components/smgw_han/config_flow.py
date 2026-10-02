@@ -1077,6 +1077,13 @@ class SmgwOptionsFlow(OptionsFlow):
             elif from_dt >= to_dt:
                 errors["base"] = "from_after_to"
             elif to_dt.date() > dt_util.now().date():
+                # Only a future DAY is refused (catches typos like 2062). A
+                # later time TODAY is accepted on purpose. An external review
+                # (2026-10-02) suggested refusing it too; tested on a real
+                # gateway the same day, an end later today simply returns
+                # everything up to now - the only difference is that the
+                # export's own login entry falls into the range. Refusing it
+                # would restrict without protecting anything, so not done.
                 errors["base"] = "to_in_future"
             else:
                 # No age limit here, unlike the meter export: the gateway

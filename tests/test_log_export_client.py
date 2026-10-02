@@ -45,11 +45,18 @@ EMPTY_PAGE = (
 class FakeGateway(SmgwClient):
     """SmgwClient whose HTTP layer is an in-memory gateway."""
 
-    def __init__(self, rows, build_cms, garbage_answers: int = 0) -> None:
+    def __init__(
+        self, rows, build_cms, garbage_answers: int = 0,
+        reject_dst_times: bool = False,
+    ) -> None:
         super().__init__("https://gw.invalid/cgi-bin/hanservice.cgi", "u", "p")
         self.rows = rows
         self.build_cms = build_cms
         self.garbage_answers = garbage_answers
+        # How PPC reads a wall-clock time that the DST change skips or
+        # repeats is unknown; this gateway assumes the worst and refuses it,
+        # with the answer the real one gave for a date it would not take.
+        self.reject_dst_times = reject_dst_times
         self.logins = 0
         self.logouts = 0
         self.ranges: list[tuple[datetime, datetime]] = []
@@ -70,6 +77,10 @@ class FakeGateway(SmgwClient):
         start = datetime.strptime(data["from"], "%Y-%m-%d %H:%M:%S")
         end = datetime.strptime(data["to"], "%Y-%m-%d %H:%M:%S")
         self.ranges.append((start, end))
+        if self.reject_dst_times and any(map(_in_dst_change_hour, (start, end))):
+            return httpx.Response(
+                200, text="Ung&uuml;ltige Zeitangabe 'von (Datum)'\n"
+            )
         if self.garbage_answers:
             self.garbage_answers -= 1
             return httpx.Response(200, text="<html>Invalide Session</html>")
@@ -79,6 +90,10 @@ class FakeGateway(SmgwClient):
         if not inside:
             return httpx.Response(200, text=self.empty_answer)
         return httpx.Response(200, content=self.build_cms(inside))
+
+
+def _in_dst_change_hour(local: datetime) -> bool:
+    return smgw_client._is_nonexistent(local) or smgw_client._is_repeated(local)
 
 
 # ---------------------------------------------------------------------------
@@ -188,6 +203,47 @@ async def test_request_cap(log_cms, log_row, monkeypatch):
     with pytest.raises(SmgwLogLimitError):
         await gateway.async_export_log(datetime(2020, 1, 1), datetime(2026, 7, 1))
     assert len(gateway.ranges) == 3
+
+
+@pytest.mark.parametrize(
+    ("day", "skip_missing_hour"),
+    [
+        (datetime(2026, 10, 25), False),  # autumn: 02:00-02:59 occurs twice
+        (datetime(2027, 3, 28), True),  # spring: 02:00-02:59 does not exist
+    ],
+)
+async def test_split_points_avoid_the_dst_change_hour(
+    log_cms, log_row, day, skip_missing_hour
+):
+    # 1800 entries in 00:00-04:00 split into two halves - exactly at 02:00,
+    # a wall-clock time that is ambiguous (autumn) or does not exist (spring).
+    # (External review 2026-10-02.)
+    if skip_missing_hour:  # every 6 s for 4 h, minus the hour that never was
+        stamps = [day + timedelta(seconds=6 * i) for i in range(2400)]
+        stamps = [t for t in stamps if t.hour != 2]
+    else:  # every 8 s for 4 h
+        stamps = [day + timedelta(seconds=8 * i) for i in range(1800)]
+    assert len(stamps) == 1800
+    rows = [log_row(n, t) for n, t in enumerate(stamps, 1)]
+    gateway = FakeGateway(rows, log_cms, reject_dst_times=True)
+
+    result = await gateway.async_export_log(day, day + timedelta(hours=4))
+
+    sent = [t for pair in gateway.ranges for t in pair]
+    assert not any(map(_in_dst_change_hour, sent))
+    assert day + timedelta(hours=3) in sent  # the split moved to 03:00
+    merged = merge_entries(
+        [parse_log_cms(chunk.content).entries for chunk in result.chunks]
+    )
+    assert [e.record_number for e in merged] == [r.record_number for r in rows]
+
+
+def test_split_points_on_ordinary_days_stay_where_they_are():
+    start = datetime(2026, 5, 15)
+    points = [datetime(2026, 5, 15, 2, 0), datetime(2026, 5, 15, 2, 30)]
+    assert smgw_client._clear_of_dst_change(
+        points, start, start + timedelta(hours=4)
+    ) == points
 
 
 async def test_unexpected_answer_gets_one_fresh_login(log_cms, log_row):
