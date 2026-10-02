@@ -9,13 +9,15 @@ test_log_export_client.py, the files by test_log_files.py.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from freezegun import freeze_time
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smgw_han.const import (
@@ -242,6 +244,36 @@ async def test_log_export_rejects_future_end(hass: HomeAssistant):
         )
     assert result["errors"] == {"base": "to_in_future"}
     run.assert_not_called()
+
+
+async def test_log_export_accepts_a_later_time_today(hass: HomeAssistant):
+    # Deliberate (external review 2026-10-02, not adopted): only a future DAY
+    # is refused. Tested on a real gateway, an end later today just returns
+    # everything up to now, plus the export's own login entry.
+    entry = _entry(hass)
+    run = AsyncMock(
+        return_value={"files": LINKS, "entry_count": 5, "parts": 1, "complete": True}
+    )
+    with freeze_time("2026-10-02 18:00:00"), patch(RUN, run), patch(NOTIFY):
+        result = await _open_dates(hass, entry)
+        now = dt_util.now().replace(tzinfo=None, microsecond=0)
+        later_today = now + timedelta(hours=1)
+        assert later_today.date() == now.date()
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "from_datetime": now - timedelta(hours=2),
+                "to_datetime": later_today,
+            },
+        )
+        if result["type"] is FlowResultType.SHOW_PROGRESS:
+            await hass.async_block_till_done()
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"]
+            )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert run.call_args.args[3] == later_today
 
 
 def test_log_period_range():

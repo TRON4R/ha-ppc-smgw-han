@@ -52,6 +52,9 @@ LOG_PERIOD_PRESETS = (*PERIOD_PRESETS, LOG_PERIOD_ALL)
 # (Datum)'". Reaching back that far is not about the gateway's age: a clock
 # that lost its time after a power cut stamps entries with a default date,
 # and only a range that reaches back to it can return them.
+# Measured on one gateway (PPC firmware 00950-34900) only. Should another
+# firmware refuse 2000, "Alles" fails with the gateway's answer in the log;
+# an adaptive fallback is only worth building once that happens.
 LOG_ALL_FROM = datetime(2000, 1, 1)
 
 
@@ -182,6 +185,11 @@ async def run_log_export(
     Returns ``files`` (kind -> URL), ``entry_count``, ``parts`` (number of
     signed files) and ``complete`` (False if the running numbers have a gap
     or a refused range came up short).
+
+    ``complete`` means "no irregularity detectable", not a guarantee: entries
+    missing before the first or after the last one returned leave no trace in
+    the running numbers, and a range the gateway accepted at once names no
+    count to compare against.
     """
     result = await coordinator.async_export_log(from_dt, to_dt)
     processed = await hass.async_add_executor_job(_process, result)
