@@ -1,5 +1,11 @@
 """Constants for the SMGW HAN integration."""
 
+from __future__ import annotations
+
+from datetime import date
+from functools import lru_cache
+from typing import Any
+
 DOMAIN = "smgw_han"
 
 # Config flow keys
@@ -12,6 +18,14 @@ CONF_TARIFF_ZONES = "tariff_zones"  # Ordered list of {"time": "HH:MM", "name": 
 # scheduled; CONF_TARIFF_ZONES then holds the layout valid TODAY (its
 # projection), so every existing consumer keeps reading one plain zone list.
 CONF_ZONE_SCHEDULE = "zone_schedule"
+# Optional per-day-type overrides of CONF_TARIFF_ZONES (which then means
+# "Monday to Friday"). An empty / missing override means "same as Mon-Fri".
+# They are NOT dated: only the Mon-Fri layout follows the zone schedule.
+CONF_TARIFF_ZONES_SATURDAY = "tariff_zones_saturday"
+CONF_TARIFF_ZONES_SUNDAY = "tariff_zones_sunday"
+# If on, the nationwide public holidays use the Sunday layout (precedence
+# over the Saturday layout, e.g. 3 October falling on a Saturday).
+CONF_HOLIDAYS_AS_SUNDAY = "holidays_as_sunday"
 # Form fields of the "schedule a zone change" options step (not stored as
 # entry data — they are folded into CONF_ZONE_SCHEDULE on submit).
 CONF_SCHEDULE_VALID_FROM = "valid_from"
@@ -82,6 +96,76 @@ TARIFF_TEMPLATES: dict[str, list[dict[str, str]]] = {
     # visible instead of leaving the user with an empty field.
     TARIFF_TEMPLATE_CUSTOM: DEFAULT_TARIFF_ZONES,
 }
+
+# Weekday-aware templates: each prefills all three fields (Mon-Fri, Saturday,
+# Sunday) at once instead of just CONF_TARIFF_ZONES.
+TARIFF_TEMPLATE_BAYERNWERK = "bayernwerk"
+
+TARIFF_TEMPLATES_WEEKDAY: dict[str, dict[str, list[dict[str, str]]]] = {
+    TARIFF_TEMPLATE_BAYERNWERK: {
+        CONF_TARIFF_ZONES: [
+            {ZONE_TIME: "00:00", ZONE_NAME: "NT"},
+            {ZONE_TIME: "06:00", ZONE_NAME: "HT"},
+            {ZONE_TIME: "22:00", ZONE_NAME: "NT"},
+        ],
+        CONF_TARIFF_ZONES_SATURDAY: [
+            {ZONE_TIME: "00:00", ZONE_NAME: "NT"},
+            {ZONE_TIME: "06:00", ZONE_NAME: "HT"},
+            {ZONE_TIME: "13:00", ZONE_NAME: "NT"},
+        ],
+        CONF_TARIFF_ZONES_SUNDAY: [
+            {ZONE_TIME: "00:00", ZONE_NAME: "NT"},
+        ],
+    },
+}
+
+
+@lru_cache(maxsize=8)
+def _national_holidays(year: int) -> frozenset[date]:
+    """Holidays common to every German state in ``year`` (no state-specific ones)."""
+    import holidays  # noqa: PLC0415 - lazy: only needed when the switch is on
+
+    return frozenset(holidays.Germany(years=year).keys())
+
+
+def is_national_holiday(day: date) -> bool:
+    """True if ``day`` is a nationwide German public holiday."""
+    return day in _national_holidays(day.year)
+
+
+def day_zones_config(
+    entry_data: Any, base: list[dict[str, str]], day: date
+) -> list[dict[str, str]]:
+    """Zone layout for ``day``: Mon-Fri ``base`` plus Saturday/Sunday/holiday.
+
+    ``base`` is the Mon-Fri layout valid on ``day`` (resolved from the zone
+    schedule by the caller). A nationwide holiday uses the Sunday layout when
+    enabled (precedence over Saturday); otherwise Saturday/Sunday use their
+    override if one is configured, else ``base``.
+    """
+    weekday = day.weekday()
+    sunday = entry_data.get(CONF_TARIFF_ZONES_SUNDAY) or base
+    if entry_data.get(CONF_HOLIDAYS_AS_SUNDAY) and is_national_holiday(day):
+        return sunday
+    if weekday == 5:
+        return entry_data.get(CONF_TARIFF_ZONES_SATURDAY) or base
+    if weekday == 6:
+        return sunday
+    return base
+
+
+def distinct_zone_names(*zone_lists: list[dict[str, str]]) -> list[str]:
+    """Zone names in order of first appearance across all given layouts.
+
+    The position in this list is the sensor slot number, so every layout
+    (Mon-Fri, Saturday, Sunday) feeds the same sensors by NAME.
+    """
+    return list(
+        dict.fromkeys(
+            zone[ZONE_NAME] for zones in zone_lists for zone in zones
+        )
+    )
+
 
 # OBIS codes
 OBIS_IMPORT = "1-0:1.8.0"  # Verbrauch / Grid import

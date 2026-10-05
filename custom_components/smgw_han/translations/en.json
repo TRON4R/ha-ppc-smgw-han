@@ -7,7 +7,8 @@
         "menu_options": {
           "tariff_go": "Octopus Go / Intelligent Octopus Go (cheap 00:00–05:00)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
-          "tariff_custom": "Enter my own times"
+          "tariff_custom": "Enter my own times",
+          "tariff_bayernwerk": "Bayernwerk HT/NT (weekday-aware)"
         }
       },
       "credentials": {
@@ -19,13 +20,19 @@
           "password": "Password",
           "tariff_zones": "Tariff zones (switch points)",
           "update_time": "Fetch time",
-          "device_name": "Device name (optional)"
+          "device_name": "Device name (optional)",
+          "tariff_zones_saturday": "Saturday zones (optional override)",
+          "tariff_zones_sunday": "Sunday zones (optional override)",
+          "holidays_as_sunday": "Nationwide public holidays as Sunday"
         },
         "data_description": {
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\".\nEqual zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00.\nMinutes must be 00, 15, 30 or 45.",
           "update_time": "Time of day for the automatic daily data fetch",
-          "device_name": "A telling name for this device. Fill it in as soon as you run more than one entry against the same SMGW — whether because you evaluate the same meter by two sets of time windows (e.g. your supplier's tariff and your grid operator's module-3 windows), or because your metering operator issued separate credentials for consumption (1.8.0) and feed-in (2.8.0). Good pairs are \"SMGW Octopus\" / \"SMGW Modul 3\" and \"SMGW Import\" / \"SMGW Export\". Leave it empty only while this stays the single entry for this SMGW — otherwise Home Assistant just numbers the identically named devices. The name feeds into the entity ids, so it is worth picking the right one now."
+          "device_name": "A telling name for this device. Fill it in as soon as you run more than one entry against the same SMGW — whether because you evaluate the same meter by two sets of time windows (e.g. your supplier's tariff and your grid operator's module-3 windows), or because your metering operator issued separate credentials for consumption (1.8.0) and feed-in (2.8.0). Good pairs are \"SMGW Octopus\" / \"SMGW Modul 3\" and \"SMGW Import\" / \"SMGW Export\". Leave it empty only while this stays the single entry for this SMGW — otherwise Home Assistant just numbers the identically named devices. The name feeds into the entity ids, so it is worth picking the right one now.",
+          "tariff_zones_saturday": "Optional. Same format as the Mon-Fri zones above. Leave empty to use the Mon-Fri zones on Saturdays too.",
+          "tariff_zones_sunday": "Optional. Same format as the Mon-Fri zones above. Leave empty to use the Mon-Fri zones on Sundays too.",
+          "holidays_as_sunday": "If enabled, the ~9 holidays common to every German state (New Year, Good Friday, Easter Monday, Labour Day, Ascension, Whit Monday, German Unity Day, Christmas Day, Boxing Day) use the Sunday zones, even on a weekday. State-specific holidays (e.g. Fronleichnam) are never included. Off by default."
         }
       },
       "select_meter": {
@@ -115,13 +122,19 @@
           "password": "Password",
           "tariff_zones": "Tariff zones (switch points)",
           "update_time": "Fetch time",
-          "device_name": "Device name (optional)"
+          "device_name": "Device name (optional)",
+          "tariff_zones_saturday": "Saturday zones (optional override)",
+          "tariff_zones_sunday": "Sunday zones (optional override)",
+          "holidays_as_sunday": "Nationwide public holidays as Sunday"
         },
         "data_description": {
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\".\nEqual zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00.\nMinutes must be 00, 15, 30 or 45.\nNote on statistics history: each zone gets its own consumption sensor. Home Assistant identifies these sensors by their position in the list (first zone, second zone …), not by the name you enter.\nChanging times or appending further zones at the end is therefore safe – existing sensors keep their history. But if you reorder or rename the zones so that a different zone now occupies a previously used position, the new zone's data is appended to the old zone's data in the Home Assistant history, i.e. the sensor's statistics get mixed.",
           "update_time": "Time of day for the automatic daily data fetch",
-          "device_name": "A telling name for this device, needed as soon as several entries point at the same SMGW — two evaluations of one meter (supplier tariff vs. module-3 windows), or separate logins for import and feed-in. Otherwise leave it empty."
+          "device_name": "A telling name for this device, needed as soon as several entries point at the same SMGW — two evaluations of one meter (supplier tariff vs. module-3 windows), or separate logins for import and feed-in. Otherwise leave it empty.",
+          "tariff_zones_saturday": "Optional. Same format as the Mon-Fri zones above. Leave empty to use the Mon-Fri zones on Saturdays too.",
+          "tariff_zones_sunday": "Optional. Same format as the Mon-Fri zones above. Leave empty to use the Mon-Fri zones on Sundays too.",
+          "holidays_as_sunday": "If enabled, the ~9 holidays common to every German state (New Year, Good Friday, Easter Monday, Labour Day, Ascension, Whit Monday, German Unity Day, Christmas Day, Boxing Day) use the Sunday zones, even on a weekday. State-specific holidays (e.g. Fronleichnam) are never included. Off by default."
         }
       },
       "export": {

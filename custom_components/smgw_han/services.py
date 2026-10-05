@@ -394,6 +394,15 @@ async def run_export(
                 (t.strftime("%H:%M"), name)
                 for t, name in zones_for(from_dt.date())
             ],
+            "day_type_zones": [
+                {
+                    "label": label,
+                    "zones": [
+                        (zone[ZONE_TIME], zone[ZONE_NAME]) for zone in zones
+                    ],
+                }
+                for label, zones in coordinator.zone_day_types()
+            ],
             "zone_periods": [
                 {
                     "valid_from": period["valid_from"],

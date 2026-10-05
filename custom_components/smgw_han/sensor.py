@@ -26,6 +26,8 @@ from .const import (
     CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_TARIFF_ZONES,
+    CONF_TARIFF_ZONES_SATURDAY,
+    CONF_TARIFF_ZONES_SUNDAY,
     DEFAULT_TARIFF_ZONES,
     DOMAIN,
     SENSOR_DAILY_CONSUMPTION_TOTAL,
@@ -33,7 +35,7 @@ from .const import (
     SENSOR_DATE,
     SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
     SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
-    ZONE_NAME,
+    distinct_zone_names,
     slot_key,
     switch_key,
 )
@@ -118,6 +120,7 @@ SENSOR_DESCRIPTIONS: tuple[SmgwSensorEntityDescription, ...] = (
 
 def _dynamic_descriptions(
     zones_config: list[dict[str, str]],
+    *extra_zones_configs: list[dict[str, str]],
 ) -> list[SmgwSensorEntityDescription]:
     """Build the config-dependent sensor descriptions from the zone list.
 
@@ -126,9 +129,12 @@ def _dynamic_descriptions(
     absolute meter-reading sensor per inner segment boundary.
     """
     descriptions: list[SmgwSensorEntityDescription] = []
-    zone_names = list(
-        dict.fromkeys(zone[ZONE_NAME] for zone in zones_config)
-    )
+    # The optional Saturday/Sunday layouts feed the SAME sensors by zone name,
+    # so the sensor set covers every name of every layout.
+    zone_names = distinct_zone_names(zones_config, *extra_zones_configs)
+    switch_count = max(
+        len(zones) for zones in (zones_config, *extra_zones_configs)
+    ) - 1
     for n, name in enumerate(zone_names, 1):
         descriptions.append(
             SmgwSensorEntityDescription(
@@ -144,7 +150,7 @@ def _dynamic_descriptions(
                 icon="mdi:home-lightning-bolt",
             )
         )
-    for n in range(1, len(zones_config)):
+    for n in range(1, switch_count + 1):
         descriptions.append(
             SmgwSensorEntityDescription(
                 key=switch_key(n),
@@ -194,10 +200,13 @@ async def async_setup_entry(
     coordinator: SmgwCoordinator = config_entry.runtime_data
 
     zones_config = config_entry.data.get(CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES)
-    dynamic = _dynamic_descriptions(zones_config)
-    zone_count = len(dict.fromkeys(z[ZONE_NAME] for z in zones_config))
+    saturday = config_entry.data.get(CONF_TARIFF_ZONES_SATURDAY) or []
+    sunday = config_entry.data.get(CONF_TARIFF_ZONES_SUNDAY) or []
+    dynamic = _dynamic_descriptions(zones_config, saturday, sunday)
+    zone_count = len(distinct_zone_names(zones_config, saturday, sunday))
+    switch_count = max(len(zones_config), len(saturday), len(sunday)) - 1
     _remove_stale_dynamic_entities(
-        hass, config_entry, zone_count, len(zones_config) - 1
+        hass, config_entry, zone_count, switch_count
     )
 
     entities: list[SensorEntity] = [

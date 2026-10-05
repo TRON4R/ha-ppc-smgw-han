@@ -54,6 +54,9 @@ class FakeCoordinator:
         """Day -> zones. One layout for the whole range (no scheduled change)."""
         return lambda _day: self.tariff_zones
 
+    def zone_day_types(self):
+        return []
+
     def zone_periods(self, first_day, last_day):
         return [
             {
