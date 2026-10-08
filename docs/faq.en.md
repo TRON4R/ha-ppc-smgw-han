@@ -71,7 +71,8 @@ The step-by-step guide with a screenshot is in the [network setup guide](https:/
 
 Good to know:
 
-- **If Home Assistant runs as a virtual machine** (e.g. on a NAS), the host's IP address doesn't matter. The second address goes to the Home Assistant instance itself.
+- **If Home Assistant runs as a virtual machine** (e.g. on a NAS or on Proxmox), the host's IP address doesn't matter. The second address goes to the Home Assistant instance itself. The most robust choice is then a dedicated network interface for the SMGW ([Option B](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/network-setup.en.md#option-b) of the network setup guide): the existing interface stays on "Automatic".
+- **On HA Container (Docker) or HA Core** there are no network settings in Home Assistant. Set up the second address on the host system instead.
 - **The URL in the integration stays the same.** It keeps the SMGW's address (e.g. `https://192.168.100.100/cgi-bin/hanservice.cgi`), not Home Assistant's new address.
 - **A second router, or routing between the networks, does not help according to user reports:** the SMGW apparently does not answer packets that were forwarded by a router.
 - **If your SMGW has a different address** than `192.168.100.100`, pick an address from its range for Home Assistant – for `192.168.1.200`, e.g. `192.168.1.12`.
