@@ -2,8 +2,10 @@
 
 The PPC Smart Meter Gateway is typically permanently configured to use a fixed IP (e.g. `192.168.100.100` or `192.168.1.200`) — typically, this cannot be changed. Home Assistant typically runs on your router's local network, e.g. on an address like `192.168.2.12`. Since these two network ranges cannot communicate directly, the easiest and most elegant solution is to assign your Home Assistant server a second IP address from the IP range of the SMGW (e.g. `192.168.100.x` or `192.168.1.x`). For the following instructions, I'll simply assume the IP of the SMGW is `192.168.100.100` for the rest of these instructions.
 
+Home Assistant basically offers two ways to do this. The next section briefly clarifies which one fits your situation best, and then both options are explained with screenshots to keep things as simple and easy to follow as possible.
+
 > [!NOTE]
-> The network settings below only exist on **Home Assistant OS** and **Supervised**. **HA Container** (Docker, e.g. in a NAS's container manager) and **HA Core** don't have them; there you set up the additional IP address on the host system.
+> The network settings below only exist on **Home Assistant OS** and **Supervised**. **HA Container** (Docker, e.g. in a NAS's container manager) and **HA Core** don't have them; there you can only set up the additional IP address on the host system.
 
 ## Which option fits?
 
@@ -31,6 +33,8 @@ All that's left is to start the SMGW integration, which should then successfully
 
 Because the interface is now set to _Static_, HA no longer gets its address from the router. If you later change your router or address range, you have to adjust the address here by hand, otherwise HA becomes unreachable. If you want to avoid that, use [Option B](#option-b).
 
+Otherwise, have a look at the [Notes](#notes) below if needed: they contain valuable tips and solutions for potential problems, as well as answers to questions other users have asked in this context.
+
 ## <a id="option-b"></a>Option B: A dedicated network interface for the SMGW
 
 _Idea and screenshot: [@ptar](https://github.com/ptar), see [Discussion #71](https://github.com/TRON4R/ha-ppc-smgw-han/discussions/71). Thank you!_
@@ -57,7 +61,7 @@ Example Proxmox:
 
 Other hypervisors (e.g. Synology VMM, QNAP Virtualization Station, VirtualBox) work the same way: add another network adapter to the VM, restart the VM and continue with step 3. If the machine has a second physical network port, connect it to the switch and continue with step 3 as well.
 
-## Notes
+## <a id="notes"></a>Notes
 
 - Of course, the HAN port of the SMGW must be connected via LAN cable to the same switch that the Home Assistant server is connected to. If Home Assistant is running in a virtual machine (e.g. on a NAS such as Synology or QNAP), the IP address or IP range of the NAS (the hosting device) itself does not matter. What matters is only that the Home Assistant instance has this additional IP address in the SMGW's IP range active (as achieved by the instructions above).
 - A restart of Home Assistant may be required after saving for the change to take effect.
