@@ -31,7 +31,9 @@ Dazu gibt es in Home Assistant grundsätzlich zwei Möglichkeiten. Im Folgenden 
 **Und das war es auch schon.** Jetzt kann der "Home Assistant"-Server direkt mit dem SMGW reden. Ohne komplizierte Routen, vLANs oder die Umstellung des gesamten privaten Netzwerks. 
 Als nächstes muss nur noch die SMGW-Integration gestartet werden und diese sollte sich dann erfolgreich mit dem SMGW verbinden können. 
 
-Weil die Schnittstelle jetzt auf _Statisch_ steht, bekommt HA seine Adresse nicht mehr vom Router. Wechselst Du später Router oder Adressbereich, musst Du die Adresse hier von Hand anpassen, sonst ist HA nicht mehr erreichbar. Wer das vermeiden will, nimmt [Variante B](#variante-b). Ansonsten check ggf. noch unten die Hinweise, denn da gibt es noch wertvolle Tips bzw. Lösungen für potentielle Probleme und Antworten auf Fragen, die von anderen Nutzern in dem Zusammenhang gestellt wurden.
+Weil die Schnittstelle jetzt auf _Statisch_ steht, bekommt HA seine Adresse nicht mehr vom Router. Wechselst Du später Router oder Adressbereich, musst Du die Adresse hier von Hand anpassen, sonst ist HA nicht mehr erreichbar. Wer das vermeiden will, nimmt [Variante B](#variante-b).
+
+Ansonsten check ggf. noch unten die [Hinweise](#hinweise), denn da gibt es noch wertvolle Tips bzw. Lösungen für potentielle Probleme und Antworten auf Fragen, die von anderen Nutzern in dem Zusammenhang gestellt wurden.
 
 ## <a id="variante-b"></a>Variante B: Eigene Netzwerkschnittstelle für das SMGW
 
@@ -58,7 +60,7 @@ Beispiel Proxmox:
 
 Bei anderen Hypervisoren (z. B. Synology VMM, QNAP Virtualization Station, VirtualBox) funktioniert es genauso: der VM eine weitere Netzwerkkarte hinzufügen, die VM neu starten und ab Schritt 3 weitermachen. Hat der Rechner einen zweiten physischen Netzwerkanschluss, verbindest Du diesen mit dem Switch und machst ebenfalls ab Schritt 3 weiter.
 
-## Hinweise
+## <a id="hinweise"></a>Hinweise
 
 - Natürlich muss der HAN-Port des SMGW per LAN-Kabel mit demselben Switch verbunden sein, mit dem auch der Home Assistant-Server verbunden ist. Sollte der Home Assistant in einer Virtual Machine z.B. auf einem NAS (z.B. Synology oder QNAP) laufen, so spielt die IP bzw. IP-Range des NAS selbst (also des Host-Gerätes) keine Rolle. Wichtig ist nur, dass die Home Assistant-Instanz (wie oben beschrieben) diese zusätzliche IP in der IP-Range des SMGW aktiv hat. 
 - Nach dieser Änderung ist ggf. ein Neustart von Home Assistant erforderlich, damit die Änderung wirksam wird.
