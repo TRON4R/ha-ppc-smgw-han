@@ -2,8 +2,10 @@
 
 Das PPC Smart Meter Gateway ist in der Regel fix auf eine IP (z.B. `192.168.100.100` oder `192.168.1.200`) konfiguriert und lässt sich in der Regel nicht ändern. Home Assistant läuft typischerweise im Router-Netzwerk auf einer lokalen IP-Adresse wie z.B. `192.168.2.12`. Da diese beiden Netzbereiche nicht direkt miteinander kommunizieren, ist die eleganteste und schnellste Lösung, dem "Home Assistant"-Server eine zweite IP-Adresse aus dem IP-Bereich (z.B. `192.168.100.x` bzw. `192.168.1.x`) des SMGW zu geben. Ich gehe im folgenden einfach mal von der IP `192.168.100.100` aus.
 
+Dazu gibt es in Home Assistant grundsätzlich zwei Möglichkeiten. Im Folgenden wird erst kurz geklärt, welche je nach Situation am besten geeignet ist und dann werden die beiden Varianten mit Screenshots erklärt, um es so einfach und nachvollziehbar wie möglich zu halten. 
+
 > [!NOTE]
-> Die Netzwerk-Einstellungen unten gibt es nur bei **Home Assistant OS** und **Supervised**. Bei **HA Container** (Docker, z. B. im Container Manager eines NAS) und **HA Core** fehlen sie; dort richtest Du die zusätzliche IP-Adresse auf dem Host-System ein.
+> Die Netzwerk-Einstellungen unten gibt es nur bei **Home Assistant OS** und **Supervised**. Bei **HA Container** (Docker, z. B. im Container Manager eines NAS) und **HA Core** fehlen sie; dort kannst Du die zusätzliche IP-Adresse nur auf dem Host-System einrichten.
 
 ## Welche Variante passt?
 
