@@ -130,7 +130,7 @@ Umgeschaltet wird automatisch um 00:00 Uhr des Stichtags. Solange das Datum noch
 
 **Warum das mehr ist als ein Timer:** Die Integration merkt sich *beide* Schemata und teilt jeden Tag nach dem Schema auf, das an diesem Tag galt. Das ist entscheidend, denn der nächtliche Abruf am Stichtag holt noch den **Vortag** — und der muss nach den alten Zeitfenstern aufgeteilt werden. Würdest du die Zonen stattdessen am Stichtag selbst von Hand ändern, bekäme der Vortag die neuen Zeitfenster, und jeder spätere Datenexport würde auch alle älteren Tage rückwirkend nach dem neuen Schema aufteilen. Mit einer geplanten Umschaltung bleibt beides korrekt, auch im Excel-Export: Ein Zeitraum, der über den Stichtag hinweggeht, wird tageweise richtig aufgeteilt und im Blatt „Definition" mit beiden Schemata dokumentiert.
 
-> **Zonennamen möglichst beibehalten:** Bleiben die Namen gleich (z. B. weiterhin `NT`/`ST`/`HT`) und ändern sich nur die Uhrzeiten, läuft die Historie jedes Sensors als eine durchgehende Reihe weiter. Ein umbenannter Zonenname legt dagegen einen neuen Sensor mit neuer Statistik an.
+> **Zonennamen möglichst beibehalten:** Bleiben die Namen gleich (z. B. weiterhin `NT`/`ST`/`HT`) und ändern sich nur die Uhrzeiten, läuft die Historie jedes Sensors als eine durchgehende Reihe weiter. Benennst du eine Zone um oder änderst die Reihenfolge, entsteht dagegen **kein** neuer Sensor: Home Assistant erkennt die Sensoren an ihrer Position in der Liste, nicht am Namen. Der Sensor an dieser Position läuft unter dem neuen Namen weiter, seine Statistik mischt dann alte und neue Zone.
 
 ## Mehrere SMGWs / mehrere Zugänge
 

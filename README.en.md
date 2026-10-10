@@ -130,7 +130,7 @@ The switch happens automatically at 00:00 on that date. While the date is still 
 
 **Why this is more than a timer:** the integration keeps *both* layouts and splits every day by the one that was valid on it. That matters because the nightly fetch on the effective date still reads the **day before** — a day that has to be split by the old windows. Changing the zones by hand on that day would give the previous day the new windows, and every later data export would retroactively re-split all older days by the new layout as well. A scheduled change keeps both correct, including in the export: a range spanning the date is split correctly day by day and documented with both layouts on the "Definition" sheet.
 
-> **Keep the zone names if you can:** if the names stay the same (e.g. still `NT`/`ST`/`HT`) and only the times change, each sensor's history continues as one series. A renamed zone creates a new sensor with new statistics instead.
+> **Keep the zone names if you can:** if the names stay the same (e.g. still `NT`/`ST`/`HT`) and only the times change, each sensor's history continues as one series. Renaming or reordering zones does **not** create a new sensor, though: Home Assistant identifies the sensors by their position in the list, not by name. The sensor at that position carries on under the new name, and its statistics then mix the old and the new zone.
 
 ## Multiple SMGWs / multiple logins
 
