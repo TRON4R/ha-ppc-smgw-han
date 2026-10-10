@@ -25,6 +25,7 @@ from custom_components.smgw_han.config_flow import (
 )
 from custom_components.smgw_han.const import (
     CONF_DEVICE_NAME,
+    CONF_HOLIDAYS_AS_SUNDAY,
     CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_PASSWORD,
@@ -33,6 +34,8 @@ from custom_components.smgw_han.const import (
     CONF_TARIFF_SWITCH_HOUR,
     CONF_TARIFF_SWITCH_MINUTE,
     CONF_TARIFF_ZONES,
+    CONF_TARIFF_ZONES_SATURDAY,
+    CONF_TARIFF_ZONES_SUNDAY,
     CONF_UPDATE_TIME,
     CONF_URL,
     CONF_USERNAME,
@@ -1120,3 +1123,102 @@ async def test_options_menu_falls_back_to_the_entry_title(hass: HomeAssistant):
     result = await hass.config_entries.options.async_init(entry.entry_id)
 
     assert result["description_placeholders"]["device"] == entry.title
+
+
+def _field_default(result, name):
+    for key in result["data_schema"].schema:
+        if key == name:
+            return key.default()
+    raise AssertionError(f"{name} not in schema")
+
+
+async def test_setup_bayernwerk_template_prefills_all_day_types(
+    hass: HomeAssistant,
+):
+    result = await _start_user_flow(hass, "tariff_bayernwerk")
+    assert _zone_default(result) == ["00:00 NT", "06:00 HT", "22:00 NT"]
+    assert _field_default(result, CONF_TARIFF_ZONES_SATURDAY) == [
+        "00:00 NT", "06:00 HT", "13:00 NT",
+    ]
+    assert _field_default(result, CONF_TARIFF_ZONES_SUNDAY) == ["00:00 NT"]
+    # Off by default: the user opts in to the holiday rule.
+    assert _field_default(result, CONF_HOLIDAYS_AS_SUNDAY) is False
+
+
+async def test_setup_bayernwerk_stores_overrides_and_holiday_switch(
+    hass: HomeAssistant,
+):
+    with (
+        patch(VALIDATE, return_value=_info("1lgz0072999211", ["1lgz0072999211"])),
+        patch(CLOSE, return_value=None),
+        patch(SETUP_ENTRY, return_value=True),
+    ):
+        result = await _start_user_flow(hass, "tariff_bayernwerk")
+        submitted = {
+            **USER_INPUT,
+            CONF_TARIFF_ZONES: _zone_default(result),
+            CONF_TARIFF_ZONES_SATURDAY: _field_default(
+                result, CONF_TARIFF_ZONES_SATURDAY
+            ),
+            CONF_TARIFF_ZONES_SUNDAY: _field_default(
+                result, CONF_TARIFF_ZONES_SUNDAY
+            ),
+            CONF_HOLIDAYS_AS_SUNDAY: True,
+        }
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], submitted
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    data = result["data"]
+    assert data[CONF_TARIFF_ZONES_SUNDAY] == [{"time": "00:00", "name": "NT"}]
+    assert len(data[CONF_TARIFF_ZONES_SATURDAY]) == 3
+    assert data[CONF_HOLIDAYS_AS_SUNDAY] is True
+
+
+async def test_setup_without_overrides_accepts_empty_fields(
+    hass: HomeAssistant,
+):
+    """Existing setups (Go etc.) keep working: overrides are optional."""
+    with (
+        patch(VALIDATE, return_value=_info("1lgz0072999211", ["1lgz0072999211"])),
+        patch(CLOSE, return_value=None),
+        patch(SETUP_ENTRY, return_value=True),
+    ):
+        result = await _start_user_flow(hass)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], dict(USER_INPUT)
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_TARIFF_ZONES_SATURDAY] == []
+    assert result["data"][CONF_TARIFF_ZONES_SUNDAY] == []
+
+
+async def test_setup_rejects_malformed_saturday_zones(hass: HomeAssistant):
+    result = await _start_user_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {**USER_INPUT, CONF_TARIFF_ZONES_SATURDAY: ["06:00 NT"]},
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert CONF_TARIFF_ZONES_SATURDAY in result["errors"]
+
+
+async def test_options_bayernwerk_template_prefills_but_does_not_save(
+    hass: HomeAssistant,
+):
+    entry = _entry("1lgz0072999211")
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "tariff_template"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "tariff_bayernwerk"}
+    )
+    assert result["step_id"] == "settings"
+    assert _field_default(result, CONF_TARIFF_ZONES_SUNDAY) == ["00:00 NT"]
+    assert CONF_TARIFF_ZONES_SUNDAY not in entry.data

@@ -42,10 +42,13 @@ from .const import (
     ATTR_WRITE_CSV,
     ATTR_WRITE_XLSX,
     CONF_DEVICE_NAME,
+    CONF_HOLIDAYS_AS_SUNDAY,
     CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_PASSWORD,
     CONF_TARIFF_ZONES,
+    CONF_TARIFF_ZONES_SATURDAY,
+    CONF_TARIFF_ZONES_SUNDAY,
     CONF_UPDATE_TIME,
     CONF_URL,
     CONF_SCHEDULE_DISCARD,
@@ -57,10 +60,12 @@ from .const import (
     DEFAULT_UPDATE_TIME,
     DEFAULT_URL,
     DOMAIN,
+    TARIFF_TEMPLATE_BAYERNWERK,
     TARIFF_TEMPLATE_CUSTOM,
     TARIFF_TEMPLATE_GO,
     TARIFF_TEMPLATE_HEAT,
     TARIFF_TEMPLATES,
+    TARIFF_TEMPLATES_WEEKDAY,
     ZONE_NAME,
     ZONE_TIME,
 )
@@ -103,16 +108,24 @@ class ZoneDefinitionError(ValueError):
         self.error_key = error_key
 
 
-def _parse_tariff_zones(entries: list[str]) -> list[dict[str, str]]:
+def _parse_tariff_zones(
+    entries: list[str], *, min_entries: int = 2
+) -> list[dict[str, str]]:
     """Parse and validate the "HH:MM Zonenname" chip entries.
 
     Returns the JSON shape stored in the config entry
     (``[{"time": "HH:MM", "name": ...}, ...]``). Raises
-    :class:`ZoneDefinitionError` on the first violated rule: at least two
-    entries (one switch point), each entry "HH:MM Name", minutes on the
+    :class:`ZoneDefinitionError` on the first violated rule: at least
+    ``min_entries`` entries, each entry "HH:MM Name", minutes on the
     15-minute grid, the first entry at 00:00, times strictly ascending.
+
+    ``min_entries`` defaults to 2 (at least one switch point) for the
+    required Mon-Fri field. A single entry is a valid, switch-free "the
+    whole day is this one zone" definition — used e.g. for an all-day
+    Sunday NT override, where :func:`_parse_optional_tariff_zones` passes
+    ``min_entries=1``.
     """
-    if len(entries) < 2:
+    if len(entries) < min_entries:
         raise ZoneDefinitionError("zone_too_few")
     zones: list[dict[str, str]] = []
     prev: tuple[int, int] | None = None
@@ -134,6 +147,20 @@ def _parse_tariff_zones(entries: list[str]) -> list[dict[str, str]]:
             {ZONE_TIME: f"{hour:02d}:{minute:02d}", ZONE_NAME: match[3].strip()}
         )
     return zones
+
+
+def _parse_optional_tariff_zones(entries: list[str]) -> list[dict[str, str]]:
+    """Like :func:`_parse_tariff_zones`, but an empty list is allowed.
+
+    Used for the Saturday/Sunday override fields: leaving one empty is valid
+    and means "fall back to the Mon-Fri zones" (see
+    :func:`const.zones_config_for_date`), not a validation error. A single
+    entry (e.g. just "00:00 NT") is also valid here — an all-day single
+    zone with no switch point.
+    """
+    if not entries:
+        return []
+    return _parse_tariff_zones(entries, min_entries=1)
 
 
 def _format_tariff_zones(zones: list[Any]) -> list[str]:
@@ -177,6 +204,22 @@ def _build_schema(
                     d.get(CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES)
                 ),
             ): TextSelector(TextSelectorConfig(multiple=True)),
+            vol.Optional(
+                CONF_TARIFF_ZONES_SATURDAY,
+                default=_format_tariff_zones(
+                    d.get(CONF_TARIFF_ZONES_SATURDAY, [])
+                ),
+            ): TextSelector(TextSelectorConfig(multiple=True)),
+            vol.Optional(
+                CONF_TARIFF_ZONES_SUNDAY,
+                default=_format_tariff_zones(
+                    d.get(CONF_TARIFF_ZONES_SUNDAY, [])
+                ),
+            ): TextSelector(TextSelectorConfig(multiple=True)),
+            vol.Optional(
+                CONF_HOLIDAYS_AS_SUNDAY,
+                default=d.get(CONF_HOLIDAYS_AS_SUNDAY, False),
+            ): BooleanSelector(),
             vol.Optional(
                 CONF_UPDATE_TIME,
                 default=d.get(CONF_UPDATE_TIME, DEFAULT_UPDATE_TIME),
@@ -291,6 +334,10 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
         # Zone definition picked from a template menu; only ever used to
         # prefill the (editable) form, never stored without confirmation.
         self._template_zones: list[dict[str, str]] = DEFAULT_TARIFF_ZONES
+        # Saturday/Sunday counterparts; empty means "no override" (falls back
+        # to _template_zones), matching the stored-config default.
+        self._template_zones_saturday: list[dict[str, str]] = []
+        self._template_zones_sunday: list[dict[str, str]] = []
 
     @staticmethod
     @callback
@@ -310,7 +357,9 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         return self.async_show_menu(
             step_id="user",
-            menu_options=["tariff_go", "tariff_heat", "tariff_custom"],
+            menu_options=[
+                "tariff_go", "tariff_heat", "tariff_bayernwerk", "tariff_custom",
+            ],
         )
 
     async def async_step_tariff_go(
@@ -318,6 +367,18 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Prefill the Octopus Go / Intelligent Octopus Go windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_GO]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
+        return await self.async_step_credentials()
+
+    async def async_step_tariff_bayernwerk(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the Bayernwerk HT/NT windows (weekday-aware)."""
+        tpl = TARIFF_TEMPLATES_WEEKDAY[TARIFF_TEMPLATE_BAYERNWERK]
+        self._template_zones = tpl[CONF_TARIFF_ZONES]
+        self._template_zones_saturday = tpl[CONF_TARIFF_ZONES_SATURDAY]
+        self._template_zones_sunday = tpl[CONF_TARIFF_ZONES_SUNDAY]
         return await self.async_step_credentials()
 
     async def async_step_tariff_heat(
@@ -325,6 +386,8 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Prefill the Octopus Heat windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_credentials()
 
     async def async_step_tariff_custom(
@@ -332,6 +395,8 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Prefill the neutral two-zone default for any other tariff."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_CUSTOM]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_credentials()
 
     async def async_step_credentials(
@@ -341,7 +406,7 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Validate the tariff-zone definition first (pure local check) so
+            # Validate the tariff-zone definitions first (pure local check) so
             # a malformed entry never triggers a needless SMGW round trip.
             try:
                 user_input[CONF_TARIFF_ZONES] = _parse_tariff_zones(
@@ -349,6 +414,22 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
             except ZoneDefinitionError as err:
                 errors[CONF_TARIFF_ZONES] = err.error_key
+            try:
+                user_input[CONF_TARIFF_ZONES_SATURDAY] = (
+                    _parse_optional_tariff_zones(
+                        user_input.get(CONF_TARIFF_ZONES_SATURDAY, [])
+                    )
+                )
+            except ZoneDefinitionError as err:
+                errors[CONF_TARIFF_ZONES_SATURDAY] = err.error_key
+            try:
+                user_input[CONF_TARIFF_ZONES_SUNDAY] = (
+                    _parse_optional_tariff_zones(
+                        user_input.get(CONF_TARIFF_ZONES_SUNDAY, [])
+                    )
+                )
+            except ZoneDefinitionError as err:
+                errors[CONF_TARIFF_ZONES_SUNDAY] = err.error_key
 
             device_info = None
             if not errors:
@@ -404,7 +485,11 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=_build_schema(
                 user_input
                 if user_input is not None
-                else {CONF_TARIFF_ZONES: self._template_zones}
+                else {
+                    CONF_TARIFF_ZONES: self._template_zones,
+                    CONF_TARIFF_ZONES_SATURDAY: self._template_zones_saturday,
+                    CONF_TARIFF_ZONES_SUNDAY: self._template_zones_sunday,
+                }
             ),
             errors=errors,
         )
@@ -652,6 +737,8 @@ class SmgwOptionsFlow(OptionsFlow):
         # Zones from a template menu; prefills the settings form for review.
         # None means "keep the stored zones" (the normal settings path).
         self._template_zones: list[dict[str, str]] | None = None
+        self._template_zones_saturday: list[dict[str, str]] | None = None
+        self._template_zones_sunday: list[dict[str, str]] | None = None
         # Log export: choices, the running download (progress step), and its
         # outcome — a result for the final step or an error key for the form.
         self._log_input: dict[str, Any] = {}
@@ -669,6 +756,8 @@ class SmgwOptionsFlow(OptionsFlow):
         # plain "settings" entry always shows the stored zones. Without this a
         # back-navigation would leave the template overlaying the form.
         self._template_zones = None
+        self._template_zones_saturday = None
+        self._template_zones_sunday = None
         # The tariff-template submenu is reached from HERE and from the setup
         # flow, and does opposite things in the two places: here it rewrites
         # this entry's zones, there it creates a new entry. Nothing in the
@@ -833,7 +922,9 @@ class SmgwOptionsFlow(OptionsFlow):
         """Offer the tariff templates as buttons."""
         return self.async_show_menu(
             step_id="tariff_template",
-            menu_options=["tariff_go", "tariff_heat", "tariff_custom"],
+            menu_options=[
+                "tariff_go", "tariff_heat", "tariff_bayernwerk", "tariff_custom",
+            ],
         )
 
     async def async_step_tariff_go(
@@ -841,6 +932,18 @@ class SmgwOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Prefill the settings form with the Octopus Go windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_GO]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
+        return await self.async_step_settings()
+
+    async def async_step_tariff_bayernwerk(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the settings form with the Bayernwerk HT/NT windows."""
+        tpl = TARIFF_TEMPLATES_WEEKDAY[TARIFF_TEMPLATE_BAYERNWERK]
+        self._template_zones = tpl[CONF_TARIFF_ZONES]
+        self._template_zones_saturday = tpl[CONF_TARIFF_ZONES_SATURDAY]
+        self._template_zones_sunday = tpl[CONF_TARIFF_ZONES_SUNDAY]
         return await self.async_step_settings()
 
     async def async_step_tariff_heat(
@@ -848,6 +951,8 @@ class SmgwOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Prefill the settings form with the Octopus Heat windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_settings()
 
     async def async_step_tariff_custom(
@@ -855,6 +960,8 @@ class SmgwOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Prefill the settings form with the neutral two-zone default."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_CUSTOM]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_settings()
 
     # ------------------------------------------------------------------
@@ -1203,7 +1310,7 @@ class SmgwOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Validate the tariff-zone definition first (pure local check) so
+            # Validate the tariff-zone definitions first (pure local check) so
             # a malformed entry never triggers a needless SMGW round trip.
             try:
                 user_input[CONF_TARIFF_ZONES] = _parse_tariff_zones(
@@ -1211,6 +1318,24 @@ class SmgwOptionsFlow(OptionsFlow):
                 )
             except ZoneDefinitionError as err:
                 errors[CONF_TARIFF_ZONES] = err.error_key
+            try:
+                user_input[CONF_TARIFF_ZONES_SATURDAY] = (
+                    _parse_optional_tariff_zones(
+                        user_input.get(CONF_TARIFF_ZONES_SATURDAY, [])
+                    )
+                )
+            except ZoneDefinitionError as err:
+                errors[CONF_TARIFF_ZONES_SATURDAY] = err.error_key
+            try:
+                user_input[CONF_TARIFF_ZONES_SUNDAY] = (
+                    _parse_optional_tariff_zones(
+                        user_input.get(CONF_TARIFF_ZONES_SUNDAY, [])
+                    )
+                )
+            except ZoneDefinitionError as err:
+                errors[CONF_TARIFF_ZONES_SUNDAY] = err.error_key
+
+            if errors:
                 return self.async_show_form(
                     step_id="settings",
                     data_schema=_build_schema(
@@ -1357,7 +1482,11 @@ class SmgwOptionsFlow(OptionsFlow):
         # A template chosen from the menu overrides the stored zones for
         # display only — the user still reviews and submits the form.
         template = (
-            {CONF_TARIFF_ZONES: self._template_zones}
+            {
+                CONF_TARIFF_ZONES: self._template_zones,
+                CONF_TARIFF_ZONES_SATURDAY: self._template_zones_saturday or [],
+                CONF_TARIFF_ZONES_SUNDAY: self._template_zones_sunday or [],
+            }
             if self._template_zones is not None and user_input is None
             else {}
         )

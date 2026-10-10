@@ -99,12 +99,13 @@ Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy
 
 1. Einstellungen → Geräte & Dienste → Integration hinzufügen
 2. Nach „PPC SMGW HAN" suchen
-3. **Tarif auswählen** – es erscheinen drei Schaltflächen:
+3. **Tarif auswählen** – es erscheinen vier Schaltflächen:
 
    | Auswahl | Vorbelegte Umschaltzeiten |
    |---|---|
    | **Octopus Go / Intelligent Octopus Go** | `00:00 Go`, `05:00 Standard` |
    | **Octopus Heat** | `00:00 Standard`, `02:00 Niedrig`, `06:00 Standard`, `12:00 Niedrig`, `16:00 Standard`, `18:00 Hoch`, `21:00 Standard` |
+   | **Bayernwerk HT/NT (wochentagsabhängig)** | Mo–Fr `00:00 NT`, `06:00 HT`, `22:00 NT`; Sa `00:00 NT`, `06:00 HT`, `13:00 NT`; So `00:00 NT` |
    | **Eigene Zeiten eingeben** | `00:00 Zeitfenster 1`, `05:00 Zeitfenster 2` |
 
    Die Auswahl **füllt die Zeiten im nächsten Schritt nur vor** – du siehst sie dort und kannst sie beliebig ändern; gespeichert wird nichts ungefragt. Bei Octopus Heat ergeben die sieben Umschaltpunkte drei Sensoren („Standard", „Niedrig", „Hoch"), weil gleichnamige Fenster zusammengezählt werden; das Standard-Fenster 21:00–02:00 läuft über Mitternacht und erscheint deshalb als erster und letzter Eintrag.
@@ -121,6 +122,17 @@ Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy
 
 > [!NOTE]
 > **Update von v2.x:** Bestehende Einträge werden beim ersten Start automatisch auf das Tarifzonen-Modell migriert, d.h. die vorhandenen Entitäten, Namen und die Energy-Dashboard-Historie bleiben erhalten. Die Migration ist **einmalig** (ein Downgrade auf eine Version vor 3.0.0 erfordert ein Backup oder das Neuanlegen des Eintrags).
+
+## Andere Zonen für Samstag, Sonntag und Feiertage
+
+Manche Tarife (z. B. HT/NT bei Bayernwerk) schalten am Wochenende anders als werktags. Dafür gibt es zwei **optionale** Zusatzfelder im selben Format wie die Tarifzonen: **Samstags-Zonen** und **Sonntags-Zonen**. Das Hauptfeld „Tarifzonen" gilt dann für **Montag bis Freitag**. Bleibt ein Zusatzfeld leer, gelten an diesem Tag einfach die Mo–Fr-Zonen – bestehende Einrichtungen ändern sich also nicht. Ein einzelner Eintrag (z. B. nur `00:00 NT`) bedeutet „der ganze Tag ist diese eine Zone".
+
+Zusätzlich gibt es den Schalter **„Bundeseinheitliche Feiertage wie Sonntag behandeln"** (standardmäßig aus). Ist er an, gelten an den bundesweit einheitlichen Feiertagen (Neujahr, Karfreitag, Ostermontag, Tag der Arbeit, Christi Himmelfahrt, Pfingstmontag, Tag der Deutschen Einheit, 1./2. Weihnachtsfeiertag) die Sonntags-Zonen – auch wenn der Feiertag auf einen Samstag fällt. Landesspezifische Feiertage (z. B. Fronleichnam) werden nie einbezogen. Die Feiertage kommen aus der Python-Bibliothek `holidays`.
+
+Alle Tage füllen dieselben Sensoren – **nach Zonenname**: Eine Zone, die an einem Tag gar nicht vorkommt (z. B. HT an einem Sonntag), zeigt dort 0 kWh. Gleiche Namen in allen Listen sind also wichtig. Der Excel-Export enthält pro Umschaltzeit, die in irgendeiner Liste vorkommt, eine eigene „Bezug"-Spalte und dokumentiert die abweichenden Zonen im Blatt „Definition".
+
+> [!NOTE]
+> Die datierte Umschaltung (nächster Abschnitt) gilt für die **Mo–Fr-Zonen**. Die Samstags-/Sonntags-Zonen sind nicht datiert; ändern sich die Zeiten, passe sie nach dem Stichtag an. Ob dein Messstellenbetreiber Feiertage tatsächlich wie Sonntage abrechnet, prüfe bitte in deinen Tarifbedingungen – der Schalter bildet nur die Aufteilung in der Integration ab.
 
 ## Tarifzonen-Umschaltung vorab planen
 
