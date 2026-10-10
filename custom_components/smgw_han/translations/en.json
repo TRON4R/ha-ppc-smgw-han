@@ -103,7 +103,7 @@
         },
         "data_description": {
           "valid_from": "The first day the new layout applies. Prefilled with the next 1 January, the most common case — but any future date works, for example the day a new supplier tariff starts. It switches at 00:00 on that day; the fetch later that night still splits the previous day by the old windows.",
-          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00, minutes 00, 15, 30 or 45. Prefilled with the zones active today, so only the changed times have to be corrected. Keeping the zone names identical keeps each sensor's history in one series; a renamed zone starts a new one."
+          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00, minutes 00, 15, 30 or 45. Prefilled with the zones active today, so only the changed times have to be corrected. Keeping the zone names identical keeps each sensor's history in one series. Sensors are identified by their position in the list, so a renamed or reordered zone continues the old sensor's series and its statistics get mixed."
         }
       },
       "settings": {

@@ -103,7 +103,7 @@
         },
         "data_description": {
           "valid_from": "Der erste Tag, an dem das neue Schema gilt. Vorbelegt mit dem nächsten 1. Januar als häufigstem Fall — es geht aber jedes künftige Datum, etwa der Starttag eines neuen Stromtarifs. Umgeschaltet wird um 00:00 Uhr dieses Tages; der Abruf in derselben Nacht teilt den Vortag weiterhin nach den alten Zeitfenstern auf.",
-          "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format \"HH:MM Zonenname\", beginnend mit 00:00, Minuten 00, 15, 30 oder 45. Vorbelegt mit den heute aktiven Zonen, es sind also nur die geänderten Zeiten zu korrigieren. Bleiben die Zonennamen gleich, bleibt auch die Historie je Sensor eine durchgehende Reihe; ein umbenannter Zonenname beginnt eine neue."
+          "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format \"HH:MM Zonenname\", beginnend mit 00:00, Minuten 00, 15, 30 oder 45. Vorbelegt mit den heute aktiven Zonen, es sind also nur die geänderten Zeiten zu korrigieren. Bleiben die Zonennamen gleich, bleibt auch die Historie je Sensor eine durchgehende Reihe. Die Sensoren werden an ihrer Position in der Liste erkannt: Eine umbenannte oder verschobene Zone setzt deshalb die Reihe des bisherigen Sensors fort, und dessen Statistik wird vermischt."
         }
       },
       "settings": {
