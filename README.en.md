@@ -95,12 +95,13 @@ Your existing configuration remains untouched — all entities and the Energy Da
 
 1. Go to Settings → Devices & Services → Add Integration
 2. Search for "PPC SMGW"
-3. **Select your tariff** – three buttons appear:
+3. **Select your tariff** – four buttons appear:
 
    | Choice | Prefilled switch times |
    |---|---|
    | **Octopus Go / Intelligent Octopus Go** | `00:00 Go`, `05:00 Standard` |
    | **Octopus Heat** | `00:00 Standard`, `02:00 Niedrig`, `06:00 Standard`, `12:00 Niedrig`, `16:00 Standard`, `18:00 Hoch`, `21:00 Standard` |
+   | **HT/NT with a different weekend** (example times) | Mon–Fri `00:00 NT`, `06:00 HT`, `22:00 NT`; Sat `00:00 NT`, `06:00 HT`, `13:00 NT`; Sun `00:00 NT` – the times are only an example, adapt them to your tariff |
    | **Enter my own times** | `00:00 Zeitfenster 1`, `05:00 Zeitfenster 2` |
 
    The choice only **prefills** the times in the next step – you see them there and can change them freely; nothing is stored without your confirmation. For Octopus Heat the seven switch points yield three sensors ("Standard", "Niedrig", "Hoch") because windows sharing a name are summed; the Standard window 21:00–02:00 crosses midnight and therefore appears as both the first and the last entry.
@@ -117,6 +118,17 @@ Your existing configuration remains untouched — all entities and the Energy Da
 
 > [!NOTE]
 > **Upgrading from v2.x:** Existing entries are migrated to the tariff-zone model automatically on first start. That means your entities, names and the Energy Dashboard history are preserved. The migration is **one-way** (downgrading below 3.0.0 requires a backup or re-adding the entry).
+
+## Different zones for Saturday, Sunday and public holidays
+
+Some tariffs (e.g. HT/NT) switch differently at the weekend than on weekdays. For this the form has the checkbox **"Different times for Saturday, Sunday and public holidays"**. When ticked, an **extra step** opens after the form with **Saturday zones**, **Sunday zones** (same format as the tariff zones) and the holiday selection. The main "Tariff zones" field then applies to **Monday to Friday**. If a field is left empty, that day uses the Mon–Fri zones – existing setups do not change. A single entry (e.g. just `00:00 NT`) means "the whole day is this one zone".
+
+The **holiday selection** has three kinds: **Off** (default – holidays count as normal weekdays), **Nationwide** (only the holidays common to every state: New Year, Good Friday, Easter Monday, Labour Day, Ascension, Whit Monday, German Unity Day, Christmas Day, Boxing Day) or a **federal state** (its holidays including state-specific ones such as Corpus Christi; for Bavaria this includes Assumption Day on 15 August, which applies in most municipalities). On those days the Sunday zones apply – also when the holiday falls on a Saturday. Holidays come from the Python library `holidays`.
+
+All days feed the same sensors – **by zone name**: a zone that does not occur on a given day (e.g. HT on a Sunday) shows 0 kWh there, so use the same names in all lists. The Excel export gets one "Bezug" column per switch time that occurs in any list and documents the differing zones on the "Definition" sheet.
+
+> [!NOTE]
+> Saturday/Sunday zones and the holiday selection are **dated**: when you schedule a change (next section), they are set together with the Mon–Fri zones for the valid-from date; earlier days keep the rules they had. Whether your grid operator really bills holidays like Sundays is stated in its price sheet – the selection only controls how the integration splits the day.
 
 ## Scheduling a tariff-zone change in advance
 

@@ -65,6 +65,12 @@ class FakeCoordinator:
         """Day -> zones. One layout for the whole range (no scheduled change)."""
         return lambda _day: self.tariff_zones
 
+    async def async_preload_holidays(self, years=None):
+        return None
+
+    def zone_day_types(self, first_day, last_day):
+        return []
+
     def zone_periods(self, first_day, last_day):
         return [
             {

@@ -14,6 +14,32 @@ CONF_TARIFF_ZONES = "tariff_zones"  # Ordered list of {"time": "HH:MM", "name": 
 # scheduled; CONF_TARIFF_ZONES then holds the layout valid TODAY (its
 # projection), so every existing consumer keeps reading one plain zone list.
 CONF_ZONE_SCHEDULE = "zone_schedule"
+# Optional per-day-type rules. CONF_TARIFF_ZONES then means "Monday to Friday";
+# an empty / missing Saturday or Sunday list means "same as Mon-Fri".
+# Like CONF_TARIFF_ZONES, these three keys are the projection of the layout
+# valid TODAY. The dated source of truth is CONF_ZONE_SCHEDULE: each of its
+# entries carries the weekday zones AND these day-type rules, so a later
+# change of the Saturday times does not re-split earlier Saturdays.
+CONF_TARIFF_ZONES_SATURDAY = "tariff_zones_saturday"
+CONF_TARIFF_ZONES_SUNDAY = "tariff_zones_sunday"
+# Which public holidays use the Sunday layout (precedence over Saturday, e.g.
+# 3 October falling on a Saturday): HOLIDAYS_OFF (default), HOLIDAYS_NATIONAL
+# (the holidays common to every German state) or the code of one federal
+# state from HOLIDAY_STATES, whose own holidays count as well.
+CONF_HOLIDAYS = "holidays"
+# Boolean key of an early pre-release build ("nationwide holidays as Sunday").
+# Never written any more; only read as a fallback by day_rules.holiday_mode().
+CONF_HOLIDAYS_AS_SUNDAY = "holidays_as_sunday"
+# Form-only checkbox "different times for Saturday, Sunday and holidays". Not
+# stored: it merely opens the extra setup step, and is derived from the stored
+# rules when a form is shown again.
+CONF_WEEKEND_OVERRIDE = "weekend_override"
+HOLIDAYS_OFF = "off"
+HOLIDAYS_NATIONAL = "national"
+HOLIDAY_STATES = (
+    "bw", "by", "be", "bb", "hb", "hh", "he", "mv",
+    "ni", "nw", "rp", "sl", "sn", "st", "sh", "th",
+)
 # Form fields of the "schedule a zone change" options step (not stored as
 # entry data — they are folded into CONF_ZONE_SCHEDULE on submit).
 CONF_SCHEDULE_VALID_FROM = "valid_from"
@@ -91,6 +117,32 @@ TARIFF_TEMPLATES: dict[str, list[dict[str, str]]] = {
     # visible instead of leaving the user with an empty field.
     TARIFF_TEMPLATE_CUSTOM: DEFAULT_TARIFF_ZONES,
 }
+
+# Templates with different times at the weekend: each prefills the Mon-Fri
+# zones AND the Saturday / Sunday rules of the extra setup step at once. The
+# times are only an EXAMPLE of the common "HT on weekdays 06-22, shorter on
+# Saturday, NT all Sunday" scheme; grid operators differ, so the user always
+# checks them against their own price sheet.
+TARIFF_TEMPLATE_WEEKEND = "weekend"
+
+TARIFF_TEMPLATES_DAY_TYPES: dict[str, dict[str, list[dict[str, str]]]] = {
+    TARIFF_TEMPLATE_WEEKEND: {
+        CONF_TARIFF_ZONES: [
+            {ZONE_TIME: "00:00", ZONE_NAME: "NT"},
+            {ZONE_TIME: "06:00", ZONE_NAME: "HT"},
+            {ZONE_TIME: "22:00", ZONE_NAME: "NT"},
+        ],
+        CONF_TARIFF_ZONES_SATURDAY: [
+            {ZONE_TIME: "00:00", ZONE_NAME: "NT"},
+            {ZONE_TIME: "06:00", ZONE_NAME: "HT"},
+            {ZONE_TIME: "13:00", ZONE_NAME: "NT"},
+        ],
+        CONF_TARIFF_ZONES_SUNDAY: [
+            {ZONE_TIME: "00:00", ZONE_NAME: "NT"},
+        ],
+    },
+}
+
 
 # OBIS codes
 OBIS_IMPORT = "1-0:1.8.0"  # Verbrauch / Grid import

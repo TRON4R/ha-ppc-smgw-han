@@ -42,12 +42,16 @@ from .const import (
     ATTR_WRITE_CSV,
     ATTR_WRITE_XLSX,
     CONF_DEVICE_NAME,
+    CONF_HOLIDAYS,
     CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_PASSWORD,
     CONF_TARIFF_ZONES,
+    CONF_TARIFF_ZONES_SATURDAY,
+    CONF_TARIFF_ZONES_SUNDAY,
     CONF_UPDATE_TIME,
     CONF_URL,
+    CONF_WEEKEND_OVERRIDE,
     CONF_SCHEDULE_DISCARD,
     CONF_SCHEDULE_VALID_FROM,
     CONF_USERNAME,
@@ -57,15 +61,20 @@ from .const import (
     DEFAULT_UPDATE_TIME,
     DEFAULT_URL,
     DOMAIN,
+    HOLIDAY_STATES,
+    HOLIDAYS_NATIONAL,
+    HOLIDAYS_OFF,
+    TARIFF_TEMPLATE_WEEKEND,
     TARIFF_TEMPLATE_CUSTOM,
     TARIFF_TEMPLATE_FLAT,
     TARIFF_TEMPLATE_GO,
     TARIFF_TEMPLATE_HEAT,
     TARIFF_TEMPLATES,
+    TARIFF_TEMPLATES_DAY_TYPES,
     ZONE_NAME,
     ZONE_TIME,
 )
-from . import gateway_lock, zone_schedule
+from . import day_rules, gateway_lock, zone_schedule
 from .downloads import valid_until_label
 from .log_export import LOG_PERIOD_PRESETS, log_period_range, run_log_export
 from .services import (
@@ -140,6 +149,134 @@ def _parse_tariff_zones(entries: list[str]) -> list[dict[str, str]]:
     return zones
 
 
+def _parse_optional_tariff_zones(entries: list[str]) -> list[dict[str, str]]:
+    """Like :func:`_parse_tariff_zones`, but an empty list is allowed.
+
+    Used for the Saturday/Sunday override fields: leaving one empty is valid
+    and means "fall back to the Mon-Fri zones" (see
+    :func:`const.zones_config_for_date`), not a validation error. A single
+    entry (e.g. just "00:00 NT") is also valid here — an all-day single
+    zone with no switch point.
+    """
+    # A chip that was cleared but not removed arrives as "": it means "empty".
+    entries = [entry for entry in entries if entry and entry.strip()]
+    if not entries:
+        return []
+    return _parse_tariff_zones(entries)
+
+
+# Private marker passed from the "different times at the weekend" step back
+# into the form step that opened it: the rules were collected, carry on. It is
+# never part of a schema and never stored.
+_DAY_RULES_DONE = "_day_rules_done"
+
+
+def _no_day_rules() -> dict[str, Any]:
+    """Stored form of "Saturday, Sunday and holidays like Mon-Fri"."""
+    return {
+        CONF_TARIFF_ZONES_SATURDAY: [],
+        CONF_TARIFF_ZONES_SUNDAY: [],
+        CONF_HOLIDAYS: HOLIDAYS_OFF,
+    }
+
+
+def _has_day_rules(d: dict[str, Any]) -> bool:
+    """True if form data / entry data carries any Saturday/Sunday/holiday rule."""
+    return bool(
+        d.get(CONF_TARIFF_ZONES_SATURDAY)
+        or d.get(CONF_TARIFF_ZONES_SUNDAY)
+        or day_rules.holiday_mode(d) != HOLIDAYS_OFF
+    )
+
+
+def _rules_for_schedule(rules: dict[str, Any]) -> dict[str, Any]:
+    """Form/entry rule keys -> the keys a schedule entry stores them under."""
+    return {
+        zone_schedule.SATURDAY: rules.get(CONF_TARIFF_ZONES_SATURDAY) or [],
+        zone_schedule.SUNDAY: rules.get(CONF_TARIFF_ZONES_SUNDAY) or [],
+        zone_schedule.HOLIDAYS: day_rules.holiday_mode(rules),
+    }
+
+
+def _rules_from_schedule(item: dict[str, Any]) -> dict[str, Any]:
+    """A schedule entry's day-type rules as form/entry keys (inverse)."""
+    return {
+        CONF_TARIFF_ZONES_SATURDAY: item.get(zone_schedule.SATURDAY) or [],
+        CONF_TARIFF_ZONES_SUNDAY: item.get(zone_schedule.SUNDAY) or [],
+        CONF_HOLIDAYS: day_rules.normalize_holiday_mode(
+            item.get(zone_schedule.HOLIDAYS)
+        ),
+    }
+
+
+def _pending_layout(
+    entry_data: Any, pending: dict[str, Any]
+) -> dict[str, Any]:
+    """The full layout that a pending schedule entry will bring."""
+    return zone_schedule.layout_for_day(
+        entry_data.get(CONF_ZONE_SCHEDULE),
+        day_rules.entry_layout(entry_data),
+        date.fromisoformat(pending[zone_schedule.VALID_FROM]),
+    )
+
+
+def _read_day_rules(
+    user_input: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Validate the day-type step: (rules to store, errors by field)."""
+    rules: dict[str, Any] = {}
+    errors: dict[str, str] = {}
+    for key in (CONF_TARIFF_ZONES_SATURDAY, CONF_TARIFF_ZONES_SUNDAY):
+        try:
+            rules[key] = _parse_optional_tariff_zones(user_input.get(key, []))
+        except ZoneDefinitionError as err:
+            errors[key] = err.error_key
+    rules[CONF_HOLIDAYS] = day_rules.normalize_holiday_mode(
+        user_input.get(CONF_HOLIDAYS)
+    )
+    return rules, errors
+
+
+def _day_rules_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
+    """Schema of the "different times for Saturday, Sunday and holidays" step.
+
+    The stored values are only *suggested*, never ``default=``: with a default
+    the frontend omits an emptied field, voluptuous then puts the OLD value
+    back and a list could never be cleared again.
+    """
+    d = defaults or {}
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_TARIFF_ZONES_SATURDAY,
+                description={
+                    "suggested_value": _format_tariff_zones(
+                        d.get(CONF_TARIFF_ZONES_SATURDAY) or []
+                    )
+                },
+            ): TextSelector(TextSelectorConfig(multiple=True)),
+            vol.Optional(
+                CONF_TARIFF_ZONES_SUNDAY,
+                description={
+                    "suggested_value": _format_tariff_zones(
+                        d.get(CONF_TARIFF_ZONES_SUNDAY) or []
+                    )
+                },
+            ): TextSelector(TextSelectorConfig(multiple=True)),
+            vol.Optional(
+                CONF_HOLIDAYS,
+                description={"suggested_value": day_rules.holiday_mode(d)},
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=[HOLIDAYS_OFF, HOLIDAYS_NATIONAL, *HOLIDAY_STATES],
+                    mode=SelectSelectorMode.DROPDOWN,
+                    translation_key="holiday_mode",
+                )
+            ),
+        }
+    )
+
+
 def _format_tariff_zones(zones: list[Any]) -> list[str]:
     """Format stored zones back into "HH:MM Zonenname" chip strings.
 
@@ -181,6 +318,12 @@ def _build_schema(
                     d.get(CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES)
                 ),
             ): TextSelector(TextSelectorConfig(multiple=True)),
+            # Opens an extra step for the Saturday / Sunday / holiday rules,
+            # so the main form stays as short as it is for a plain tariff.
+            vol.Optional(
+                CONF_WEEKEND_OVERRIDE,
+                default=d.get(CONF_WEEKEND_OVERRIDE, _has_day_rules(d)),
+            ): BooleanSelector(),
             vol.Optional(
                 CONF_UPDATE_TIME,
                 default=d.get(CONF_UPDATE_TIME, DEFAULT_UPDATE_TIME),
@@ -295,6 +438,14 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
         # Zone definition picked from a template menu; only ever used to
         # prefill the (editable) form, never stored without confirmation.
         self._template_zones: list[dict[str, str]] = DEFAULT_TARIFF_ZONES
+        # Saturday/Sunday counterparts; empty means "no override" (falls back
+        # to _template_zones), matching the stored-config default.
+        self._template_zones_saturday: list[dict[str, str]] = []
+        self._template_zones_sunday: list[dict[str, str]] = []
+        # The credentials form while the day-type step runs, and what that
+        # step collected (to prefill it again if it is shown a second time).
+        self._pending_credentials: dict[str, Any] = {}
+        self._rules_prefill: dict[str, Any] | None = None
 
     @staticmethod
     @callback
@@ -318,6 +469,7 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
                 "tariff_go",
                 "tariff_heat",
                 "tariff_flat",
+                "tariff_weekend",
                 "tariff_custom",
             ],
         )
@@ -327,6 +479,18 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Prefill the Octopus Go / Intelligent Octopus Go windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_GO]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
+        return await self.async_step_credentials()
+
+    async def async_step_tariff_weekend(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill HT/NT windows with a different weekend (example times)."""
+        tpl = TARIFF_TEMPLATES_DAY_TYPES[TARIFF_TEMPLATE_WEEKEND]
+        self._template_zones = tpl[CONF_TARIFF_ZONES]
+        self._template_zones_saturday = tpl[CONF_TARIFF_ZONES_SATURDAY]
+        self._template_zones_sunday = tpl[CONF_TARIFF_ZONES_SUNDAY]
         return await self.async_step_credentials()
 
     async def async_step_tariff_heat(
@@ -334,6 +498,8 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Prefill the Octopus Heat windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_credentials()
 
     async def async_step_tariff_flat(
@@ -341,6 +507,8 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Prefill the single zone of a one-price tariff."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_FLAT]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_credentials()
 
     async def async_step_tariff_custom(
@@ -348,6 +516,8 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Prefill the neutral two-zone default for any other tariff."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_CUSTOM]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_credentials()
 
     async def async_step_credentials(
@@ -357,6 +527,9 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            raw = dict(user_input)
+            rules_done = bool(user_input.pop(_DAY_RULES_DONE, False))
+            ticked = bool(user_input.pop(CONF_WEEKEND_OVERRIDE, False))
             # Validate the tariff-zone definition first (pure local check) so
             # a malformed entry never triggers a needless SMGW round trip.
             try:
@@ -365,6 +538,14 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
             except ZoneDefinitionError as err:
                 errors[CONF_TARIFF_ZONES] = err.error_key
+
+            if not errors and ticked and not rules_done:
+                # Saturday / Sunday / holiday rules have their own step; it
+                # hands the completed form back to this one.
+                self._pending_credentials = raw
+                return await self.async_step_day_rules()
+            if not ticked:
+                user_input.update(_no_day_rules())
 
             device_info = None
             if not errors:
@@ -418,10 +599,47 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
             # Re-shown forms keep what the user typed (chips are painful to
             # re-enter); a fresh form gets the zones of the chosen template.
             data_schema=_build_schema(
-                user_input
+                {**user_input, CONF_WEEKEND_OVERRIDE: ticked}
                 if user_input is not None
-                else {CONF_TARIFF_ZONES: self._template_zones}
+                else {
+                    CONF_TARIFF_ZONES: self._template_zones,
+                    CONF_TARIFF_ZONES_SATURDAY: self._template_zones_saturday,
+                    CONF_TARIFF_ZONES_SUNDAY: self._template_zones_sunday,
+                }
             ),
+            errors=errors,
+        )
+
+    async def async_step_day_rules(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Different times for Saturday, Sunday and public holidays.
+
+        Only reached when the checkbox of the credentials form is ticked, so
+        a plain Octopus setup never sees these fields.
+        """
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            rules, errors = _read_day_rules(user_input)
+            if not errors:
+                self._rules_prefill = rules
+                return await self.async_step_credentials(
+                    {
+                        **self._pending_credentials,
+                        **rules,
+                        CONF_WEEKEND_OVERRIDE: True,
+                        _DAY_RULES_DONE: True,
+                    }
+                )
+        prefill = user_input
+        if prefill is None:
+            prefill = self._rules_prefill or {
+                CONF_TARIFF_ZONES_SATURDAY: self._template_zones_saturday,
+                CONF_TARIFF_ZONES_SUNDAY: self._template_zones_sunday,
+            }
+        return self.async_show_form(
+            step_id="day_rules",
+            data_schema=_day_rules_schema(prefill),
             errors=errors,
         )
 
@@ -668,6 +886,13 @@ class SmgwOptionsFlow(OptionsFlow):
         # Zones from a template menu; prefills the settings form for review.
         # None means "keep the stored zones" (the normal settings path).
         self._template_zones: list[dict[str, str]] | None = None
+        self._template_zones_saturday: list[dict[str, str]] | None = None
+        self._template_zones_sunday: list[dict[str, str]] | None = None
+        # The form (settings or scheduled change) that opened the day-type
+        # step, which of the two it was, and what that step collected.
+        self._pending_form: dict[str, Any] = {}
+        self._rules_return = "settings"
+        self._rules_prefill: dict[str, Any] | None = None
         # Log export: choices, the running download (progress step), and its
         # outcome — a result for the final step or an error key for the form.
         self._log_input: dict[str, Any] = {}
@@ -685,6 +910,9 @@ class SmgwOptionsFlow(OptionsFlow):
         # plain "settings" entry always shows the stored zones. Without this a
         # back-navigation would leave the template overlaying the form.
         self._template_zones = None
+        self._template_zones_saturday = None
+        self._template_zones_sunday = None
+        self._rules_prefill = None
         # The tariff-template submenu is reached from HERE and from the setup
         # flow, and does opposite things in the two places: here it rewrites
         # this entry's zones, there it creates a new entry. Nothing in the
@@ -746,6 +974,10 @@ class SmgwOptionsFlow(OptionsFlow):
                     new_data.pop(CONF_ZONE_SCHEDULE, None)
                 return await self._apply_schedule(new_data)
 
+            raw = dict(user_input)
+            rules_done = bool(user_input.pop(_DAY_RULES_DONE, False))
+            ticked = bool(user_input.pop(CONF_WEEKEND_OVERRIDE, False))
+            zones: list[dict[str, str]] = []
             try:
                 zones = _parse_tariff_zones(
                     user_input.get(CONF_TARIFF_ZONES, [])
@@ -765,7 +997,18 @@ class SmgwOptionsFlow(OptionsFlow):
                 # visible and deliberate.
                 errors[CONF_SCHEDULE_VALID_FROM] = "schedule_date_not_future"
 
+            if not errors and ticked and not rules_done:
+                self._pending_form = raw
+                self._rules_return = "schedule"
+                self._rules_prefill = None
+                return await self.async_step_day_rules()
+
             if not errors:
+                rules = (
+                    self._rules_prefill or _no_day_rules()
+                    if ticked
+                    else _no_day_rules()
+                )
                 return await self._apply_schedule(
                     {
                         **entry_data,
@@ -774,6 +1017,8 @@ class SmgwOptionsFlow(OptionsFlow):
                             active_zones,
                             valid_from,
                             zones,
+                            current_rules=_rules_for_schedule(entry_data),
+                            rules=_rules_for_schedule(rules),
                         ),
                     }
                 )
@@ -783,16 +1028,23 @@ class SmgwOptionsFlow(OptionsFlow):
         # but freely editable for a mid-year tariff change. Prefilling the
         # zones matters either way: retyping five switch points invites typos.
         if user_input is not None:
-            defaults = user_input
+            defaults = raw
         elif pending is not None:
+            # A pending entry without rule keys inherits today's rules, so ask
+            # the schedule what is really valid on its date.
+            pending_rules = _rules_from_schedule(
+                _pending_layout(entry_data, pending)
+            )
             defaults = {
                 CONF_SCHEDULE_VALID_FROM: pending[zone_schedule.VALID_FROM],
                 CONF_TARIFF_ZONES: pending[zone_schedule.ZONES],
+                CONF_WEEKEND_OVERRIDE: _has_day_rules(pending_rules),
             }
         else:
             defaults = {
                 CONF_SCHEDULE_VALID_FROM: date(today.year + 1, 1, 1).isoformat(),
                 CONF_TARIFF_ZONES: active_zones,
+                CONF_WEEKEND_OVERRIDE: _has_day_rules(entry_data),
             }
 
         schema: dict[Any, Any] = {
@@ -807,6 +1059,14 @@ class SmgwOptionsFlow(OptionsFlow):
                 ),
             ): TextSelector(TextSelectorConfig(multiple=True)),
         }
+        schema[
+            vol.Optional(
+                CONF_WEEKEND_OVERRIDE,
+                default=defaults.get(
+                    CONF_WEEKEND_OVERRIDE, _has_day_rules(entry_data)
+                ),
+            )
+        ] = BooleanSelector()
         if pending is not None:
             schema[
                 vol.Optional(CONF_SCHEDULE_DISCARD, default=False)
@@ -824,6 +1084,62 @@ class SmgwOptionsFlow(OptionsFlow):
                     else "-"
                 ),
             },
+        )
+
+    async def async_step_day_rules(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Different times for Saturday, Sunday and public holidays.
+
+        Reached from the settings form or the scheduled-change form when
+        their checkbox is ticked; hands the finished form back to whichever
+        opened it.
+        """
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            rules, errors = _read_day_rules(user_input)
+            if not errors:
+                self._rules_prefill = rules
+                form = {
+                    **self._pending_form,
+                    **rules,
+                    CONF_WEEKEND_OVERRIDE: True,
+                    _DAY_RULES_DONE: True,
+                }
+                if self._rules_return == "schedule":
+                    self._pending_form = form
+                    return await self.async_step_schedule_zones(form)
+                return await self.async_step_settings(form)
+        prefill = user_input
+        if prefill is None:
+            if self._rules_prefill is not None:
+                prefill = self._rules_prefill
+            elif self._rules_return == "schedule":
+                pending = zone_schedule.pending_change(
+                    self.config_entry.data.get(CONF_ZONE_SCHEDULE),
+                    dt_util.now().date(),
+                )
+                prefill = (
+                    _rules_from_schedule(
+                        _pending_layout(self.config_entry.data, pending)
+                    )
+                    if pending is not None
+                    else self.config_entry.data
+                )
+            else:
+                prefill = {
+                    CONF_TARIFF_ZONES_SATURDAY: self._template_zones_saturday
+                    if self._template_zones_saturday is not None
+                    else self.config_entry.data.get(CONF_TARIFF_ZONES_SATURDAY),
+                    CONF_TARIFF_ZONES_SUNDAY: self._template_zones_sunday
+                    if self._template_zones_sunday is not None
+                    else self.config_entry.data.get(CONF_TARIFF_ZONES_SUNDAY),
+                    CONF_HOLIDAYS: day_rules.holiday_mode(self.config_entry.data),
+                }
+        return self.async_show_form(
+            step_id="day_rules",
+            data_schema=_day_rules_schema(prefill),
+            errors=errors,
         )
 
     async def _apply_schedule(
@@ -853,6 +1169,7 @@ class SmgwOptionsFlow(OptionsFlow):
                 "tariff_go",
                 "tariff_heat",
                 "tariff_flat",
+                "tariff_weekend",
                 "tariff_custom",
             ],
         )
@@ -862,6 +1179,18 @@ class SmgwOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Prefill the settings form with the Octopus Go windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_GO]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
+        return await self.async_step_settings()
+
+    async def async_step_tariff_weekend(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the settings form with HT/NT windows, weekend differing."""
+        tpl = TARIFF_TEMPLATES_DAY_TYPES[TARIFF_TEMPLATE_WEEKEND]
+        self._template_zones = tpl[CONF_TARIFF_ZONES]
+        self._template_zones_saturday = tpl[CONF_TARIFF_ZONES_SATURDAY]
+        self._template_zones_sunday = tpl[CONF_TARIFF_ZONES_SUNDAY]
         return await self.async_step_settings()
 
     async def async_step_tariff_heat(
@@ -869,6 +1198,8 @@ class SmgwOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Prefill the settings form with the Octopus Heat windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_settings()
 
     async def async_step_tariff_flat(
@@ -876,6 +1207,8 @@ class SmgwOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Prefill the settings form with the single zone of a one-price tariff."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_FLAT]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_settings()
 
     async def async_step_tariff_custom(
@@ -883,6 +1216,8 @@ class SmgwOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Prefill the settings form with the neutral two-zone default."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_CUSTOM]
+        self._template_zones_saturday = []
+        self._template_zones_sunday = []
         return await self.async_step_settings()
 
     # ------------------------------------------------------------------
@@ -1239,6 +1574,9 @@ class SmgwOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            raw = dict(user_input)
+            rules_done = bool(user_input.pop(_DAY_RULES_DONE, False))
+            ticked = bool(user_input.pop(CONF_WEEKEND_OVERRIDE, False))
             # Validate the tariff-zone definition first (pure local check) so
             # a malformed entry never triggers a needless SMGW round trip.
             try:
@@ -1247,15 +1585,42 @@ class SmgwOptionsFlow(OptionsFlow):
                 )
             except ZoneDefinitionError as err:
                 errors[CONF_TARIFF_ZONES] = err.error_key
+
+            if errors:
                 return self.async_show_form(
                     step_id="settings",
                     data_schema=_build_schema(
-                        {**self.config_entry.data, **user_input}
+                        {**self.config_entry.data, **raw}
                     ),
                     errors=errors,
                 )
 
+            if ticked and not rules_done:
+                self._pending_form = raw
+                self._rules_return = "settings"
+                return await self.async_step_day_rules()
+            if not ticked:
+                user_input.update(_no_day_rules())
+
             new_data = {**self.config_entry.data, **user_input}
+
+            # With a schedule the entry's zone keys are only the projection of
+            # "valid today", rewritten from the schedule at every load. A plain
+            # edit would be undone by the next reload, so record it in the
+            # schedule as a change that takes effect today.
+            if new_data.get(CONF_ZONE_SCHEDULE):
+                old_layout = day_rules.entry_layout(self.config_entry.data)
+                if day_rules.entry_layout(new_data) != old_layout:
+                    new_data[CONF_ZONE_SCHEDULE] = zone_schedule.with_change(
+                        new_data[CONF_ZONE_SCHEDULE],
+                        old_layout[zone_schedule.ZONES],
+                        dt_util.now().date(),
+                        new_data[CONF_TARIFF_ZONES],
+                        current_rules=_rules_for_schedule(
+                            self.config_entry.data
+                        ),
+                        rules=_rules_for_schedule(new_data),
+                    )
 
             # Normalize empty device name to absent so sensor falls back to default.
             if not new_data.get(CONF_DEVICE_NAME, "").strip():
@@ -1393,7 +1758,11 @@ class SmgwOptionsFlow(OptionsFlow):
         # A template chosen from the menu overrides the stored zones for
         # display only — the user still reviews and submits the form.
         template = (
-            {CONF_TARIFF_ZONES: self._template_zones}
+            {
+                CONF_TARIFF_ZONES: self._template_zones,
+                CONF_TARIFF_ZONES_SATURDAY: self._template_zones_saturday or [],
+                CONF_TARIFF_ZONES_SUNDAY: self._template_zones_sunday or [],
+            }
             if self._template_zones is not None and user_input is None
             else {}
         )
@@ -1404,6 +1773,11 @@ class SmgwOptionsFlow(OptionsFlow):
             # template the user just picked.
             data_schema=_build_schema(
                 {**self.config_entry.data, **template, **(user_input or {})}
+                | (
+                    {CONF_WEEKEND_OVERRIDE: _has_day_rules(template)}
+                    if template
+                    else {}
+                )
             ),
             errors=errors,
         )

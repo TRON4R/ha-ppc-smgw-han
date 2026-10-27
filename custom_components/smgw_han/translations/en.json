@@ -8,6 +8,7 @@
           "tariff_go": "Octopus Go / Intelligent Octopus Go (cheap 00:00–05:00)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
           "tariff_flat": "Single-rate tariff (one price around the clock)",
+          "tariff_weekend": "HT/NT with a different weekend (example times)",
           "tariff_custom": "Enter my own times"
         }
       },
@@ -20,13 +21,15 @@
           "password": "Password",
           "tariff_zones": "Tariff zones (switch points)",
           "update_time": "Fetch time",
-          "device_name": "Device name (optional)"
+          "device_name": "Device name (optional)",
+          "weekend_override": "Different times for Saturday, Sunday and public holidays"
         },
         "data_description": {
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\".\nEqual zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00.\nMinutes must be 00, 15, 30 or 45.",
           "update_time": "Time of day for the automatic daily data fetch",
-          "device_name": "A telling name for this device. Fill it in as soon as you run more than one entry against the same SMGW — whether because you evaluate the same meter by two sets of time windows (e.g. your supplier's tariff and your grid operator's module-3 windows), or because your metering operator issued separate credentials for consumption (1.8.0) and feed-in (2.8.0). Good pairs are \"SMGW Octopus\" / \"SMGW Modul 3\" and \"SMGW Import\" / \"SMGW Export\". Leave it empty only while this stays the single entry for this SMGW — otherwise Home Assistant just numbers the identically named devices. The name feeds into the entity ids, so it is worth picking the right one now."
+          "device_name": "A telling name for this device. Fill it in as soon as you run more than one entry against the same SMGW — whether because you evaluate the same meter by two sets of time windows (e.g. your supplier's tariff and your grid operator's module-3 windows), or because your metering operator issued separate credentials for consumption (1.8.0) and feed-in (2.8.0). Good pairs are \"SMGW Octopus\" / \"SMGW Modul 3\" and \"SMGW Import\" / \"SMGW Export\". Leave it empty only while this stays the single entry for this SMGW — otherwise Home Assistant just numbers the identically named devices. The name feeds into the entity ids, so it is worth picking the right one now.",
+          "weekend_override": "Tick this if your tariff switches at other times on Saturdays, Sundays or public holidays. The times are entered in an extra step after this form. Leave it unticked if the zones above apply every day."
         }
       },
       "select_meter": {
@@ -52,6 +55,20 @@
         "data": {
           "username": "Username",
           "password": "Password"
+        }
+      },
+      "day_rules": {
+        "title": "Saturday, Sunday and public holidays",
+        "description": "These rules come in addition to the zones of the previous form, which apply to Monday to Friday. When you schedule a change, they take effect on its date together with those zones. Public holidays use the Sunday zones if you pick that below (also when they fall on a Saturday); without Sunday zones they follow the Monday to Friday zones. Sensors are created per zone name, Monday to Friday names first, then names that only exist on Saturday or Sunday; adding a new Monday to Friday name later moves those one sensor further.",
+        "data": {
+          "tariff_zones_saturday": "Saturday zones",
+          "tariff_zones_sunday": "Sunday zones",
+          "holidays": "Public holidays"
+        },
+        "data_description": {
+          "tariff_zones_saturday": "Same format as the weekday zones. Leave empty to use the weekday zones on Saturdays too.",
+          "tariff_zones_sunday": "Same format as the weekday zones. Leave empty to use the weekday zones on Sundays too.",
+          "holidays": "Which public holidays use the Sunday zones. \"Off\": holidays get no rule of their own, so they follow their weekday. \"Nationwide\": only the holidays common to every German state. Or pick a federal state to include its own holidays too. Check your grid operator's price sheet for what applies."
         }
       }
     },
@@ -92,6 +109,7 @@
           "tariff_go": "Octopus Go / Intelligent Octopus Go (cheap 00:00–05:00)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
           "tariff_flat": "Single-rate tariff (one price around the clock)",
+          "tariff_weekend": "HT/NT with a different weekend (example times)",
           "tariff_custom": "Enter my own times"
         }
       },
@@ -101,11 +119,13 @@
         "data": {
           "valid_from": "Valid from",
           "tariff_zones": "Tariff zones (switch points) from that date",
-          "discard_pending": "Discard the scheduled change"
+          "discard_pending": "Discard the scheduled change",
+          "weekend_override": "Different times for Saturday, Sunday and public holidays"
         },
         "data_description": {
           "valid_from": "The first day the new layout applies. Prefilled with the next 1 January, the most common case — but any future date works, for example the day a new supplier tariff starts. It switches at 00:00 on that day; the fetch later that night still splits the previous day by the old windows.",
-          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00, minutes 00, 15, 30 or 45. Prefilled with the zones active today, so only the changed times have to be corrected. Keeping the zone names identical keeps each sensor's history in one series. Sensors are identified by their position in the list, so a renamed or reordered zone continues the old sensor's series and its statistics get mixed."
+          "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00, minutes 00, 15, 30 or 45. Prefilled with the zones active today, so only the changed times have to be corrected. Keeping the zone names identical keeps each sensor's history in one series. Sensors are identified by their position in the list, so a renamed or reordered zone continues the old sensor's series and its statistics get mixed.",
+          "weekend_override": "Tick this if your tariff switches at other times on Saturdays, Sundays or public holidays. The times are entered in an extra step after this form. Leave it unticked if the zones above apply every day."
         }
       },
       "settings": {
@@ -117,13 +137,15 @@
           "password": "Password",
           "tariff_zones": "Tariff zones (switch points)",
           "update_time": "Fetch time",
-          "device_name": "Device name (optional)"
+          "device_name": "Device name (optional)",
+          "weekend_override": "Different times for Saturday, Sunday and public holidays"
         },
         "data_description": {
           "url": "URL of the SMGW HAN interface (default: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "One entry per switch point in the format \"HH:MM zone name\", starting at 00:00; the last entry runs until midnight. Example Octopus Go: \"00:00 Go\" and \"05:00 Standard\".\nEqual zone names share one sensor: \"00:00 Standard\", \"02:00 Low\", \"06:00 Standard\", \"12:00 Low\" creates two sensors — \"Standard\" sums 00:00-02:00 and 06:00-12:00, \"Low\" sums 02:00-06:00 and 12:00-24:00.\nMinutes must be 00, 15, 30 or 45.\nNote on statistics history: each zone gets its own consumption sensor. Home Assistant identifies these sensors by their position in the list (first zone, second zone …), not by the name you enter.\nChanging times or appending further zones at the end is therefore safe – existing sensors keep their history. But if you reorder or rename the zones so that a different zone now occupies a previously used position, the new zone's data is appended to the old zone's data in the Home Assistant history, i.e. the sensor's statistics get mixed.",
           "update_time": "Time of day for the automatic daily data fetch",
-          "device_name": "A telling name for this device, needed as soon as several entries point at the same SMGW — two evaluations of one meter (supplier tariff vs. module-3 windows), or separate logins for import and feed-in. Otherwise leave it empty."
+          "device_name": "A telling name for this device, needed as soon as several entries point at the same SMGW — two evaluations of one meter (supplier tariff vs. module-3 windows), or separate logins for import and feed-in. Otherwise leave it empty.",
+          "weekend_override": "Tick this if your tariff switches at other times on Saturdays, Sundays or public holidays. The times are entered in an extra step after this form. Leave it unticked if the zones above apply every day."
         }
       },
       "export": {
@@ -166,6 +188,20 @@
         "data": {
           "from_datetime": "From",
           "to_datetime": "To"
+        }
+      },
+      "day_rules": {
+        "title": "Saturday, Sunday and public holidays",
+        "description": "These rules come in addition to the zones of the previous form, which apply to Monday to Friday. When you schedule a change, they take effect on its date together with those zones. Public holidays use the Sunday zones if you pick that below (also when they fall on a Saturday); without Sunday zones they follow the Monday to Friday zones. Sensors are created per zone name, Monday to Friday names first, then names that only exist on Saturday or Sunday; adding a new Monday to Friday name later moves those one sensor further.",
+        "data": {
+          "tariff_zones_saturday": "Saturday zones",
+          "tariff_zones_sunday": "Sunday zones",
+          "holidays": "Public holidays"
+        },
+        "data_description": {
+          "tariff_zones_saturday": "Same format as the weekday zones. Leave empty to use the weekday zones on Saturdays too.",
+          "tariff_zones_sunday": "Same format as the weekday zones. Leave empty to use the weekday zones on Sundays too.",
+          "holidays": "Which public holidays use the Sunday zones. \"Off\": holidays get no rule of their own, so they follow their weekday. \"Nationwide\": only the holidays common to every German state. Or pick a federal state to include its own holidays too. Check your grid operator's price sheet for what applies."
         }
       }
     },
@@ -308,6 +344,28 @@
         "current_month": "Current month (so far)",
         "last_month": "Last month",
         "all": "Everything the SMGW still holds"
+      }
+    },
+    "holiday_mode": {
+      "options": {
+        "off": "Off – holidays get no rule of their own",
+        "national": "Nationwide holidays only",
+        "bw": "Baden-Württemberg",
+        "by": "Bavaria",
+        "be": "Berlin",
+        "bb": "Brandenburg",
+        "hb": "Bremen",
+        "hh": "Hamburg",
+        "he": "Hesse",
+        "mv": "Mecklenburg-Western Pomerania",
+        "ni": "Lower Saxony",
+        "nw": "North Rhine-Westphalia",
+        "rp": "Rhineland-Palatinate",
+        "sl": "Saarland",
+        "sn": "Saxony",
+        "st": "Saxony-Anhalt",
+        "sh": "Schleswig-Holstein",
+        "th": "Thuringia"
       }
     }
   },

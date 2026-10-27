@@ -313,6 +313,11 @@ async def run_export(
     ``coordinator`` is a loaded :class:`SmgwCoordinator`. Returns the
     response dict (download links first, then meter data).
     """
+    # A holiday rule needs the library's data loaded off the event loop; the
+    # export may reach back years, so cover its whole range.
+    await coordinator.async_preload_holidays(
+        range(from_dt.year, to_dt.year + 1)
+    )
     zones_for = coordinator.zone_resolver()
 
     # The signed CMS export delivers the whole range in a single request and is
@@ -366,6 +371,17 @@ async def run_export(
             "zones": [
                 (t.strftime("%H:%M"), name)
                 for t, name in zones_for(from_dt.date())
+            ],
+            "day_type_zones": [
+                {
+                    "label": label,
+                    "zones": [
+                        (zone[ZONE_TIME], zone[ZONE_NAME]) for zone in zones
+                    ],
+                }
+                for label, zones in coordinator.zone_day_types(
+                    from_dt.date(), to_dt.date()
+                )
             ],
             "zone_periods": [
                 {

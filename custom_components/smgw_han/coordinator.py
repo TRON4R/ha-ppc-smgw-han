@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from functools import partial
 from datetime import date, datetime, time, timedelta
 from typing import Any
@@ -31,16 +31,15 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import zone_schedule
+from . import day_rules, zone_schedule
 from .const import (
     CONF_DEVICE_NAME,
     CONF_METER_ID,
-    CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
     CONF_ZONE_SCHEDULE,
-    DEFAULT_TARIFF_ZONES,
     DEFAULT_UPDATE_TIME,
     DOMAIN,
+    HOLIDAYS_OFF,
     ISSUE_FETCH_FAILED,
     ISSUE_FETCH_RETRYING,
     ISSUE_NO_RECENT_DATA,
@@ -162,6 +161,9 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # BEFORE anything reads the layout — the store guard below and the
         # sensor platform both build on the active zones.
         self._promote_due_zone_change()
+        # Holiday data is loaded off the event loop; every zone lookup below
+        # (cache check, startup fetch) then only reads the cache.
+        await self.async_preload_holidays()
 
         # Load persisted data (NotImplementedError = version mismatch, discard)
         try:
@@ -190,7 +192,26 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # After a scheduled change they disagree on purpose: yesterday is
             # correctly split by the old layout (no refetch can improve it)
             # yet must not be published under the new zone names.
-            if stored.get("_tariff_zones") != self._zones_config:
+            stored_all = stored.get("_tariff_zones_all")
+            if stored_all is not None:
+                # What matters for showing the values is the SENSOR SET, i.e.
+                # the zone names in slot order. A changed holiday setting or
+                # a shifted Sunday switch time leaves the names alone, so the
+                # cached day is still labelled correctly (and the validity
+                # check below refetches if its own day layout changed).
+                try:
+                    layout_matches = day_rules.distinct_zone_names(
+                        stored_all.get("weekday") or [],
+                        stored_all.get("saturday") or [],
+                        stored_all.get("sunday") or [],
+                    ) == self._slot_zone_names
+                except (AttributeError, KeyError, TypeError):
+                    layout_matches = False
+            else:
+                # Cache written before weekday-specific layouts existed: it
+                # only knows the Mon-Fri layout of the day it was computed.
+                layout_matches = stored.get("_tariff_zones") == self._zones_config
+            if not layout_matches:
                 # Keep only the zone-independent values (total, feed-in, date,
                 # closing readings) until a day of the active layout arrives.
                 # "_tariff_zones" itself is KEPT: it is the record of what the
@@ -324,28 +345,27 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _promote_due_zone_change(self) -> bool:
         """Project the zone schedule onto today. Returns whether it changed.
 
-        ``CONF_TARIFF_ZONES`` is the materialized "valid today" layout, so
-        promoting a due change is simply writing that projection back into
-        the entry. Idempotent: with no schedule, or nothing due, it is a
+        ``CONF_TARIFF_ZONES`` (with the Saturday, Sunday and holiday keys) is
+        the materialized "valid today" layout, so promoting a due change is
+        simply writing that projection back into the entry. Idempotent: with no schedule, or nothing due, it is a
         no-op, which is why it can run unconditionally at every setup.
         """
         schedule = self.config_entry.data.get(CONF_ZONE_SCHEDULE)
         if not schedule:
             return False
-        current = self.config_entry.data.get(
-            CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES
-        )
-        due = zone_schedule.zones_for_day(
+        current = day_rules.entry_layout(self.config_entry.data)
+        due = zone_schedule.layout_for_day(
             schedule, current, dt_util.now().date()
         )
-        if due == [dict(zone) for zone in current]:
+        if due == current:
             return False
         _LOGGER.info(
-            "Scheduled tariff-zone change took effect - zones are now %s", due
+            "Scheduled tariff-zone change took effect - zones are now %s",
+            due[zone_schedule.ZONES],
         )
         self.hass.config_entries.async_update_entry(
             self.config_entry,
-            data={**self.config_entry.data, CONF_TARIFF_ZONES: due},
+            data={**self.config_entry.data, **day_rules.layout_data(due)},
         )
         return True
 
@@ -664,6 +684,9 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         real success from a skip instead of reporting both as "succeeded".
         """
         yesterday = target_date or dt_util.now().date() - timedelta(days=1)
+        # Around New Year the year window of the holiday cache moves on; the
+        # check is a cache lookup unless something is actually missing.
+        await self.async_preload_holidays()
 
         # Skip if we already have data for yesterday with the same zones.
         # Resolved for the TARGET day, so a retry chain or a catch-up fetch
@@ -754,10 +777,22 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # ... and the retrying / gave-up one, whichever state it is in.
         ir.async_delete_issue(self.hass, DOMAIN, self._fetch_issue_id)
 
-        data = self._daily_data_to_dict(daily_data)
+        day_layout = self._layout_for(yesterday)
+        data = self._daily_data_to_dict(
+            daily_data,
+            self._slot_zone_names,
+            day_names=day_rules.distinct_zone_names(
+                day_layout[zone_schedule.ZONES],
+                day_layout[zone_schedule.SATURDAY],
+                day_layout[zone_schedule.SUNDAY],
+            ),
+        )
 
         # Store the tariff-zone definition alongside data for change detection
         data["_tariff_zones"] = zones_config
+        # What ALL day types looked like at fetch time: decides whether the
+        # cached per-zone values still fit the sensors after a restart.
+        data["_tariff_zones_all"] = self._zones_config_all
 
         # Persist to store
         await self._store.async_save(dict(data))
@@ -821,11 +856,13 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         The JSON shape survives the Store's round trip unchanged, so a plain
         ``==`` compares reliably for the change detection.
         """
-        return zone_schedule.zones_for_day(
+        return day_rules.zones_for_day(self._layout_for(day), day)
+
+    def _layout_for(self, day: date) -> dict[str, Any]:
+        """The complete layout valid on ``day`` (dated schedule + day rules)."""
+        return zone_schedule.layout_for_day(
             self.config_entry.data.get(CONF_ZONE_SCHEDULE),
-            self.config_entry.data.get(
-                CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES
-            ),
+            day_rules.entry_layout(self.config_entry.data),
             day,
         )
 
@@ -838,13 +875,73 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @property
     def _zones_config(self) -> list[dict[str, str]]:
-        """The raw tariff-zone definition valid today."""
-        return self.zones_config_for(dt_util.now().date())
+        """The raw Mon-Fri tariff-zone definition valid today."""
+        return self._layout_for(dt_util.now().date())[zone_schedule.ZONES]
+
+    @property
+    def _zones_config_all(self) -> dict[str, Any]:
+        """Every layout the sensors may be fed from (Mon-Fri, Sa, So, holiday)."""
+        layout = self._layout_for(dt_util.now().date())
+        return {
+            "weekday": layout[zone_schedule.ZONES],
+            "saturday": layout[zone_schedule.SATURDAY],
+            "sunday": layout[zone_schedule.SUNDAY],
+            "holidays": day_rules.normalize_holiday_mode(
+                layout[zone_schedule.HOLIDAYS]
+            ),
+        }
+
+    @property
+    def _slot_zone_names(self) -> list[str]:
+        """Zone names in sensor-slot order (same rule as the sensor setup)."""
+        layout = self._layout_for(dt_util.now().date())
+        return day_rules.distinct_zone_names(
+            layout[zone_schedule.ZONES],
+            layout[zone_schedule.SATURDAY],
+            layout[zone_schedule.SUNDAY],
+        )
 
     @property
     def tariff_zones(self) -> TariffZones:
         """Tariff zones valid today, as parsed ``(time, name)`` pairs."""
         return self.tariff_zones_for(dt_util.now().date())
+
+    def _holiday_modes_in_use(self) -> set[str]:
+        """Every holiday setting the active layout or the schedule uses."""
+        modes = {day_rules.holiday_mode(self.config_entry.data)}
+        for item in zone_schedule.normalize(
+            self.config_entry.data.get(CONF_ZONE_SCHEDULE)
+        ):
+            if zone_schedule.HOLIDAYS in item:
+                modes.add(day_rules.normalize_holiday_mode(
+                    item[zone_schedule.HOLIDAYS]
+                ))
+        return modes - {HOLIDAYS_OFF}
+
+    async def async_preload_holidays(
+        self, years: Iterable[int] | None = None
+    ) -> None:
+        """Load the holiday data off the event loop, if a rule needs it.
+
+        The ``holidays`` library imports its country data on first use, which
+        is blocking file I/O -- Home Assistant logs that as "Detected blocking
+        call" and asks users to file a bug. Running the first use in the
+        import executor (as HA's own holiday integration does) and keeping the
+        result in a cache leaves the event loop only cache lookups. A no-op
+        when no layout uses holidays or everything is loaded already.
+        """
+        modes = self._holiday_modes_in_use()
+        if not modes:
+            return
+        if years is None:
+            year = dt_util.now().year
+            years = range(year - 2, year + 3)
+        years = list(years)
+        if day_rules.holidays_cached(modes, years):
+            return
+        await self.hass.async_add_import_executor_job(
+            day_rules.preload_holidays, modes, years
+        )
 
     def zone_resolver(self) -> Callable[[date], TariffZones]:
         """A pure ``day -> zones`` function, safe to hand to an executor.
@@ -858,19 +955,13 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         schedule = zone_schedule.normalize(
             self.config_entry.data.get(CONF_ZONE_SCHEDULE)
         )
-        fallback = [
-            dict(zone)
-            for zone in self.config_entry.data.get(
-                CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES
-            )
-        ]
+        fallback = day_rules.entry_layout(self.config_entry.data)
 
         def resolve(day: date) -> TariffZones:
+            layout = zone_schedule.layout_for_day(schedule, fallback, day)
             return [
                 (time.fromisoformat(zone[ZONE_TIME]), zone[ZONE_NAME])
-                for zone in zone_schedule.zones_for_day(
-                    schedule, fallback, day
-                )
+                for zone in day_rules.zones_for_day(layout, day)
             ]
 
         return resolve
@@ -879,14 +970,55 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self, first_day: date, last_day: date
     ) -> list[dict[str, Any]]:
         """The dated layouts covering a range, for the export's documentation."""
+        fallback = day_rules.entry_layout(self.config_entry.data)
         return zone_schedule.periods_in_range(
             self.config_entry.data.get(CONF_ZONE_SCHEDULE),
-            self.config_entry.data.get(
-                CONF_TARIFF_ZONES, DEFAULT_TARIFF_ZONES
-            ),
+            fallback[zone_schedule.ZONES],
             first_day,
             last_day,
+            fallback_rules=fallback,
         )
+
+    def zone_day_types(
+        self, first_day: date, last_day: date
+    ) -> list[tuple[str, list[dict[str, str]]]]:
+        """Saturday/Sunday/holiday layouts in force in a range, for the export.
+
+        Only day types that actually differ from the Mon-Fri layout by
+        configuration are listed (an empty override means "same as Mon-Fri").
+        A range crossing a scheduled change lists each period's rules, the
+        label telling from which date they apply.
+        """
+        periods = self.zone_periods(first_day, last_day)
+        result: list[tuple[str, list[dict[str, str]]]] = []
+        for period in periods:
+            suffix = (
+                f" ab {period[zone_schedule.VALID_FROM]}"
+                if len(periods) > 1
+                else ""
+            )
+            weekday = period[zone_schedule.ZONES]
+            saturday = period[zone_schedule.SATURDAY]
+            sunday = period[zone_schedule.SUNDAY]
+            mode = day_rules.normalize_holiday_mode(
+                period[zone_schedule.HOLIDAYS]
+            )
+            if saturday:
+                result.append(
+                    (f"Samstag{suffix}", [dict(z) for z in saturday])
+                )
+            if sunday:
+                result.append(
+                    (f"Sonntag{suffix}", [dict(z) for z in sunday])
+                )
+            if mode != HOLIDAYS_OFF:
+                result.append(
+                    (
+                        f"Feiertage {day_rules.holiday_label(mode)}{suffix}",
+                        [dict(z) for z in (sunday or weekday)],
+                    )
+                )
+        return result
 
     async def async_download_cms(
         self, from_dt: datetime, to_dt: datetime
@@ -936,7 +1068,11 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ) from err
 
     @staticmethod
-    def _daily_data_to_dict(daily_data: DailyData) -> dict[str, Any]:
+    def _daily_data_to_dict(
+        daily_data: DailyData,
+        slot_names: list[str] | None = None,
+        day_names: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Convert DailyData to a flat dict for coordinator.data.
 
         Zone totals become ``daily_consumption_slot_{n}`` (n = order of first
@@ -958,8 +1094,22 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 daily_data.export_next_midnight
             ),
         }
-        for n, value in enumerate(daily_data.zone_totals.values(), 1):
-            data[slot_key(n)] = value
+        if slot_names is None:
+            slot_names = list(daily_data.zone_totals)
+        # Fill the sensors by zone NAME, not by position: with different
+        # layouts per day type (e.g. Sunday = all NT) a zone that does not
+        # occur on the fetched day simply consumed 0 kWh there.
+        if day_names and not set(daily_data.zone_totals) <= set(slot_names):
+            # The fetched day was split by a layout whose zone names are not
+            # today's (a scheduled change renamed a zone, and this is the last
+            # day of the old layout): the sensors are identified by position,
+            # so the day's n-th zone feeds the n-th sensor.
+            for n in range(1, len(slot_names) + 1):
+                name = day_names[n - 1] if n <= len(day_names) else None
+                data[slot_key(n)] = daily_data.zone_totals.get(name, 0.0)
+        else:
+            for n, name in enumerate(slot_names, 1):
+                data[slot_key(n)] = daily_data.zone_totals.get(name, 0.0)
         for n, value in enumerate(daily_data.import_boundaries[1:-1], 1):
             data[switch_key(n)] = value
         return data

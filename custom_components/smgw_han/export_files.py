@@ -136,6 +136,10 @@ def write_xlsx(
     crossing a scheduled zone change is split by more than one layout, so the
     workbook has to name all of them — otherwise half the rows are documented
     by windows they were not computed with.
+
+    ``meta["day_type_zones"]`` optionally lists the Saturday/Sunday/holiday
+    layouts (``{"label": "Samstag", "zones": [...]}``) that replace the
+    Mon-Fri layout on those days. Their switch times add columns too.
     """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font
@@ -163,7 +167,6 @@ def write_xlsx(
             for name in names
         }
 
-    inner_times = [t for t, _name in zones[1:]]
     # Columns span every layout in the range (plus anything the summaries
     # actually carry), so a zone that exists on only one side of a change
     # still gets its own column instead of silently dropping out.
@@ -175,6 +178,26 @@ def write_xlsx(
         )
         zone_names.extend(n for n in names if n not in zone_names)
         period_windows.append((period.get("valid_from", ""), windows))
+    day_types: list[dict[str, Any]] = meta.get("day_type_zones") or []
+    day_type_windows: list[tuple[str, dict[str, list[str]]]] = []
+    for day_type in day_types:
+        names, windows = _zone_windows(
+            [(t, name) for t, name in day_type.get("zones", [])]
+        )
+        zone_names.extend(n for n in names if n not in zone_names)
+        day_type_windows.append((day_type.get("label", ""), windows))
+    # One "Bezug" column per switch time that occurs in ANY layout, so a day
+    # of any day type finds its values in the matching column.
+    inner_times = sorted(
+        {
+            t
+            for layout in (
+                *(period.get("zones", []) for period in periods),
+                *(day_type.get("zones", []) for day_type in day_types),
+            )
+            for t, _name in list(layout)[1:]
+        }
+    )
     for summary in daily_summary:
         zone_names.extend(
             n for n in summary.zone_consumptions if n not in zone_names
@@ -268,6 +291,13 @@ def write_xlsx(
         for name, segments in windows.items():
             info[f"A{row}"] = _safe_text(f"{name}: {' + '.join(segments)}")
             row += 1
+    for label, windows in day_type_windows:
+        info[f"A{row}"] = _safe_text(f"{label} (abweichend):")
+        info[f"A{row}"].font = bold
+        row += 1
+        for name, segments in windows.items():
+            info[f"A{row}"] = _safe_text(f"{name}: {' + '.join(segments)}")
+            row += 1
     if len(period_windows) > 1:
         info[f"A{row}"] = (
             "Der Zeitraum umfasst mehrere Tarifzonen-Schemata. Jeder Tag "
@@ -300,7 +330,9 @@ def write_xlsx(
     row += 1
     info[f"A{row}"] = (
         "Falls für einen Tag ein benötigter Messpunkt fehlt (00:00 oder "
-        "eine Umschaltzeit), bleibt die betroffene berechnete Spalte leer."
+        "eine Umschaltzeit), bleibt die betroffene berechnete Spalte leer. "
+        "Das ist auch normal, wenn eine Umschaltzeit am jeweiligen Tag gar "
+        "nicht vorkommt (z. B. Samstag/Sonntag mit abweichenden Zonen)."
     )
     row += 2
     info[f"A{row}"] = "Zeitumstellung"
