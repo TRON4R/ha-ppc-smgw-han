@@ -8,7 +8,7 @@ body:
 
         - [E1](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#e1) – Home Assistant und SMGW liegen in unterschiedlichen Netzen
         - [E2](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#e2) – Die Einrichtung bricht mit einer Fehlermeldung ab
-        - [S1](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#s1) – Der Verbrauch kommt an, die Einspeisung bleibt aber 0
+        - [S1](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#s1) – Es kommt nur der Verbrauch oder nur die Einspeisung an
         - [S5](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.md#s5) – Die Werte erscheinen einen Tag zu spät
 
         _English is fine, too – see the [English FAQ](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.en.md). The IDs (E1, S1, …) are the same in both languages._

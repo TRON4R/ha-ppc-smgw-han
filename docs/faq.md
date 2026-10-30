@@ -28,7 +28,7 @@ Zurück zum [README](https://github.com/TRON4R/ha-ppc-smgw-han#readme) · [Engli
 - [E8](#e8) Muss ich Kunde von Octopus Energy sein?
 
 **Sensoren und Werte**
-- [S1](#s1) Der Verbrauch kommt an, die Einspeisung bleibt aber 0
+- [S1](#s1) Es kommt nur der Verbrauch oder nur die Einspeisung an
 - [S2](#s2) Warum aktualisieren sich die Werte nur einmal am Tag?
 - [S3](#s3) Nach der Einrichtung zeigen die Sensoren „Unbekannt"
 - [S4](#s4) Was bedeuten die Hinweise unter „Reparaturen"?
@@ -154,9 +154,9 @@ Nein. Das Smart Meter Gateway gehört zur Messstelle, nicht zum Stromvertrag. Di
 
 ## Sensoren und Werte
 
-### <a id="s1"></a>S1 · Der Verbrauch kommt an, die Einspeisung bleibt aber 0 – warum?
+### <a id="s1"></a>S1 · Es kommt nur der Verbrauch oder nur die Einspeisung an – warum?
 
-Hast du keine PV-Anlage, ist 0 korrekt. Andernfalls gilt: **Die Integration liefert genau das, was das SMGW mit deinen Zugangsdaten herausgibt.** Manche Messstellenbetreiber vergeben für die Einspeisung einen eigenen Login – mit dem Bezugs-Login ist die Einspeisung dann schlicht nicht sichtbar.
+Hast du keine PV-Anlage, ist eine Einspeisung von 0 korrekt. Andernfalls gilt: **Die Integration liefert genau das, was das SMGW mit deinen Zugangsdaten herausgibt.** Manche Messstellenbetreiber vergeben für Bezug und Einspeisung getrennte Logins. Mit dem einen ist die andere Richtung dann schlicht nicht sichtbar.
 
 Prüfen kannst du das auf zwei Wegen. Entscheidend ist in beiden Fällen die OBIS-Kennzahl: `1-0:1.8.0` steht für Bezug (Verbrauch), `1-0:2.8.0` für Einspeisung.
 
@@ -164,18 +164,20 @@ Prüfen kannst du das auf zwei Wegen. Entscheidend ist in beiden Fällen die OBI
 
 1. **Einstellungen → Geräte & Dienste → PPC SMGW HAN Daily Import → Konfigurieren** (Zahnrad) → „SMGW-Zählerdaten für einen wählbaren Zeitraum exportieren".
 2. Zeitraum **„Gestern"**, **„Excel (XLSX) erzeugen"** anhaken, exportieren.
-3. In der Excel-Datei das Blatt **„Rohdaten"** öffnen und in der Spalte „OBIS" nach `1-0:2.8.0` suchen.
+3. In der Excel-Datei das Blatt **„Rohdaten"** öffnen und in der Spalte „OBIS" nachsehen, ob `1-0:1.8.0` und `1-0:2.8.0` vorkommen.
 
 **b) Mit eigenen Augen: direkt am SMGW**
 
-Der Export meldet sich genauso am SMGW an wie die Integration. Willst du ausschließen, dass die Integration selbst die Einspeisewerte verschluckt, melde dich mit denselben HAN-Zugangsdaten direkt am SMGW an – im Browser oder mit TRuDI (Anleitung unter [E6](#e6)) – und lass dir die Zählerstände von gestern anzeigen. Was du dort siehst, kommt ohne Umweg über diese Integration direkt vom Gateway. Ein Screenshot davon ist zugleich ein guter Beleg, wenn du beim MSB die Zugangsdaten für die Einspeisung anforderst.
+Der Export meldet sich genauso am SMGW an wie die Integration. Willst du ausschließen, dass die Integration selbst Werte verschluckt, melde dich mit denselben HAN-Zugangsdaten direkt am SMGW an – im Browser oder mit TRuDI (Anleitung unter [E6](#e6)) – und lass dir die Zählerstände von gestern anzeigen. Was du dort siehst, kommt ohne Umweg über diese Integration direkt vom Gateway. Ein Screenshot davon ist zugleich ein guter Beleg, wenn du beim MSB die Zugangsdaten für die fehlende Richtung anforderst.
 
-**Fehlt `1-0:2.8.0`**, stellt das SMGW deinem Login keine Einspeisewerte bereit. Das kann keine Software ändern – fordere bei deinem MSB die Zugangsdaten für die Einspeisung an. Mit diesen legst du anschließend einen **zweiten Eintrag** an und vergibst einen sprechenden Gerätenamen wie „SMGW Einspeisung" (Details im README unter [Mehrere SMGWs / mehrere Zugänge](https://github.com/TRON4R/ha-ppc-smgw-han#mehrere-smgws--mehrere-zug%C3%A4nge)).
+**Fehlt eine der beiden Kennzahlen**, stellt das SMGW deinem Login diese Richtung nicht bereit. Das kann keine Software ändern. Fordere bei deinem MSB die Zugangsdaten für die fehlende Richtung an, nicht eine Änderung deines bestehenden Zugangs. Damit legst du einen **zweiten Eintrag** an und vergibst sprechende Gerätenamen wie „SMGW Verbrauch" und „SMGW Einspeisung" (Details im README unter [Mehrere SMGWs / mehrere Zugänge](https://github.com/TRON4R/ha-ppc-smgw-han#mehrere-smgws--mehrere-zug%C3%A4nge)). Jeder Eintrag legt alle Sensoren an; die der anderen Richtung bleiben auf 0 und lassen sich ausblenden. Für die Einspeisung gibt es nur zwei Sensoren, weil sie nicht nach Tarifzonen aufgeteilt wird.
 
-**Zeigt das SMGW `1-0:2.8.0`, die Integration aber trotzdem 0**, liegt der Fehler bei der Integration. Dann eröffne bitte ein Issue (siehe [H1](#h1)) und hänge den Screenshot vom SMGW an.
+**Beispiel Bayernwerk** (Bericht eines Nutzers, Stand Oktober 2026): Bezug und Einspeisung haben je eine eigene Vertragsnummer. Fehlt eine davon im Kundenportal, kannst du sie dort selbst hinzufügen. Sie steht auf dem Bestätigungsschreiben, sonst nennt sie der Support-Chat. Zu jeder Vertragsnummer gibt es im Portal einen Menüpunkt „HAN" mit den Zugangsdaten, und der Benutzername beginnt mit der jeweiligen Vertragsnummer.
+
+**Zeigt das SMGW beide Kennzahlen, die Integration bei einer aber trotzdem 0**, liegt der Fehler bei der Integration. Dann eröffne bitte ein Issue (siehe [H1](#h1)) und hänge den Screenshot vom SMGW an.
 
 > [!IMPORTANT]
-> Das **Portal deines Netzbetreibers** ist nicht das SMGW. Dass du dort Einspeisewerte siehst, heißt nicht, dass dein HAN-Login sie auch sieht. Maßgeblich ist, was das Gateway selbst liefert.
+> Das **Portal deines Netzbetreibers** ist nicht das SMGW. Dass du dort beide Richtungen siehst, heißt nicht, dass dein HAN-Login sie auch sieht. Das gilt auch für die Auskunft deines MSB, dass beide Werte bei ihm ankommen. Maßgeblich ist, was das Gateway selbst liefert.
 
 ### <a id="s2"></a>S2 · Warum aktualisieren sich die Werte nur einmal am Tag? Ich habe doch 15 Minuten eingestellt.
 
