@@ -315,7 +315,7 @@ With the following information I can usually help you right away instead of havi
 3. **Gateway:** manufacturer and type from the type plate, your metering point operator.
 4. **Error message verbatim** or as a screenshot.
 5. **What does the SMGW deliver?** The result of the export for "Yesterday" (which OBIS codes are in the "Rohdaten" sheet?) and – if possible – a screenshot of the direct login in a browser or with TRuDI. Instructions in [S1](#s1) and [E6](#e6).
-6. **Diagnostics:** Settings → Devices & services → PPC SMGW HAN Daily Import → three-dot menu of the entry → "Download diagnostics". Username and password are removed automatically.
+6. **Diagnostics:** Settings → Devices & services → PPC SMGW HAN Daily Import → three-dot menu of the entry → "Download diagnostics". Username and password are removed automatically, and only the first 4 characters of the meter number remain visible.
 7. **Debug log:** three-dot menu of the entry → "Enable debug logging" → trigger an export for "Yesterday" (for problems with the nightly fetch, wait for the night instead) → "Disable debug logging". Home Assistant then offers the log for download. The relevant lines contain `custom_components.smgw_han`.
 
 > [!CAUTION]

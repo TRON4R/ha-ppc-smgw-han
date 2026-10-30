@@ -322,7 +322,7 @@ Mit diesen Angaben kann ich dir meist direkt helfen, statt erst nachzufragen:
 3. **Gateway:** Hersteller und Typ vom Typenschild, dein Messstellenbetreiber.
 4. **Fehlermeldung im Wortlaut** oder als Screenshot.
 5. **Was liefert das SMGW?** Das Ergebnis des Exports für „Gestern" (welche OBIS-Kennzahlen stehen im Blatt „Rohdaten"?) und – wenn möglich – ein Screenshot der direkten Anmeldung im Browser oder mit TRuDI. Anleitungen unter [S1](#s1) und [E6](#e6).
-6. **Diagnosedaten:** Einstellungen → Geräte & Dienste → PPC SMGW HAN Daily Import → Drei-Punkte-Menü am Eintrag → „Diagnosedaten herunterladen". Benutzername und Passwort werden darin automatisch entfernt.
+6. **Diagnosedaten:** Einstellungen → Geräte & Dienste → PPC SMGW HAN Daily Import → Drei-Punkte-Menü am Eintrag → „Diagnosedaten herunterladen". Benutzername und Passwort werden darin automatisch entfernt, von der Zählernummer bleiben nur die ersten 4 Stellen sichtbar.
 7. **Debug-Log:** Drei-Punkte-Menü am Eintrag → „Debug-Protokollierung aktivieren" → einen Export für „Gestern" auslösen (bei Problemen mit dem nächtlichen Abruf stattdessen die Nacht abwarten) → „Debug-Protokollierung deaktivieren". Home Assistant bietet das Log dann zum Herunterladen an. Relevant sind die Zeilen mit `custom_components.smgw_han`.
 
 > [!CAUTION]
