@@ -41,6 +41,7 @@ Zurück zum [README](https://github.com/TRON4R/ha-ppc-smgw-han#readme) · [Engli
 **Tarife**
 - [T1](#t1) Mein Tarif hat mehrere Zeitfenster pro Preisstufe
 - [T2](#t2) Wie bilde ich zeitvariable Netzentgelte (Modul 3) ab?
+- [T3](#t3) Ich habe nur einen Preis rund um die Uhr
 
 **Datenexport**
 - [X1](#x1) Die Download-Links führen ins Leere oder auf das Dashboard
@@ -267,6 +268,12 @@ Das geht: Gib jedes Zeitfenster als eigenen Umschaltpunkt ein und benenne Fenste
 ### <a id="t2"></a>T2 · Wie bilde ich zeitvariable Netzentgelte (§ 14a EnWG, Modul 3) ab?
 
 Lege denselben Zähler ein zweites Mal an – einmal mit den Zeitfenstern deines Stromtarifs, einmal mit denen deines Netzbetreibers. So prüfst du jede Abrechnung gegen genau das Raster, nach dem sie berechnet wurde. Da Netzbetreiber ihre Zeitfenster meist zum Jahreswechsel ändern, kannst du das neue Schema vorab hinterlegen. Details im README unter [Mehrere SMGWs / mehrere Zugänge](https://github.com/TRON4R/ha-ppc-smgw-han#mehrere-smgws--mehrere-zug%C3%A4nge) (Punkt „Ein Zähler, zwei Tarifraster") und [Tarifzonen-Umschaltung vorab planen](https://github.com/TRON4R/ha-ppc-smgw-han#tarifzonen-umschaltung-vorab-planen).
+
+### <a id="t3"></a>T3 · Ich habe nur einen Preis rund um die Uhr (Einheitstarif)
+
+Wähle bei der Einrichtung **„Einheitstarif (ein Preis rund um die Uhr)"**. Das füllt die einzige Zone `00:00 Standard` vor. Tagessensoren, Zählerstände, Export und Ausfall-Warnungen funktionieren wie bei jedem anderen Tarif, nur die Sensoren „Zählerstand Verbrauch Tarifwechsel" entfallen. „Tagesverbrauch Standard" zeigt denselben Wert wie „Tagesverbrauch gesamt"; nimm ins Energie-Dashboard nur einen von beiden.
+
+Einen bestehenden Eintrag stellst du über **Konfigurieren → „Tarifzonen aus Vorlage setzen"** um. Beachte dabei den Hinweis zur Statistik-Historie im Dialog: Der erste Zonensensor läuft unter dem neuen Namen weiter und enthält ab dann den ganzen Tag, die übrigen Zonensensoren werden entfernt.
 
 ---
 

@@ -7,6 +7,7 @@
         "menu_options": {
           "tariff_go": "Octopus Go / Intelligent Octopus Go (00:00–05:00 günstig)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
+          "tariff_flat": "Einheitstarif (ein Preis rund um die Uhr)",
           "tariff_custom": "Eigene Zeiten eingeben"
         }
       },
@@ -61,7 +62,7 @@
       "parse_error": "Antwort des SMGW konnte nicht ausgewertet werden. Bitte Benutzername und Passwort prüfen. Falls die Zugangsdaten korrekt sind, bis zu 15 Minuten warten und erneut versuchen.",
       "unknown": "Ein unerwarteter Fehler ist aufgetreten.",
       "invalid_zone_entry": "Jeder Eintrag muss das Format „HH:MM Zonenname\" haben, z.B. „05:00 Standard\".",
-      "zone_too_few": "Mindestens zwei Einträge angeben (00:00 plus ein Umschaltpunkt).",
+      "zone_too_few": "Mindestens einen Eintrag angeben, beginnend mit 00:00.",
       "zone_first_not_midnight": "Der erste Eintrag muss bei 00:00 beginnen.",
       "zone_times_not_ascending": "Die Umschaltzeiten müssen innerhalb des Tages strikt aufsteigend sein.",
       "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster)."
@@ -90,6 +91,7 @@
         "menu_options": {
           "tariff_go": "Octopus Go / Intelligent Octopus Go (00:00–05:00 günstig)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
+          "tariff_flat": "Einheitstarif (ein Preis rund um die Uhr)",
           "tariff_custom": "Eigene Zeiten eingeben"
         }
       },
@@ -182,7 +184,7 @@
       "to_in_future": "Das Ende des Zeitraumes („Bis\") darf nicht in der Zukunft liegen.",
       "from_too_old": "Der Beginn des Zeitraumes („Von\") liegt weiter zurück als die maximal mögliche 760-Tage-Historie des SMGW.",
       "invalid_zone_entry": "Jeder Eintrag muss das Format „HH:MM Zonenname\" haben, z.B. „05:00 Standard\".",
-      "zone_too_few": "Mindestens zwei Einträge angeben (00:00 plus ein Umschaltpunkt).",
+      "zone_too_few": "Mindestens einen Eintrag angeben, beginnend mit 00:00.",
       "zone_first_not_midnight": "Der erste Eintrag muss bei 00:00 beginnen.",
       "zone_times_not_ascending": "Die Umschaltzeiten müssen innerhalb des Tages strikt aufsteigend sein.",
       "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster).",

@@ -79,6 +79,15 @@ def test_dynamic_descriptions_heat_grouped_zones():
     assert switches[-1].key == "meter_consumption_switch_6"
 
 
+def test_dynamic_descriptions_single_zone():
+    # One price around the clock: one zone sensor and no switch reading.
+    descs = _dynamic_descriptions(
+        [{ZONE_TIME: "00:00", ZONE_NAME: "Standard"}]
+    )
+    assert [d.key for d in descs] == ["daily_consumption_slot_1"]
+    assert descs[0].translation_placeholders == {"zone_name": "Standard"}
+
+
 async def test_remove_stale_dynamic_entities(hass: HomeAssistant):
     # An entry shrunk from a Heat-style config (3 zones / 6 switches) back to
     # 2 zones / 1 switch: the out-of-range registry entries must be removed,
@@ -114,4 +123,35 @@ async def test_remove_stale_dynamic_entities(hass: HomeAssistant):
         "smgw_meter1_daily_consumption_slot_1",
         "smgw_meter1_daily_consumption_slot_2",
         "smgw_meter1_meter_consumption_switch_1",
+    }
+
+
+async def test_shrinking_to_one_zone_removes_every_switch_sensor(
+    hass: HomeAssistant,
+):
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_INSTANCE_ID: 1})
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+
+    for uid in (
+        "smgw_meter1_daily_consumption_total",
+        "smgw_meter1_daily_consumption_slot_1",
+        "smgw_meter1_daily_consumption_slot_2",
+        "smgw_meter1_meter_consumption_switch_1",
+    ):
+        registry.async_get_or_create(
+            "sensor", DOMAIN, uid, config_entry=entry
+        )
+
+    _remove_stale_dynamic_entities(hass, entry, zone_count=1, switch_count=0)
+
+    remaining = {
+        reg_entry.unique_id
+        for reg_entry in er.async_entries_for_config_entry(
+            registry, entry.entry_id
+        )
+    }
+    assert remaining == {
+        "smgw_meter1_daily_consumption_total",
+        "smgw_meter1_daily_consumption_slot_1",
     }

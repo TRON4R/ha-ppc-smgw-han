@@ -29,7 +29,7 @@ behoben ist, reicht es, die Kommentarzeichen zu entfernen.
 Die Integration verbindet sich einmal täglich automatisch mit dem PPC SMGW und ruft die offiziellen, eichrechtskonformen Tagesendwerte vom Zählerstand-Endpunkt ab. Sie liefert:
 
 - **Tagesverbrauch (gesamt)** - gesamter Stromverbrauch des Vortags
-- **Tagesverbrauch pro Tarifzone** - mit **frei konfigurierbaren Tarifzonen** (seit v3.0.0): von einfachen Zwei-Zonen-Tarifen wie Octopus Go (Standard: 00:00–04:59 / 05:00–23:59) bis zu Tarifen mit mehreren Zeitfenstern pro Zone wie Octopus Heat
+- **Tagesverbrauch pro Tarifzone** - mit **frei konfigurierbaren Tarifzonen** (seit v3.0.0): vom Einheitstarif mit nur einem Preis über einfache Zwei-Zonen-Tarife wie Octopus Go (Standard: 00:00–04:59 / 05:00–23:59) bis zu Tarifen mit mehreren Zeitfenstern pro Zone wie Octopus Heat
 - **Tageseinspeisung (gesamt)** - gesamte Netzeinspeisung des Vortags
 - **Energie-Dashboard-kompatibel** - alle Sensoren lassen sich direkt im Home Assistant Energie-Dashboard verwenden
 - **Separater Datenexport für beliebige Zeiträume** - auf Abruf und unabhängig von den Sensoren: Die Daten kommen direkt aus dem Speicher des SMGW (je nach Gerät 15–24 Monate Historie, also auch aus der Zeit **vor** der Installation der Integration) — bequem aus der Home-Assistant-Oberfläche, ohne umständliches manuelles Einloggen am SMGW-Webinterface. Ausgabe als CSV, Excel oder **signiertes CMS-Original**. Siehe [Datenexport für beliebige Zeiträume](https://github.com/TRON4R/ha-ppc-smgw-han#-datenexport-f%C3%BCr-beliebige-zeitr%C3%A4ume)
@@ -95,15 +95,16 @@ Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy
 
 1. Einstellungen → Geräte & Dienste → Integration hinzufügen
 2. Nach „PPC SMGW HAN" suchen
-3. **Tarif auswählen** – es erscheinen drei Schaltflächen:
+3. **Tarif auswählen** – es erscheinen vier Schaltflächen:
 
    | Auswahl | Vorbelegte Umschaltzeiten |
    |---|---|
    | **Octopus Go / Intelligent Octopus Go** | `00:00 Go`, `05:00 Standard` |
    | **Octopus Heat** | `00:00 Standard`, `02:00 Niedrig`, `06:00 Standard`, `12:00 Niedrig`, `16:00 Standard`, `18:00 Hoch`, `21:00 Standard` |
+   | **Einheitstarif** | `00:00 Standard` |
    | **Eigene Zeiten eingeben** | `00:00 Zeitfenster 1`, `05:00 Zeitfenster 2` |
 
-   Die Auswahl **füllt die Zeiten im nächsten Schritt nur vor** – du siehst sie dort und kannst sie beliebig ändern; gespeichert wird nichts ungefragt. Bei Octopus Heat ergeben die sieben Umschaltpunkte drei Sensoren („Standard", „Niedrig", „Hoch"), weil gleichnamige Fenster zusammengezählt werden; das Standard-Fenster 21:00–02:00 läuft über Mitternacht und erscheint deshalb als erster und letzter Eintrag.
+   Die Auswahl **füllt die Zeiten im nächsten Schritt nur vor** – du siehst sie dort und kannst sie beliebig ändern; gespeichert wird nichts ungefragt. Bei Octopus Heat ergeben die sieben Umschaltpunkte drei Sensoren („Standard", „Niedrig", „Hoch"), weil gleichnamige Fenster zusammengezählt werden; das Standard-Fenster 21:00–02:00 läuft über Mitternacht und erscheint deshalb als erster und letzter Eintrag. Beim Einheitstarif gibt es nur diese eine Zone: „Tagesverbrauch Standard" zeigt dann denselben Wert wie „Tagesverbrauch gesamt", und die Tarifwechsel-Sensoren entfallen.
 
    > [!NOTE]
    > Octopus-Zeiten Stand 07/2026. Tarifzeiten können sich ändern und je nach Vertrag abweichen – bitte kurz mit deinem Vertrag abgleichen.
@@ -111,7 +112,7 @@ Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy
 4. Eingeben:
    - **URL**: URL der SMGW HAN-Schnittstelle (Standard: `https://192.168.100.100/cgi-bin/hanservice.cgi`)
    - **Benutzername** und **Passwort**: HAN-Zugangsdaten
-   - **Tarifzonen (Umschaltpunkte)**: ein Eintrag pro Umschaltpunkt im Format `HH:MM Zonenname`, beginnend mit `00:00`; der letzte Eintrag gilt bis Mitternacht. Für **Octopus Go/Intelligent Octopus Go** und **Octopus Heat** gibt es fertige Vorlagen (siehe oben) — du kannst die Zeiten aber jederzeit frei eingeben oder anpassen. Gleiche Zonennamen werden zu **einem** gemeinsamen Sensor summiert — so lassen sich auch Tarife mit mehreren Zeitfenstern pro Zone abbilden. Möchtest du stattdessen **jedes Zeitfenster einzeln erfassen** — auch wenn es beim Stromanbieter denselben Namen und Arbeitspreis trägt —, vergib einfach unterschiedliche Namen (z. B. `Standard1`/`Standard2` oder `Niedrig-Nacht`/`Niedrig-Mittag`): dann bekommt jedes Fenster seinen eigenen Sensor. Die Umschaltzeiten müssen auf dem 15-Minuten-Messraster des SMGW liegen (Minuten `00`, `15`, `30` oder `45`) — andere Uhrzeiten werden direkt bei der Eingabe mit einer Fehlermeldung abgelehnt, es wird nichts automatisch gerundet
+   - **Tarifzonen (Umschaltpunkte)**: ein Eintrag pro Umschaltpunkt im Format `HH:MM Zonenname`, beginnend mit `00:00`; der letzte Eintrag gilt bis Mitternacht. Für **Octopus Go/Intelligent Octopus Go**, **Octopus Heat** und den **Einheitstarif** gibt es fertige Vorlagen (siehe oben) — du kannst die Zeiten aber jederzeit frei eingeben oder anpassen. Gleiche Zonennamen werden zu **einem** gemeinsamen Sensor summiert — so lassen sich auch Tarife mit mehreren Zeitfenstern pro Zone abbilden. Möchtest du stattdessen **jedes Zeitfenster einzeln erfassen** — auch wenn es beim Stromanbieter denselben Namen und Arbeitspreis trägt —, vergib einfach unterschiedliche Namen (z. B. `Standard1`/`Standard2` oder `Niedrig-Nacht`/`Niedrig-Mittag`): dann bekommt jedes Fenster seinen eigenen Sensor. Die Umschaltzeiten müssen auf dem 15-Minuten-Messraster des SMGW liegen (Minuten `00`, `15`, `30` oder `45`) — andere Uhrzeiten werden direkt bei der Eingabe mit einer Fehlermeldung abgelehnt, es wird nichts automatisch gerundet
    - **Abrufzeit**: Uhrzeit des täglichen Datenabrufs (Standard: 00:15)
    - **Gerätename** (optional, siehe nächster Abschnitt)
 
@@ -307,6 +308,7 @@ Jeder Balken steht bei dem Tag, an dem der Strom verbraucht wurde. Das ist nicht
 3. YAML einfügen und die Entity-IDs auf die eigenen anpassen:
    - `sensor.octopus_smgw_tagesverbrauch_zeitfenster_2` → eigene Entity-ID für Zeitfenster 2
    - `sensor.octopus_smgw_tagesverbrauch_zeitfenster_1` → eigene Entity-ID für Zeitfenster 1
+   - Bei nur einer Tarifzone: einen der beiden Einträge unter `series:` komplett löschen
 
 Die Entity-IDs findest du unter **Einstellungen → Geräte & Dienste → Entitäten**.
 
