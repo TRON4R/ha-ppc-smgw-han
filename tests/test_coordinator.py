@@ -144,6 +144,23 @@ def test_daily_data_to_dict_generates_slot_and_switch_keys():
     assert data["daily_feedin_total"] == 3.0
 
 
+def test_daily_data_to_dict_single_zone_has_no_switch_key():
+    dd = DailyData(
+        date=datetime(2026, 5, 15).date(),
+        import_boundaries=[1000.0, 1010.0],
+        export_midnight=500.0,
+        export_next_midnight=503.0,
+        zone_totals={"Standard": 10.0},
+        daily_import_total=10.0,
+        daily_export_total=3.0,
+    )
+    data = SmgwCoordinator._daily_data_to_dict(dd)
+    assert data["daily_consumption_slot_1"] == 10.0
+    assert "daily_consumption_slot_2" not in data
+    assert not any(key.startswith("meter_consumption_switch_") for key in data)
+    assert data["meter_consumption_prev_day_close"] == 1010.0
+
+
 async def test_prev_day_close_sensors_report_day_end(hass: HomeAssistant):
     """Endstand Vortag = closing reading of the fetched day, not opening.
 

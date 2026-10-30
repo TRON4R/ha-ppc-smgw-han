@@ -197,3 +197,29 @@ def test_write_xlsx_multi_window_zone_definition(tmp_path):
     ]
     assert "Standard: 00:00-02:00 + 06:00-24:00" in definition_texts
     assert "Niedrig: 02:00-06:00" in definition_texts
+
+
+def test_write_xlsx_single_zone_has_no_switch_column(tmp_path):
+    summary = build_daily_summary(READINGS, _fixed([(time(0, 0), "Standard")]))
+    meta = {
+        "meter_id": "m",
+        "from": "x",
+        "to": "y",
+        "zones": [("00:00", "Standard")],
+    }
+    path = tmp_path / "out.xlsx"
+    write_xlsx(path, READINGS, summary, meta)
+
+    wb = load_workbook(path)
+    assert [c.value for c in wb["Tarifzonen"][1]] == [
+        "Datum",
+        "Bezug 00:00 (kWh)",
+        "Bezug Folgetag 00:00 (kWh)",
+        "Verbrauch Standard (kWh)",
+        "Gesamtverbrauch 00:00-24:00 (kWh)",
+        "Einspeisung gesamt (kWh)",
+    ]
+    definition_texts = [
+        c.value for row in wb["Definition"].iter_rows() for c in row if c.value
+    ]
+    assert "Standard: 00:00-24:00" in definition_texts

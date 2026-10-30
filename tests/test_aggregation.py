@@ -43,6 +43,17 @@ def test_empty_returns_empty():
     assert build_daily_summary([], _fixed(GO_ZONES)) == []
 
 
+def test_single_zone_has_no_switch_values():
+    readings = [
+        _imp(datetime(2026, 5, 15, 0, 0, 1), 1000.0),
+        _imp(datetime(2026, 5, 16, 0, 0, 1), 1010.0),
+    ]
+    s = build_daily_summary(readings, _fixed([(time(0, 0), "Standard")]))[0]
+    assert s.zone_consumptions == {"Standard": 10.0}
+    assert s.consumption_total == 10.0
+    assert s.import_switches == {}
+
+
 def test_diff_none_propagation():
     assert _diff(None, 5.0) is None
     assert _diff(5.0, None) is None

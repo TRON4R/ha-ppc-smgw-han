@@ -58,6 +58,7 @@ from .const import (
     DEFAULT_URL,
     DOMAIN,
     TARIFF_TEMPLATE_CUSTOM,
+    TARIFF_TEMPLATE_FLAT,
     TARIFF_TEMPLATE_GO,
     TARIFF_TEMPLATE_HEAT,
     TARIFF_TEMPLATES,
@@ -110,11 +111,12 @@ def _parse_tariff_zones(entries: list[str]) -> list[dict[str, str]]:
 
     Returns the JSON shape stored in the config entry
     (``[{"time": "HH:MM", "name": ...}, ...]``). Raises
-    :class:`ZoneDefinitionError` on the first violated rule: at least two
-    entries (one switch point), each entry "HH:MM Name", minutes on the
-    15-minute grid, the first entry at 00:00, times strictly ascending.
+    :class:`ZoneDefinitionError` on the first violated rule: at least one
+    entry, each entry "HH:MM Name", minutes on the 15-minute grid, the first
+    entry at 00:00, times strictly ascending. A single entry is a valid
+    single-rate tariff: one zone for the whole day, no switch point.
     """
-    if len(entries) < 2:
+    if not entries:
         raise ZoneDefinitionError("zone_too_few")
     zones: list[dict[str, str]] = []
     prev: tuple[int, int] | None = None
@@ -312,7 +314,12 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         return self.async_show_menu(
             step_id="user",
-            menu_options=["tariff_go", "tariff_heat", "tariff_custom"],
+            menu_options=[
+                "tariff_go",
+                "tariff_heat",
+                "tariff_flat",
+                "tariff_custom",
+            ],
         )
 
     async def async_step_tariff_go(
@@ -327,6 +334,13 @@ class SmgwConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Prefill the Octopus Heat windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
+        return await self.async_step_credentials()
+
+    async def async_step_tariff_flat(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the single zone of a one-price tariff."""
+        self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_FLAT]
         return await self.async_step_credentials()
 
     async def async_step_tariff_custom(
@@ -835,7 +849,12 @@ class SmgwOptionsFlow(OptionsFlow):
         """Offer the tariff templates as buttons."""
         return self.async_show_menu(
             step_id="tariff_template",
-            menu_options=["tariff_go", "tariff_heat", "tariff_custom"],
+            menu_options=[
+                "tariff_go",
+                "tariff_heat",
+                "tariff_flat",
+                "tariff_custom",
+            ],
         )
 
     async def async_step_tariff_go(
@@ -850,6 +869,13 @@ class SmgwOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Prefill the settings form with the Octopus Heat windows."""
         self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_HEAT]
+        return await self.async_step_settings()
+
+    async def async_step_tariff_flat(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prefill the settings form with the single zone of a one-price tariff."""
+        self._template_zones = TARIFF_TEMPLATES[TARIFF_TEMPLATE_FLAT]
         return await self.async_step_settings()
 
     async def async_step_tariff_custom(

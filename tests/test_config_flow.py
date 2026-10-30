@@ -654,11 +654,18 @@ def test_parse_tariff_zones_heat_and_normalization():
     assert parsed[5] == {ZONE_TIME: "18:00", ZONE_NAME: "Hoch Tarif"}
 
 
+def test_parse_tariff_zones_accepts_a_single_zone():
+    # One price around the clock: one zone for the whole day, no switch point.
+    assert _parse_tariff_zones(["00:00 Standard"]) == [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Standard"}
+    ]
+
+
 @pytest.mark.parametrize(
     ("entries", "error_key"),
     [
         ([], "zone_too_few"),
-        (["00:00 Nur eine Zone"], "zone_too_few"),
+        (["05:00 Nur eine Zone"], "zone_first_not_midnight"),
         (["00:00 A", "5 Uhr B"], "invalid_zone_entry"),
         (["00:00 A", "25:00 B"], "invalid_zone_entry"),
         (["00:00 A", "05:00"], "invalid_zone_entry"),
@@ -684,7 +691,7 @@ async def test_user_flow_invalid_zones_shows_field_error(hass: HomeAssistant):
         )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["errors"][CONF_TARIFF_ZONES] == "zone_too_few"
+    assert result["errors"][CONF_TARIFF_ZONES] == "zone_first_not_midnight"
     assert not mock_validate.called
 
 
@@ -740,6 +747,31 @@ async def test_settings_stores_parsed_zones(hass: HomeAssistant):
         {ZONE_TIME: "16:00", ZONE_NAME: "Standard"},
         {ZONE_TIME: "18:00", ZONE_NAME: "Hoch"},
         {ZONE_TIME: "21:00", ZONE_NAME: "Standard"},
+    ]
+
+
+async def test_settings_stores_a_single_zone(hass: HomeAssistant):
+    # Deleting the other entries in the settings form is enough: the remaining
+    # 00:00 entry is stored as it stands.
+    entry = _entry("M", instance_id=1)
+    entry.add_to_hass(hass)
+
+    result = await _open_settings(hass, entry)
+    with (
+        patch(VALIDATE, return_value=_info("M", ["M"])),
+        patch(CLOSE, return_value=None),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ),
+    ):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {**USER_INPUT, CONF_TARIFF_ZONES: ["00:00 Standard"]},
+        )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.data[CONF_TARIFF_ZONES] == [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Standard"},
     ]
 
 
@@ -892,9 +924,10 @@ def _zone_default(result) -> list[str]:
                 "21:00 Standard",
             ],
         ),
+        ("tariff_flat", ["00:00 Standard"]),
         ("tariff_custom", ["00:00 Zeitfenster 1", "05:00 Zeitfenster 2"]),
     ],
-    ids=["go", "heat", "custom"],
+    ids=["go", "heat", "flat", "custom"],
 )
 async def test_setup_template_prefills_zone_field(
     hass: HomeAssistant, template, expected
@@ -926,6 +959,28 @@ async def test_setup_heat_template_creates_three_zone_entry(
     assert dict.fromkeys(names) == dict.fromkeys(
         ["Standard", "Niedrig", "Hoch"]
     )
+
+
+async def test_setup_flat_template_creates_single_zone_entry(
+    hass: HomeAssistant,
+):
+    """Submitting the single-rate prefill unchanged stores exactly one zone."""
+    with (
+        patch(VALIDATE, return_value=_info("1lgz0072999211", ["1lgz0072999211"])),
+        patch(CLOSE, return_value=None),
+        patch(SETUP_ENTRY, return_value=True),
+    ):
+        result = await _start_user_flow(hass, "tariff_flat")
+        submitted = {**USER_INPUT, CONF_TARIFF_ZONES: _zone_default(result)}
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], submitted
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_TARIFF_ZONES] == [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Standard"},
+    ]
 
 
 async def test_setup_template_is_only_a_suggestion(hass: HomeAssistant):
@@ -967,6 +1022,24 @@ async def test_options_template_prefills_but_does_not_save(
     assert result["step_id"] == "settings"
     assert _zone_default(result)[1] == "02:00 Niedrig"
     # Nothing saved yet — the entry still holds its original zones.
+    assert entry.data[CONF_TARIFF_ZONES] == [dict(z) for z in GO_ZONES_STORED]
+
+
+async def test_options_menu_offers_the_flat_template(hass: HomeAssistant):
+    """The options template menu reaches the single-rate prefill too."""
+    entry = _entry("1lgz0072999211")
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "tariff_template"}
+    )
+    assert "tariff_flat" in result["menu_options"]
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "tariff_flat"}
+    )
+
+    assert result["step_id"] == "settings"
+    assert _zone_default(result) == ["00:00 Standard"]
     assert entry.data[CONF_TARIFF_ZONES] == [dict(z) for z in GO_ZONES_STORED]
 
 

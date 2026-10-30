@@ -270,3 +270,17 @@ def test_custom_tariff_switch_time():
     daily = _client()._process_readings(date(2026, 5, 15), readings, zones)
     assert daily.zone_totals["Go"] == 4.0  # up to 07:30
     assert daily.zone_totals["Standard"] == 6.0  # after 07:30
+
+
+def test_single_zone_needs_only_the_two_midnight_readings():
+    # One price around the clock: no switch reading is required, so a gap
+    # during the day cannot reject the day, and the zone equals the total.
+    readings = [
+        _mr(datetime(2026, 5, 15, 0, 0, 1), OBIS_IMPORT, 1000.0),
+        _mr(datetime(2026, 5, 16, 0, 0, 1), OBIS_IMPORT, 1010.0),
+    ]
+    zones = [(time(0, 0), "Standard")]
+    daily = _client()._process_readings(date(2026, 5, 15), readings, zones)
+    assert daily.zone_totals == {"Standard": 10.0}
+    assert daily.daily_import_total == 10.0
+    assert daily.import_boundaries == [1000.0, 1010.0]

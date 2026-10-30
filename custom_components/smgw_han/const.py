@@ -62,8 +62,12 @@ DEFAULT_TARIFF_ZONES = [
 # The Standard window 21:00-02:00 crosses midnight; within the calendar-day
 # frame it simply becomes two segments of the same name, which the zone
 # summing rejoins — hence seven switch points for three sensors.
+#
+# A single-rate tariff has one price around the clock, so one zone covers the
+# whole day: its sensor equals the daily total and no switch reading exists.
 TARIFF_TEMPLATE_GO = "go"
 TARIFF_TEMPLATE_HEAT = "heat"
+TARIFF_TEMPLATE_FLAT = "flat"
 TARIFF_TEMPLATE_CUSTOM = "custom"
 
 TARIFF_TEMPLATES: dict[str, list[dict[str, str]]] = {
@@ -79,6 +83,9 @@ TARIFF_TEMPLATES: dict[str, list[dict[str, str]]] = {
         {ZONE_TIME: "16:00", ZONE_NAME: "Standard"},
         {ZONE_TIME: "18:00", ZONE_NAME: "Hoch"},
         {ZONE_TIME: "21:00", ZONE_NAME: "Standard"},
+    ],
+    TARIFF_TEMPLATE_FLAT: [
+        {ZONE_TIME: "00:00", ZONE_NAME: "Standard"},
     ],
     # "Own times": the neutral two-zone default, shown so the format is
     # visible instead of leaving the user with an empty field.
