@@ -28,7 +28,7 @@ Back to the [README](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.
 - [E8](#e8) Do I have to be an Octopus Energy customer?
 
 **Sensors and values**
-- [S1](#s1) Consumption arrives, but feed-in stays at 0
+- [S1](#s1) Only consumption or only feed-in arrives
 - [S2](#s2) Why are the values only updated once a day?
 - [S3](#s3) After setup, the sensors show "Unknown"
 - [S4](#s4) What do the notices under "Repairs" mean?
@@ -153,9 +153,9 @@ No. The smart meter gateway belongs to the metering point, not to your electrici
 
 ## Sensors and values
 
-### <a id="s1"></a>S1 · Consumption arrives, but feed-in stays at 0 – why?
+### <a id="s1"></a>S1 · Only consumption or only feed-in arrives – why?
 
-If you don't have a PV system, 0 is correct. Otherwise: **the integration delivers exactly what the SMGW hands out for your credentials.** Some metering point operators issue a separate login for feed-in – with the import login, feed-in simply isn't visible.
+If you don't have a PV system, a feed-in of 0 is correct. Otherwise: **the integration delivers exactly what the SMGW hands out for your credentials.** Some metering point operators issue separate logins for import and feed-in. With one of them, the other direction simply isn't visible.
 
 You can check this in two ways. In both, the OBIS code is what counts: `1-0:1.8.0` stands for import (consumption), `1-0:2.8.0` for feed-in.
 
@@ -163,18 +163,20 @@ You can check this in two ways. In both, the OBIS code is what counts: `1-0:1.8.
 
 1. **Settings → Devices & services → PPC SMGW HAN Daily Import → Configure** (gear) → "Export SMGW meter data for a custom time range".
 2. Choose the period **"Yesterday"**, tick **"Create Excel (XLSX)"** and run the export.
-3. In the Excel file, open the sheet **"Rohdaten"** (raw data – the sheet names are always German) and look for `1-0:2.8.0` in the "OBIS" column.
+3. In the Excel file, open the sheet **"Rohdaten"** (raw data – the sheet names are always German) and check whether `1-0:1.8.0` and `1-0:2.8.0` appear in the "OBIS" column.
 
 **b) With your own eyes: directly on the SMGW**
 
-The export logs in to the SMGW exactly like the integration does. To rule out that the integration itself swallows the feed-in values, log in to the SMGW directly with the same HAN credentials – in a browser or with TRuDI (instructions in [E6](#e6)) – and display yesterday's meter readings. What you see there comes straight from the gateway, without going through this integration. A screenshot of it also makes good evidence when you request the feed-in credentials from your metering point operator.
+The export logs in to the SMGW exactly like the integration does. To rule out that the integration itself swallows values, log in to the SMGW directly with the same HAN credentials – in a browser or with TRuDI (instructions in [E6](#e6)) – and display yesterday's meter readings. What you see there comes straight from the gateway, without going through this integration. A screenshot of it also makes good evidence when you request the credentials for the missing direction from your metering point operator.
 
-**If `1-0:2.8.0` is missing**, the SMGW does not provide feed-in values for your login. No software can change that – request the feed-in credentials from your metering point operator. Then use them to add a **second entry** with a descriptive device name such as "SMGW feed-in" (details in the README under [Multiple SMGWs / multiple logins](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#multiple-smgws--multiple-logins)).
+**If one of the two codes is missing**, the SMGW does not provide that direction for your login. No software can change that. Request the credentials for the missing direction from your metering point operator, not a change to your existing login. Then use them to add a **second entry** and give the entries descriptive device names such as "SMGW consumption" and "SMGW feed-in" (details in the README under [Multiple SMGWs / multiple logins](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#multiple-smgws--multiple-logins)). Each entry creates all sensors; those for the other direction stay at 0 and can be hidden. Feed-in has only two sensors because it isn't split into tariff zones.
 
-**If the SMGW shows `1-0:2.8.0` but the integration still shows 0**, the fault lies with the integration. In that case, please open an issue (see [H1](#h1)) and attach the screenshot from the SMGW.
+**Bayernwerk example** (one user's report, as of October 2026): import and feed-in each have their own contract number. If one is missing from your customer portal, you can add it there yourself. It is on the written confirmation; otherwise the support chat can tell you. For each contract number, the portal has a "HAN" menu item with the credentials, and the username begins with the respective contract number.
+
+**If the SMGW shows both codes but the integration still shows 0 for one of them**, the fault lies with the integration. In that case, please open an issue (see [H1](#h1)) and attach the screenshot from the SMGW.
 
 > [!IMPORTANT]
-> Your **grid operator's portal** is not the SMGW. Seeing feed-in values there doesn't mean your HAN login sees them too. What counts is what the gateway itself delivers.
+> Your **grid operator's portal** is not the SMGW. Seeing both directions there doesn't mean your HAN login sees them too. The same goes for your metering point operator telling you that both values reach them. What counts is what the gateway itself delivers.
 
 ### <a id="s2"></a>S2 · Why are the values only updated once a day? I set 15 minutes.
 
