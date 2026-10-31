@@ -8,6 +8,7 @@
           "tariff_go": "Octopus Go / Intelligent Octopus Go (00:00–05:00 günstig)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
           "tariff_flat": "Einheitstarif (ein Preis rund um die Uhr)",
+          "tariff_weekend": "HT/NT mit abweichendem Wochenende (Beispielzeiten)",
           "tariff_custom": "Eigene Zeiten eingeben"
         }
       },
@@ -20,13 +21,15 @@
           "password": "Passwort",
           "tariff_zones": "Tarifzonen (Umschaltpunkte)",
           "update_time": "Abrufzeit",
-          "device_name": "Gerätename (optional)"
+          "device_name": "Gerätename (optional)",
+          "weekend_override": "Abweichende Zeiten für Samstag, Sonntag und Feiertage"
         },
         "data_description": {
           "url": "URL der SMGW HAN-Schnittstelle (Standard: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format „HH:MM Zonenname\", beginnend mit 00:00; der letzte Eintrag gilt bis Mitternacht. Beispiel Octopus Go: „00:00 Go\" und „05:00 Standard\".\nGleiche Zonennamen ergeben einen gemeinsamen Sensor: „00:00 Standard\", „02:00 Niedrig\", „06:00 Standard\", „12:00 Niedrig\" erzeugt zwei Sensoren. „Standard\" summiert dann 00:00–02:00 und 06:00–12:00, „Niedrig\" summiert 02:00–06:00 und 12:00–24:00.\nMinuten können dem Messraster entsprechend nur als 00, 15, 30 oder 45 eingegeben werden.",
           "update_time": "Tageszeit für den automatischen Abruf der Vortageswerte",
-          "device_name": "Sprechender Name für dieses Gerät. Fülle ihn aus, sobald du mehr als einen Eintrag zum selben SMGW betreibst — sei es, weil du denselben Zähler nach zwei Zeitrastern auswertest (z.B. Stromtarif und Netzentgelt-Zeitfenster nach Modul 3), oder weil dir dein Messstellenbetreiber separate Zugangsdaten für die Verbrauchs- (1.8.0) und die Einspeise-Abfrage (2.8.0) gegeben hat. Gute Paare sind „SMGW Octopus\" / „SMGW Modul 3\" bzw. „SMGW Verbrauch\" / „SMGW Einspeisung\". Leer lassen kannst du das Feld nur, solange dies der einzige Eintrag zu diesem SMGW bleibt — sonst nummeriert Home Assistant die gleichnamigen Geräte bloß durch. Der Name fließt in die Entity-IDs ein, wähle ihn also am besten gleich passend."
+          "device_name": "Sprechender Name für dieses Gerät. Fülle ihn aus, sobald du mehr als einen Eintrag zum selben SMGW betreibst — sei es, weil du denselben Zähler nach zwei Zeitrastern auswertest (z.B. Stromtarif und Netzentgelt-Zeitfenster nach Modul 3), oder weil dir dein Messstellenbetreiber separate Zugangsdaten für die Verbrauchs- (1.8.0) und die Einspeise-Abfrage (2.8.0) gegeben hat. Gute Paare sind „SMGW Octopus\" / „SMGW Modul 3\" bzw. „SMGW Verbrauch\" / „SMGW Einspeisung\". Leer lassen kannst du das Feld nur, solange dies der einzige Eintrag zu diesem SMGW bleibt — sonst nummeriert Home Assistant die gleichnamigen Geräte bloß durch. Der Name fließt in die Entity-IDs ein, wähle ihn also am besten gleich passend.",
+          "weekend_override": "Aktivieren, wenn dein Tarif samstags, sonntags oder an Feiertagen zu anderen Zeiten umschaltet. Die Zeiten trägst du im nächsten Schritt ein; die Zonen oben gelten dann nur noch von Montag bis Freitag. Deaktivieren entfernt die Regeln für diese Tage."
         }
       },
       "select_meter": {
@@ -53,6 +56,20 @@
           "username": "Benutzername",
           "password": "Passwort"
         }
+      },
+      "day_rules": {
+        "title": "Samstag, Sonntag und Feiertage",
+        "description": "Die Zonen aus dem vorigen Formular gelten von Montag bis Freitag. Hier legst du fest, was an den übrigen Tagen gilt.\nVerwende für dieselbe Zone überall denselben Namen, denn alle Tage füllen dieselben Sensoren. Ein Name, der nur hier vorkommt, bekommt einen eigenen Sensor, der hinter denen von Montag bis Freitag einsortiert wird. Kommt später bei Montag bis Freitag ein neuer Name hinzu, rückt dieser Sensor eine Position weiter, und seine Statistik wird vermischt.\nBei einer geplanten Umschaltung gelten diese Regeln ab dem gewählten Datum.",
+        "data": {
+          "tariff_zones_saturday": "Samstags-Zonen",
+          "tariff_zones_sunday": "Sonntags-Zonen",
+          "holidays": "Feiertage"
+        },
+        "data_description": {
+          "tariff_zones_saturday": "Gleiches Format wie die Tarifzonen im vorigen Formular, z. B. „00:00 NT“, „06:00 HT“, „13:00 NT“. Leer lassen, wenn samstags dieselben Zonen gelten wie von Montag bis Freitag.",
+          "tariff_zones_sunday": "Gleiches Format. Ein einzelner Eintrag wie „00:00 NT“ bedeutet: den ganzen Tag diese Zone. Leer lassen, wenn sonntags dieselben Zonen gelten wie von Montag bis Freitag.",
+          "holidays": "An welchen Feiertagen die Sonntags-Zonen gelten, auch wenn der Feiertag auf einen Samstag fällt. Was für dich gilt, steht im Preisblatt deines Netzbetreibers.\n„Aus“: Ein Feiertag zählt wie der jeweilige Wochentag.\n„Nur bundeseinheitliche Feiertage“: die neun Feiertage, die in allen Bundesländern gelten.\nEin Bundesland: zusätzlich die gesetzlichen Feiertage dieses Landes. Bei Bayern zählt auch Mariä Himmelfahrt (15.8.). Nicht enthalten sind Feiertage, die nur örtlich gelten, etwa das Augsburger Friedensfest oder Fronleichnam in einzelnen Gemeinden von Sachsen und Thüringen.\nJede Auswahl außer „Aus“ braucht Sonntags-Zonen."
+        }
       }
     },
     "error": {
@@ -65,7 +82,8 @@
       "zone_too_few": "Mindestens einen Eintrag angeben, beginnend mit 00:00.",
       "zone_first_not_midnight": "Der erste Eintrag muss bei 00:00 beginnen.",
       "zone_times_not_ascending": "Die Umschaltzeiten müssen innerhalb des Tages strikt aufsteigend sein.",
-      "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster)."
+      "zone_minute_grid": "Minuten nur 00, 15, 30 oder 45 (das SMGW misst im 15-Minuten-Raster).",
+      "holidays_need_sunday": "Feiertage nutzen die Sonntags-Zonen. Bitte Sonntags-Zonen eintragen oder die Feiertage auf „Aus“ stellen."
     },
     "abort": {
       "already_configured": "Dieser Zähler wird mit dieser Auswertung bereits erfasst.",
@@ -92,6 +110,7 @@
           "tariff_go": "Octopus Go / Intelligent Octopus Go (00:00–05:00 günstig)",
           "tariff_heat": "Octopus Heat (Niedrig / Standard / Hoch)",
           "tariff_flat": "Einheitstarif (ein Preis rund um die Uhr)",
+          "tariff_weekend": "HT/NT mit abweichendem Wochenende (Beispielzeiten)",
           "tariff_custom": "Eigene Zeiten eingeben"
         }
       },
@@ -101,11 +120,13 @@
         "data": {
           "valid_from": "Gültig ab",
           "tariff_zones": "Tarifzonen (Umschaltpunkte) ab diesem Datum",
-          "discard_pending": "Geplante Umschaltung verwerfen"
+          "discard_pending": "Geplante Umschaltung verwerfen",
+          "weekend_override": "Abweichende Zeiten für Samstag, Sonntag und Feiertage"
         },
         "data_description": {
           "valid_from": "Der erste Tag, an dem das neue Schema gilt. Vorbelegt mit dem nächsten 1. Januar als häufigstem Fall — es geht aber jedes künftige Datum, etwa der Starttag eines neuen Stromtarifs. Umgeschaltet wird um 00:00 Uhr dieses Tages; der Abruf in derselben Nacht teilt den Vortag weiterhin nach den alten Zeitfenstern auf.",
-          "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format \"HH:MM Zonenname\", beginnend mit 00:00, Minuten 00, 15, 30 oder 45. Vorbelegt mit den heute aktiven Zonen, es sind also nur die geänderten Zeiten zu korrigieren. Bleiben die Zonennamen gleich, bleibt auch die Historie je Sensor eine durchgehende Reihe. Die Sensoren werden an ihrer Position in der Liste erkannt: Eine umbenannte oder verschobene Zone setzt deshalb die Reihe des bisherigen Sensors fort, und dessen Statistik wird vermischt."
+          "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format \"HH:MM Zonenname\", beginnend mit 00:00, Minuten 00, 15, 30 oder 45. Vorbelegt mit den heute aktiven Zonen, es sind also nur die geänderten Zeiten zu korrigieren. Bleiben die Zonennamen gleich, bleibt auch die Historie je Sensor eine durchgehende Reihe. Die Sensoren werden an ihrer Position in der Liste erkannt: Eine umbenannte oder verschobene Zone setzt deshalb die Reihe des bisherigen Sensors fort, und dessen Statistik wird vermischt.",
+          "weekend_override": "Aktivieren, wenn dein Tarif samstags, sonntags oder an Feiertagen zu anderen Zeiten umschaltet. Die Zeiten trägst du im nächsten Schritt ein; die Zonen oben gelten dann nur noch von Montag bis Freitag. Deaktivieren entfernt die Regeln für diese Tage."
         }
       },
       "settings": {
@@ -117,13 +138,15 @@
           "password": "Passwort",
           "tariff_zones": "Tarifzonen (Umschaltpunkte)",
           "update_time": "Abrufzeit",
-          "device_name": "Gerätename (optional)"
+          "device_name": "Gerätename (optional)",
+          "weekend_override": "Abweichende Zeiten für Samstag, Sonntag und Feiertage"
         },
         "data_description": {
           "url": "URL der SMGW HAN-Schnittstelle (Standard: https://192.168.100.100/cgi-bin/hanservice.cgi)",
           "tariff_zones": "Ein Eintrag pro Umschaltpunkt im Format „HH:MM Zonenname\", beginnend mit 00:00; der letzte Eintrag gilt bis Mitternacht. Beispiel Octopus Go: „00:00 Go\" und „05:00 Standard\".\nGleiche Zonennamen ergeben einen gemeinsamen Sensor: „00:00 Standard\", „02:00 Niedrig\", „06:00 Standard\", „12:00 Niedrig\" erzeugt zwei Sensoren. „Standard\" summiert dann 00:00–02:00 und 06:00–12:00, „Niedrig\" summiert 02:00–06:00 und 12:00–24:00.\nMinuten können dem Messraster entsprechend nur als 00, 15, 30 oder 45 eingegeben werden.\nAchtung zur Statistik-Historie: Jede Zone erhält einen eigenen Verbrauchssensor. Home Assistant erkennt diese Sensoren an ihrer Position in der Liste (erste Zone, zweite Zone …) und nicht am vergebenen Namen.\nUhrzeiten ändern oder weitere Zonen am Ende anfügen ist somit unkritisch – bestehende Sensoren behalten ihre Historie. Sortierst oder benennst du die Zonen aber so um, so dass an einer bisher bereits belegten Position jetzt eine andere Zone liegt als zuvor, werden in der Home-Assistant-Historie an die Daten der alten Zone von nun an die Daten der neuen Zone angefügt, d.h. die Statistik des Sensors wird vermischt.",
           "update_time": "Tageszeit für den automatischen Abruf der Vortageswerte",
-          "device_name": "Sprechender Name für dieses Gerät, nötig sobald mehrere Einträge auf dasselbe SMGW zeigen — zwei Auswertungen desselben Zählers (Stromtarif vs. Modul-3-Zeitfenster) oder getrennte Logins für Verbrauch und Einspeisung. Sonst leer lassen."
+          "device_name": "Sprechender Name für dieses Gerät, nötig sobald mehrere Einträge auf dasselbe SMGW zeigen — zwei Auswertungen desselben Zählers (Stromtarif vs. Modul-3-Zeitfenster) oder getrennte Logins für Verbrauch und Einspeisung. Sonst leer lassen.",
+          "weekend_override": "Aktivieren, wenn dein Tarif samstags, sonntags oder an Feiertagen zu anderen Zeiten umschaltet. Die Zeiten trägst du im nächsten Schritt ein; die Zonen oben gelten dann nur noch von Montag bis Freitag. Deaktivieren entfernt die Regeln für diese Tage."
         }
       },
       "export": {
@@ -167,6 +190,20 @@
           "from_datetime": "Von",
           "to_datetime": "Bis"
         }
+      },
+      "day_rules": {
+        "title": "Samstag, Sonntag und Feiertage",
+        "description": "Die Zonen aus dem vorigen Formular gelten von Montag bis Freitag. Hier legst du fest, was an den übrigen Tagen gilt.\nVerwende für dieselbe Zone überall denselben Namen, denn alle Tage füllen dieselben Sensoren. Ein Name, der nur hier vorkommt, bekommt einen eigenen Sensor, der hinter denen von Montag bis Freitag einsortiert wird. Kommt später bei Montag bis Freitag ein neuer Name hinzu, rückt dieser Sensor eine Position weiter, und seine Statistik wird vermischt.\nBei einer geplanten Umschaltung gelten diese Regeln ab dem gewählten Datum.",
+        "data": {
+          "tariff_zones_saturday": "Samstags-Zonen",
+          "tariff_zones_sunday": "Sonntags-Zonen",
+          "holidays": "Feiertage"
+        },
+        "data_description": {
+          "tariff_zones_saturday": "Gleiches Format wie die Tarifzonen im vorigen Formular, z. B. „00:00 NT“, „06:00 HT“, „13:00 NT“. Leer lassen, wenn samstags dieselben Zonen gelten wie von Montag bis Freitag.",
+          "tariff_zones_sunday": "Gleiches Format. Ein einzelner Eintrag wie „00:00 NT“ bedeutet: den ganzen Tag diese Zone. Leer lassen, wenn sonntags dieselben Zonen gelten wie von Montag bis Freitag.",
+          "holidays": "An welchen Feiertagen die Sonntags-Zonen gelten, auch wenn der Feiertag auf einen Samstag fällt. Was für dich gilt, steht im Preisblatt deines Netzbetreibers.\n„Aus“: Ein Feiertag zählt wie der jeweilige Wochentag.\n„Nur bundeseinheitliche Feiertage“: die neun Feiertage, die in allen Bundesländern gelten.\nEin Bundesland: zusätzlich die gesetzlichen Feiertage dieses Landes. Bei Bayern zählt auch Mariä Himmelfahrt (15.8.). Nicht enthalten sind Feiertage, die nur örtlich gelten, etwa das Augsburger Friedensfest oder Fronleichnam in einzelnen Gemeinden von Sachsen und Thüringen.\nJede Auswahl außer „Aus“ braucht Sonntags-Zonen."
+        }
       }
     },
     "error": {
@@ -192,7 +229,8 @@
       "schedule_date_not_future": "Das Datum muss in der Zukunft liegen. Wenn die Zonen sofort gelten sollen, nutze stattdessen „Einstellungen ändern“.",
       "log_no_entries": "Das SMGW-Log enthält für den gewählten Zeitraum keine Einträge.",
       "log_split_limit": "Der Zeitraum enthält zu viele Einträge, um ihn automatisch aufzuteilen. Bitte einen kürzeren Zeitraum wählen.",
-      "log_export_failed": "Der Abruf der Logdaten ist fehlgeschlagen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen."
+      "log_export_failed": "Der Abruf der Logdaten ist fehlgeschlagen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen.",
+      "holidays_need_sunday": "Feiertage nutzen die Sonntags-Zonen. Bitte Sonntags-Zonen eintragen oder die Feiertage auf „Aus“ stellen."
     },
     "abort": {
       "export_done": "Export erstellt.\n\n{links}\n\nDie Links sind bis {expires} Uhr gültig und liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit.",
@@ -308,6 +346,28 @@
         "current_month": "Aktueller Monat (bisher)",
         "last_month": "Letzter Monat",
         "all": "Alles, was das SMGW noch gespeichert hat"
+      }
+    },
+    "holiday_mode": {
+      "options": {
+        "off": "Aus – Feiertage ohne eigene Regel",
+        "national": "Nur bundeseinheitliche Feiertage",
+        "bw": "Baden-Württemberg",
+        "by": "Bayern",
+        "be": "Berlin",
+        "bb": "Brandenburg",
+        "hb": "Bremen",
+        "hh": "Hamburg",
+        "he": "Hessen",
+        "mv": "Mecklenburg-Vorpommern",
+        "ni": "Niedersachsen",
+        "nw": "Nordrhein-Westfalen",
+        "rp": "Rheinland-Pfalz",
+        "sl": "Saarland",
+        "sn": "Sachsen",
+        "st": "Sachsen-Anhalt",
+        "sh": "Schleswig-Holstein",
+        "th": "Thüringen"
       }
     }
   },

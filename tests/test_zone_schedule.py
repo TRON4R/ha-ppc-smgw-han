@@ -31,6 +31,11 @@ M3_2027 = [
 ]
 
 
+def _zones_for_day(schedule, fallback, day):
+    """The weekday zones valid on ``day``."""
+    return zs.layout_for_day(schedule, {zs.ZONES: fallback}, day)[zs.ZONES]
+
+
 @pytest.fixture
 def scheduled():
     """M3_2026 active, M3_2027 scheduled for 1 January 2027."""
@@ -38,7 +43,7 @@ def scheduled():
 
 
 def test_no_schedule_falls_back_to_the_entry_zones():
-    assert zs.zones_for_day([], GO, date(2026, 5, 1)) == GO
+    assert _zones_for_day([], GO, date(2026, 5, 1)) == GO
     assert zs.pending_change([], date(2026, 12, 1)) is None
     assert zs.next_change_at([], date(2026, 12, 1)) is None
 
@@ -64,7 +69,7 @@ def test_first_change_materializes_a_baseline(scheduled):
     ],
 )
 def test_every_day_gets_the_layout_valid_on_it(scheduled, day, expected):
-    assert zs.zones_for_day(scheduled, M3_2027, day) == expected
+    assert _zones_for_day(scheduled, M3_2027, day) == expected
 
 
 def test_pending_until_the_date_is_reached(scheduled):
@@ -88,14 +93,14 @@ def test_history_survives_once_it_has_taken_effect(scheduled):
     """An old layout is never dropped — the export needs it for old days."""
     kept = zs.without_pending(scheduled, date(2027, 3, 1))
     assert len(kept) == 2
-    assert zs.zones_for_day(kept, GO, date(2026, 6, 1)) == M3_2026
+    assert _zones_for_day(kept, GO, date(2026, 6, 1)) == M3_2026
 
 
 def test_several_changes_stack_in_order(scheduled):
     three = zs.with_change(scheduled, M3_2027, date(2028, 1, 1), GO)
     assert len(three) == 3
-    assert zs.zones_for_day(three, GO, date(2027, 7, 1)) == M3_2027
-    assert zs.zones_for_day(three, GO, date(2028, 2, 1)) == GO
+    assert _zones_for_day(three, GO, date(2027, 7, 1)) == M3_2027
+    assert _zones_for_day(three, GO, date(2028, 2, 1)) == GO
 
 
 def test_normalize_sorts_and_drops_junk():
