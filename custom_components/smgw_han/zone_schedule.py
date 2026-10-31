@@ -127,25 +127,6 @@ def normalize(schedule: Any) -> Schedule:
     return deduped
 
 
-def zones_for_day(
-    schedule: Any, fallback: ZoneList, day: date
-) -> ZoneList:
-    """The zone layout valid on ``day``.
-
-    ``fallback`` (the entry's ``CONF_TARIFF_ZONES``) is used when no schedule
-    exists at all — the normal case for an installation that never scheduled
-    a change.
-    """
-    best: ZoneList | None = None
-    for item in normalize(schedule):
-        valid_from = _parse_date(item[VALID_FROM])
-        if valid_from is None or valid_from <= day:
-            best = item[ZONES]
-        else:
-            break
-    return [dict(zone) for zone in (best if best is not None else fallback)]
-
-
 def layout_for_day(
     schedule: Any, fallback: dict[str, Any], day: date
 ) -> dict[str, Any]:

@@ -12,7 +12,8 @@ Saturday is a Sunday day) -- the holiday rule has three settings:
 
   off       holidays are ordinary days (default; the safe choice)
   national  the holidays common to every German state
-  BY, NW..  those plus the holidays of one federal state
+  by, nw..  those plus the statutory holidays of one federal state; purely
+            local ones (Augsburg, single municipalities) are left out
 
 Which setting is right depends on the grid operator's price sheet, which is
 why it is a choice and not a built-in assumption.
@@ -33,7 +34,6 @@ from typing import Any
 
 from .const import (
     CONF_HOLIDAYS,
-    CONF_HOLIDAYS_AS_SUNDAY,
     CONF_TARIFF_ZONES,
     CONF_TARIFF_ZONES_SATURDAY,
     CONF_TARIFF_ZONES_SUNDAY,
@@ -88,11 +88,7 @@ def holiday_label(mode: str) -> str:
 
 def holiday_mode(entry_data: Any) -> str:
     """The holiday setting stored in a config entry's data."""
-    mode = entry_data.get(CONF_HOLIDAYS)
-    if mode is None and entry_data.get(CONF_HOLIDAYS_AS_SUNDAY):
-        # Early pre-release builds stored a boolean "nationwide as Sunday".
-        return HOLIDAYS_NATIONAL
-    return normalize_holiday_mode(mode)
+    return normalize_holiday_mode(entry_data.get(CONF_HOLIDAYS))
 
 
 def entry_layout(entry_data: Any) -> dict[str, Any]:
@@ -120,15 +116,6 @@ def layout_data(layout: dict[str, Any]) -> dict[str, Any]:
         CONF_TARIFF_ZONES_SUNDAY: [dict(z) for z in layout.get(SUNDAY) or []],
         CONF_HOLIDAYS: normalize_holiday_mode(layout.get(HOLIDAYS)),
     }
-
-
-def has_day_rules(layout: dict[str, Any]) -> bool:
-    """True if the layout differs from "Mon-Fri applies to every day"."""
-    return bool(
-        layout.get(SATURDAY)
-        or layout.get(SUNDAY)
-        or normalize_holiday_mode(layout.get(HOLIDAYS)) != HOLIDAYS_OFF
-    )
 
 
 def _compute_holidays(mode: str, year: int) -> frozenset[date]:

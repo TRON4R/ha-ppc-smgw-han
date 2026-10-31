@@ -27,9 +27,6 @@ CONF_TARIFF_ZONES_SUNDAY = "tariff_zones_sunday"
 # (the holidays common to every German state) or the code of one federal
 # state from HOLIDAY_STATES, whose own holidays count as well.
 CONF_HOLIDAYS = "holidays"
-# Boolean key of an early pre-release build ("nationwide holidays as Sunday").
-# Never written any more; only read as a fallback by day_rules.holiday_mode().
-CONF_HOLIDAYS_AS_SUNDAY = "holidays_as_sunday"
 # Form-only checkbox "different times for Saturday, Sunday and holidays". Not
 # stored: it merely opens the extra setup step, and is derived from the stored
 # rules when a form is shown again.

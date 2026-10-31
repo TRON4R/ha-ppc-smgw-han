@@ -383,6 +383,12 @@ async def run_export(
                     from_dt.date(), to_dt.date()
                 )
             ],
+            "holiday_days": [
+                day.isoformat()
+                for day in coordinator.holidays_in_range(
+                    from_dt.date(), to_dt.date()
+                )
+            ],
             "zone_periods": [
                 {
                     "valid_from": period["valid_from"],

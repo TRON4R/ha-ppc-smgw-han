@@ -32,8 +32,11 @@ from custom_components.smgw_han.const import (
 from custom_components.smgw_han.coordinator import SmgwCoordinator
 from custom_components.smgw_han.export_files import write_xlsx
 from custom_components.smgw_han.sensor import _dynamic_descriptions
-from custom_components.smgw_han.smgw_client import DailyData, MeterReading
-
+from custom_components.smgw_han.smgw_client import (
+    DailyData,
+    MeterReading,
+    SmgwConnectionError,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -46,7 +49,7 @@ WEEKDAY = BW[CONF_TARIFF_ZONES]  # NT 00-06, HT 06-22, NT 22-24
 SATURDAY = BW[CONF_TARIFF_ZONES_SATURDAY]  # NT 00-06, HT 06-13, NT 13-24
 SUNDAY = BW[CONF_TARIFF_ZONES_SUNDAY]  # NT all day
 
-# 2026-10-05 Mon, 10-03 Sat (Tag der Deutschen Einheit), 10-04 Sun
+# 2026-10-05 Mon, 10-10 Sat, 10-11 Sun; 10-03 is a Saturday AND a holiday
 MONDAY_D, SATURDAY_D, SUNDAY_D = date(2026, 10, 5), date(2026, 10, 10), date(2026, 10, 11)
 HOLIDAY_ON_SATURDAY = date(2026, 10, 3)
 HOLIDAY_ON_WEEKDAY = date(2026, 12, 25)  # Friday
@@ -211,15 +214,20 @@ class _FetchStub:
 
     zones = None
 
-    def __init__(self, *, result=None):
+    def __init__(self, *, result=None, exc=None):
         self._result = result
+        self._exc = exc
+        self.calls = 0
 
     async def close(self):
         pass
 
 
     async def async_fetch_daily_data(self, target_date, zones=None, target_meter_id=None):
+        self.calls += 1
         self.zones = zones
+        if self._exc is not None:
+            raise self._exc
         return self._result
 
 
@@ -279,13 +287,21 @@ async def test_zone_resolver_combines_schedule_and_day_types(hass: HomeAssistant
     assert layout(date(2027, 5, 1)) == as_pairs(SUNDAY)  # Labour Day (Saturday)
 
 
-async def test_publication_guard_uses_all_layouts(hass: HomeAssistant):
-    coord = await _coordinator(hass, _FetchStub(result=None))
-    snap = coord._zones_config_all
-    assert snap["saturday"] == SATURDAY
-    assert snap["sunday"] == SUNDAY
-    assert snap["holidays"] == "national"
-    assert coord._slot_zone_names == ["NT", "HT"]
+async def test_slot_names_cover_all_day_types(hass: HomeAssistant):
+    coord = await _coordinator(
+        hass,
+        _FetchStub(result=None),
+        **{CONF_TARIFF_ZONES_SUNDAY: [{"time": "00:00", "name": "SPITZE"}]},
+    )
+    assert coord._slot_zone_names == ["NT", "HT", "SPITZE"]
+
+
+async def test_fetch_remembers_the_sensor_set(hass: HomeAssistant):
+    stub = _FetchStub(result=_dd(date(2026, 10, 11), {"NT": 3.0}))
+    coord = await _coordinator(hass, stub)
+    with freeze_time("2026-10-12 00:15:00"):
+        await coord._async_do_daily_fetch()
+    assert coord.data["_slot_zone_names"] == ["NT", "HT"]
 
 
 async def test_day_types_listed_for_export(hass: HomeAssistant):
@@ -363,6 +379,72 @@ def test_xlsx_has_union_columns_and_documents_day_types(tmp_path):
     assert "Sonntag (abweichend)" in info
 
 
+def _tarifzonen_rows(path) -> dict[str, dict]:
+    """The "Tarifzonen" sheet as {date: {column header: value}}."""
+    sheet = load_workbook(path)["Tarifzonen"]
+    headers = [c.value for c in sheet[1]]
+    return {
+        row[0].value: dict(zip(headers, (c.value for c in row)))
+        for row in sheet.iter_rows(min_row=2)
+    }
+
+
+def test_xlsx_zone_missing_on_a_day_is_zero_like_its_sensor(tmp_path):
+    summary = build_daily_summary(_readings(), _resolver)
+    path = tmp_path / "x.xlsx"
+    write_xlsx(path, _readings(), summary, {"zones": [("00:00", "NT"), ("06:00", "HT")]})
+    sunday = _tarifzonen_rows(path)["2026-10-11"]
+    assert sunday["Verbrauch NT (kWh)"] == 2.0
+    assert sunday["Verbrauch HT (kWh)"] == 0
+
+
+def test_xlsx_missing_reading_stays_an_empty_cell(tmp_path):
+    readings = [
+        r for r in _readings() if r.timestamp != datetime(2026, 10, 10, 13, 0, 1)
+    ]
+    summary = build_daily_summary(readings, _resolver)
+    path = tmp_path / "x.xlsx"
+    write_xlsx(path, readings, summary, {"zones": [("00:00", "NT"), ("06:00", "HT")]})
+    saturday = _tarifzonen_rows(path)["2026-10-10"]
+    assert saturday["Verbrauch HT (kWh)"] is None
+    assert saturday["Verbrauch NT (kWh)"] is None
+
+
+def test_xlsx_names_the_holidays_within_the_exported_days(tmp_path):
+    summary = build_daily_summary(_readings(), _resolver)
+    path = tmp_path / "x.xlsx"
+    write_xlsx(
+        path, _readings(), summary,
+        {
+            "zones": [("00:00", "NT"), ("06:00", "HT")],
+            "holiday_days": ["2026-10-11", "2026-10-12"],
+        },
+    )
+    info = [
+        str(row[0].value)
+        for row in load_workbook(path)["Definition"].iter_rows()
+        if row[0].value
+    ]
+    # The range may end on a holiday without a complete day in the workbook.
+    assert "Als Feiertag behandelte Tage: 2026-10-11" in info
+
+
+async def test_holidays_in_range_follow_each_period(hass: HomeAssistant):
+    """Off until the end of 2026, nationwide from 2027 on."""
+    schedule = [
+        {"valid_from": None, "zones": WEEKDAY, "saturday": [], "sunday": SUNDAY,
+         "holidays": "off"},
+        {"valid_from": "2027-01-01", "zones": WEEKDAY, "saturday": [],
+         "sunday": SUNDAY, "holidays": "national"},
+    ]
+    coord = await _coordinator(
+        hass, _FetchStub(result=None), **{CONF_ZONE_SCHEDULE: schedule}
+    )
+    assert coord.holidays_in_range(date(2026, 12, 20), date(2027, 1, 10)) == [
+        date(2027, 1, 1)
+    ]
+
+
 # --- restart with a cached day -----------------------------------------------
 
 
@@ -385,12 +467,18 @@ def _cached(day: str, zones: list[dict], **extra) -> dict:
     }
 
 
-async def _restart(hass, hass_storage, cached: dict, now: str) -> SmgwCoordinator:
+async def _restart(
+    hass, hass_storage, cached: dict, now: str, stub=None, **data
+) -> SmgwCoordinator:
     await hass.config.async_set_time_zone("Europe/Berlin")
-    entry = MockConfigEntry(domain=DOMAIN, data={CONF_METER_ID: "M", **_data()})
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_METER_ID: "M", **_data(), **data}
+    )
     entry.add_to_hass(hass)
     _store(hass_storage, entry, cached)
-    coord = SmgwCoordinator(hass, entry, _FetchStub(result=None))
+    # A gateway that must not be asked unless a test says otherwise.
+    stub = stub or _FetchStub(exc=AssertionError("unexpected fetch"))
+    coord = SmgwCoordinator(hass, entry, stub)
     with freeze_time(now):
         await coord.async_setup()
     return coord
@@ -398,13 +486,9 @@ async def _restart(hass, hass_storage, cached: dict, now: str) -> SmgwCoordinato
 
 async def test_restart_keeps_sunday_values_published(hass, hass_storage):
     """Sunday's cache must survive a restart on Monday (layouts unchanged)."""
-    entry_all = {
-        "weekday": WEEKDAY, "saturday": SATURDAY, "sunday": SUNDAY,
-        "holidays": "national",
-    }
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-10-11", SUNDAY, _tariff_zones_all=entry_all),
+        _cached("2026-10-11", SUNDAY, _slot_zone_names=["NT", "HT"]),
         "2026-10-12 09:00:00",
     )
     assert coord.data["daily_consumption_slot_1"] == 3.0
@@ -413,7 +497,7 @@ async def test_restart_keeps_sunday_values_published(hass, hass_storage):
 
 
 async def test_restart_with_legacy_cache_keeps_values(hass, hass_storage):
-    """A cache written before day types existed (no _tariff_zones_all)."""
+    """A cache written before day types existed (no _slot_zone_names)."""
     coord = await _restart(
         hass, hass_storage,
         _cached("2026-10-05", WEEKDAY),  # Monday, computed with Mon-Fri zones
@@ -423,38 +507,164 @@ async def test_restart_with_legacy_cache_keeps_values(hass, hass_storage):
     await coord.async_unload()
 
 
-async def test_changed_saturday_layout_withholds_cached_zone_values(
+async def test_changed_sensor_set_withholds_cached_zone_values(
     hass, hass_storage
 ):
     """If the sensor set (zone names) differs from the cache, values go."""
-    stale_all = {
-        "weekday": WEEKDAY,
-        "saturday": [{"time": "00:00", "name": "SPITZE"}],
-        "sunday": SUNDAY,
-        "holidays": "national",
-    }
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-10-11", SUNDAY, _tariff_zones_all=stale_all),
+        _cached("2026-10-11", SUNDAY, _slot_zone_names=["NT", "HT", "SPITZE"]),
         "2026-10-12 09:00:00",
+        stub=_FetchStub(exc=SmgwConnectionError("down")),
     )
     assert "daily_consumption_slot_1" not in coord.data
     assert coord.data["daily_consumption_total"] == 3.0
     await coord.async_unload()
 
 
+async def test_new_weekend_only_name_refetches_to_fill_the_sensors(
+    hass, hass_storage
+):
+    """The cached Monday is still valid, but the new sensor needs its value."""
+    stub = _FetchStub(result=_dd(date(2026, 10, 5), {"NT": 2.0, "HT": 1.0}))
+    coord = await _restart(
+        hass, hass_storage,
+        _cached("2026-10-05", WEEKDAY, _slot_zone_names=["NT", "HT"]),
+        "2026-10-06 09:00:00",
+        stub=stub,
+        **{CONF_TARIFF_ZONES_SUNDAY: [{"time": "00:00", "name": "SPITZE"}]},
+    )
+    assert stub.calls == 1
+    assert coord.data["daily_consumption_slot_1"] == 2.0
+    assert coord.data["daily_consumption_slot_2"] == 1.0
+    assert coord.data["daily_consumption_slot_3"] == 0.0
+    await coord.async_unload()
+
+
+async def test_legacy_sunday_cache_is_withheld_after_adding_sunday_zones(
+    hass, hass_storage
+):
+    """An old cache split that Sunday by the zones valid every day back then."""
+    stub = _FetchStub(exc=SmgwConnectionError("down"))
+    coord = await _restart(
+        hass, hass_storage,
+        _cached("2026-10-11", WEEKDAY),
+        "2026-10-12 09:00:00",
+        stub=stub,
+    )
+    assert stub.calls == 1
+    assert "daily_consumption_slot_1" not in coord.data
+    assert coord.data["daily_consumption_total"] == 3.0
+    await coord.async_unload()
+
+
+async def test_legacy_holiday_cache_is_withheld_when_holidays_count(
+    hass, hass_storage
+):
+    """25 Dec is a Friday: split as a weekday by the old version."""
+    coord = await _restart(
+        hass, hass_storage,
+        _cached("2026-12-25", WEEKDAY),
+        "2026-12-26 09:00:00",
+        stub=_FetchStub(exc=SmgwConnectionError("down")),
+    )
+    assert "daily_consumption_slot_1" not in coord.data
+    await coord.async_unload()
+
+
+async def test_changed_times_withhold_the_day_they_affect(hass, hass_storage):
+    """Same zone names, other times: the old split must not stay visible."""
+    other_times = [
+        {"time": "00:00", "name": "NT"},
+        {"time": "07:00", "name": "HT"},
+        {"time": "22:00", "name": "NT"},
+    ]
+    stub = _FetchStub(exc=SmgwConnectionError("down"))
+    coord = await _restart(
+        hass, hass_storage,
+        _cached("2026-10-05", WEEKDAY, _slot_zone_names=["NT", "HT"]),
+        "2026-10-06 09:00:00",
+        stub=stub,
+        **{CONF_TARIFF_ZONES: other_times},
+    )
+    assert stub.calls == 1
+    assert "daily_consumption_slot_1" not in coord.data
+    await coord.async_unload()
+
+
+async def test_changed_sunday_times_leave_a_weekday_cache_alone(
+    hass, hass_storage
+):
+    """Nothing about the cached Monday changed: no withholding, no fetch."""
+    coord = await _restart(
+        hass, hass_storage,
+        _cached("2026-10-05", WEEKDAY, _slot_zone_names=["NT", "HT"]),
+        "2026-10-06 09:00:00",
+        **{
+            CONF_TARIFF_ZONES_SUNDAY: [
+                {"time": "00:00", "name": "NT"},
+                {"time": "12:00", "name": "HT"},
+            ]
+        },
+    )
+    assert coord.data["daily_consumption_slot_1"] == 3.0
+    await coord.async_unload()
+
+
+async def test_old_day_stays_published_after_a_scheduled_time_change(
+    hass, hass_storage
+):
+    """31 Dec is correctly split by the old times, and the names did not move."""
+    new_week = [
+        {"time": "00:00", "name": "NT"},
+        {"time": "07:00", "name": "HT"},
+        {"time": "21:00", "name": "NT"},
+    ]
+    coord = await _restart(
+        hass, hass_storage,
+        _cached("2026-12-31", WEEKDAY, _slot_zone_names=["NT", "HT"]),
+        "2027-01-01 09:00:00",
+        **{
+            CONF_TARIFF_ZONES: new_week,
+            CONF_ZONE_SCHEDULE: [
+                {"valid_from": None, "zones": WEEKDAY},
+                {"valid_from": "2027-01-01", "zones": new_week},
+            ],
+        },
+    )
+    assert coord.data["daily_consumption_slot_1"] == 3.0
+    await coord.async_unload()
+
+
+async def test_withheld_values_do_not_count_as_already_fetched(
+    hass, hass_storage
+):
+    """A later fetch of the same day must not be skipped."""
+    stub = _FetchStub(exc=SmgwConnectionError("down"))
+    coord = await _restart(
+        hass, hass_storage,
+        _cached("2026-10-11", WEEKDAY),
+        "2026-10-12 09:00:00",
+        stub=stub,
+    )
+    stub._exc = None
+    stub._result = _dd(date(2026, 10, 11), {"NT": 3.0})
+    with freeze_time("2026-10-12 09:30:00"):
+        assert await coord._async_do_daily_fetch() is True
+    assert coord.data["daily_consumption_slot_1"] == 3.0
+    assert coord.data["daily_consumption_slot_2"] == 0.0
+    await coord.async_unload()
+
+
 async def test_changed_holiday_mode_keeps_cached_zone_values(
     hass, hass_storage
 ):
-    """Same zone names, other holiday setting: values stay published."""
-    other_all = {
-        "weekday": WEEKDAY, "saturday": [], "sunday": SUNDAY,
-        "holidays": "by",
-    }
+    """Same zone names, a day the setting does not touch: values stay."""
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-10-11", SUNDAY, _tariff_zones_all=other_all),
+        _cached("2026-10-11", SUNDAY, _slot_zone_names=["NT", "HT"]),
         "2026-10-12 09:00:00",
+        **{CONF_HOLIDAYS: "by"},
     )
     assert coord.data["daily_consumption_slot_1"] == 3.0
     await coord.async_unload()
@@ -473,13 +683,6 @@ def test_holiday_modes_off_national_state():
     assert day_rules.is_holiday("BY", corpus)
     assert not day_rules.is_holiday("NW", epiphany)
     assert day_rules.is_holiday("NW", corpus)
-
-
-def test_legacy_boolean_means_national():
-    assert day_rules.holiday_mode({"holidays_as_sunday": True}) == "national"
-    assert day_rules.holiday_mode({"holidays_as_sunday": False}) == "off"
-    assert day_rules.holiday_mode({}) == "off"
-    assert day_rules.holiday_mode({CONF_HOLIDAYS: "XX"}) == "off"
 
 
 async def test_dated_rules_replace_weekend_from_their_date(hass: HomeAssistant):
@@ -577,22 +780,7 @@ def test_bavaria_includes_assumption_day():
     assert day_rules.holiday_mode({CONF_HOLIDAYS: "BY"}) == "by"
 
 
-async def test_restart_with_prerelease_cache_snapshot(hass, hass_storage):
-    """A snapshot with the boolean key must still match the same layout."""
-    snapshot = {
-        "weekday": WEEKDAY, "saturday": SATURDAY, "sunday": SUNDAY,
-        "holidays_as_sunday": True,
-    }
-    coord = await _restart(
-        hass, hass_storage,
-        _cached("2026-10-11", SUNDAY, _tariff_zones_all=snapshot),
-        "2026-10-12 09:00:00",
-    )
-    assert coord.data["daily_consumption_slot_1"] == 3.0
-    await coord.async_unload()
-
-
-# --- review findings (Opus, v3.7.0 merge) ------------------------------------
+# --- schedule rules and scheduled renames -------------------------------------
 
 RULES_OLD = {"saturday": [], "sunday": [], "holidays": "off"}
 RULES_NEW = {

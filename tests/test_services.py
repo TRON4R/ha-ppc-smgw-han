@@ -71,6 +71,9 @@ class FakeCoordinator:
     def zone_day_types(self, first_day, last_day):
         return []
 
+    def holidays_in_range(self, first_day, last_day):
+        return []
+
     def zone_periods(self, first_day, last_day):
         return [
             {

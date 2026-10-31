@@ -154,9 +154,7 @@ def _parse_optional_tariff_zones(entries: list[str]) -> list[dict[str, str]]:
 
     Used for the Saturday/Sunday override fields: leaving one empty is valid
     and means "fall back to the Mon-Fri zones" (see
-    :func:`const.zones_config_for_date`), not a validation error. A single
-    entry (e.g. just "00:00 NT") is also valid here — an all-day single
-    zone with no switch point.
+    :func:`day_rules.zones_for_day`), not a validation error.
     """
     # A chip that was cleared but not removed arrives as "": it means "empty".
     entries = [entry for entry in entries if entry and entry.strip()]
@@ -234,6 +232,14 @@ def _read_day_rules(
     rules[CONF_HOLIDAYS] = day_rules.normalize_holiday_mode(
         user_input.get(CONF_HOLIDAYS)
     )
+    # Holidays use the Sunday zones, so without any the selection would only
+    # turn a Saturday holiday into a Monday-to-Friday day: never what is meant.
+    if (
+        rules[CONF_HOLIDAYS] != HOLIDAYS_OFF
+        and CONF_TARIFF_ZONES_SUNDAY not in errors
+        and not rules.get(CONF_TARIFF_ZONES_SUNDAY)
+    ):
+        errors[CONF_HOLIDAYS] = "holidays_need_sunday"
     return rules, errors
 
 

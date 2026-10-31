@@ -1531,41 +1531,6 @@ async def test_setup_error_keeps_weekend_checkbox_ticked(hass: HomeAssistant):
     assert _field_default(result, CONF_WEEKEND_OVERRIDE) is True
 
 
-async def test_legacy_holiday_flag_survives_scheduling_a_change(
-    hass: HomeAssistant,
-):
-    """Entry written by the pre-release build: bool flag, no schedule."""
-    from custom_components.smgw_han.const import CONF_HOLIDAYS_AS_SUNDAY
-
-    entry = _entry(
-        "M",
-        **{
-            CONF_TARIFF_ZONES_SATURDAY: [{"time": "00:00", "name": "NT"}],
-            CONF_TARIFF_ZONES_SUNDAY: [{"time": "00:00", "name": "NT"}],
-            CONF_HOLIDAYS_AS_SUNDAY: True,
-        },
-    )
-    entry.add_to_hass(hass)
-    with (
-        freeze_time("2026-09-15 12:00:00"),
-        patch.object(hass.config_entries, "async_reload", new_callable=AsyncMock),
-    ):
-        result = await _open_schedule(hass, entry)
-        assert _field_default(result, CONF_WEEKEND_OVERRIDE) is True
-        result = await hass.config_entries.options.async_configure(
-            result["flow_id"],
-            {
-                CONF_SCHEDULE_VALID_FROM: "2027-01-01",
-                CONF_TARIFF_ZONES: M3_2027_ENTRIES,
-                CONF_WEEKEND_OVERRIDE: False,
-            },
-        )
-        await hass.async_block_till_done()
-    schedule = entry.data[CONF_ZONE_SCHEDULE]
-    assert schedule[0]["holidays"] == "national"  # history keeps its rule
-    assert schedule[1]["holidays"] == "off"
-
-
 async def test_old_style_pending_change_prefills_inherited_rules(
     hass: HomeAssistant,
 ):
@@ -1646,3 +1611,88 @@ async def test_settings_edit_with_schedule_is_recorded_in_schedule(
     assert [s["valid_from"] for s in schedule] == [None, "2026-09-15", "2027-01-01"]
     assert schedule[1]["holidays"] == "by"
     assert schedule[0]["holidays"] == "off"  # earlier days keep their rules
+
+
+async def test_setup_holiday_selection_needs_sunday_zones(hass: HomeAssistant):
+    result = await _start_user_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, CONF_WEEKEND_OVERRIDE: True}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_TARIFF_ZONES_SATURDAY: ["00:00 NT", "13:00 HT"],
+            CONF_TARIFF_ZONES_SUNDAY: [],
+            CONF_HOLIDAYS: "by",
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "day_rules"
+    assert result["errors"] == {CONF_HOLIDAYS: "holidays_need_sunday"}
+
+
+async def test_options_holiday_selection_needs_sunday_zones(hass: HomeAssistant):
+    entry = _entry("1lgz0072999211")
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_URL: entry.data[CONF_URL],
+            CONF_USERNAME: entry.data[CONF_USERNAME],
+            CONF_PASSWORD: entry.data[CONF_PASSWORD],
+            CONF_TARIFF_ZONES: ["00:00 NT", "06:00 HT", "22:00 NT"],
+            CONF_UPDATE_TIME: "00:15:00",
+            CONF_WEEKEND_OVERRIDE: True,
+        },
+    )
+    assert result["step_id"] == "day_rules"
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_HOLIDAYS: "national"}
+    )
+    assert result["step_id"] == "day_rules"
+    assert result["errors"] == {CONF_HOLIDAYS: "holidays_need_sunday"}
+
+
+async def test_options_flat_template_removes_weekend_rules(hass: HomeAssistant):
+    """The single-rate template means one zone on every day."""
+    entry = _entry(
+        "1lgz0072999211",
+        **{
+            CONF_TARIFF_ZONES_SUNDAY: [{"time": "00:00", "name": "NT"}],
+            CONF_HOLIDAYS: "national",
+        },
+    )
+    entry.add_to_hass(hass)
+    with (
+        patch(VALIDATE, return_value=_info("1lgz0072999211", ["1lgz0072999211"])),
+        patch(CLOSE, return_value=None),
+        patch(SETUP_ENTRY, return_value=True),
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "tariff_template"}
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "tariff_flat"}
+        )
+        assert _zone_default(result) == ["00:00 Standard"]
+        assert _field_default(result, CONF_WEEKEND_OVERRIDE) is False
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_URL: entry.data[CONF_URL],
+                CONF_USERNAME: entry.data[CONF_USERNAME],
+                CONF_PASSWORD: entry.data[CONF_PASSWORD],
+                CONF_TARIFF_ZONES: ["00:00 Standard"],
+                CONF_UPDATE_TIME: "00:15:00",
+                CONF_WEEKEND_OVERRIDE: False,
+            },
+        )
+        await hass.async_block_till_done()
+    assert entry.data[CONF_TARIFF_ZONES] == [{"time": "00:00", "name": "Standard"}]
+    assert entry.data[CONF_TARIFF_ZONES_SUNDAY] == []
+    assert entry.data[CONF_HOLIDAYS] == "off"

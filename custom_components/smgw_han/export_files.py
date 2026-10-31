@@ -140,6 +140,11 @@ def write_xlsx(
     ``meta["day_type_zones"]`` optionally lists the Saturday/Sunday/holiday
     layouts (``{"label": "Samstag", "zones": [...]}``) that replace the
     Mon-Fri layout on those days. Their switch times add columns too.
+    ``meta["holiday_days"]`` optionally names the days ("YYYY-MM-DD") that
+    were treated as holidays.
+
+    A zone that does not occur on a day consumed 0 kWh there, like its sensor;
+    an empty consumption cell always means a missing reading.
     """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font
@@ -254,7 +259,7 @@ def write_xlsx(
             s.import_start,
             *[s.import_switches.get(t) for t in inner_times],
             s.import_end,
-            *[s.zone_consumptions.get(name) for name in zone_names],
+            *[s.zone_consumptions.get(name, 0.0) for name in zone_names],
             s.consumption_total,
             s.feedin_total,
         ])
@@ -298,6 +303,15 @@ def write_xlsx(
         for name, segments in windows.items():
             info[f"A{row}"] = _safe_text(f"{name}: {' + '.join(segments)}")
             row += 1
+    summary_days = {s.day.isoformat() for s in daily_summary}
+    holiday_days = [
+        day for day in meta.get("holiday_days") or [] if day in summary_days
+    ]
+    if holiday_days:
+        info[f"A{row}"] = (
+            f"Als Feiertag behandelte Tage: {', '.join(holiday_days)}"
+        )
+        row += 1
     if len(period_windows) > 1:
         info[f"A{row}"] = (
             "Der Zeitraum umfasst mehrere Tarifzonen-Schemata. Jeder Tag "
@@ -330,11 +344,18 @@ def write_xlsx(
     row += 1
     info[f"A{row}"] = (
         "Falls für einen Tag ein benötigter Messpunkt fehlt (00:00 oder "
-        "eine Umschaltzeit), bleibt die betroffene berechnete Spalte leer. "
-        "Das ist auch normal, wenn eine Umschaltzeit am jeweiligen Tag gar "
-        "nicht vorkommt (z. B. Samstag/Sonntag mit abweichenden Zonen)."
+        "eine Umschaltzeit), bleibt die betroffene berechnete Spalte leer."
     )
-    row += 2
+    row += 1
+    if day_type_windows or len(period_windows) > 1:
+        info[f"A{row}"] = (
+            "Kommt eine Umschaltzeit an einem Tag nicht vor (z. B. "
+            "Samstag/Sonntag mit abweichenden Zonen), bleibt ihre Spalte "
+            "„Bezug“ leer; eine Tarifzone, die an einem Tag nicht vorkommt, "
+            "zeigt dort 0."
+        )
+        row += 1
+    row += 1
     info[f"A{row}"] = "Zeitumstellung"
     info[f"A{row}"].font = bold
     row += 1
