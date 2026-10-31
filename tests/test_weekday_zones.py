@@ -165,7 +165,7 @@ def test_zone_missing_on_the_day_is_zero_not_unknown():
         daily_import_total=4.0,
         daily_export_total=0.0,
     )
-    data = SmgwCoordinator._daily_data_to_dict(dd, ["NT", "HT"])
+    data = SmgwCoordinator._daily_data_to_dict(dd, {"NT": 1, "HT": 2})
     assert data["daily_consumption_slot_1"] == 4.0
     assert data["daily_consumption_slot_2"] == 0.0
 
@@ -293,7 +293,7 @@ async def test_slot_names_cover_all_day_types(hass: HomeAssistant):
         _FetchStub(result=None),
         **{CONF_TARIFF_ZONES_SUNDAY: [{"time": "00:00", "name": "SPITZE"}]},
     )
-    assert coord._slot_zone_names == ["NT", "HT", "SPITZE"]
+    assert coord._slot_zone_names == {"NT": 1, "HT": 2, "SPITZE": 101}
 
 
 async def test_fetch_remembers_the_sensor_set(hass: HomeAssistant):
@@ -301,7 +301,7 @@ async def test_fetch_remembers_the_sensor_set(hass: HomeAssistant):
     coord = await _coordinator(hass, stub)
     with freeze_time("2026-10-12 00:15:00"):
         await coord._async_do_daily_fetch()
-    assert coord.data["_slot_zone_names"] == ["NT", "HT"]
+    assert coord.data["_slot_zone_names"] == {"NT": 1, "HT": 2}
 
 
 async def test_day_types_listed_for_export(hass: HomeAssistant):
@@ -488,7 +488,7 @@ async def test_restart_keeps_sunday_values_published(hass, hass_storage):
     """Sunday's cache must survive a restart on Monday (layouts unchanged)."""
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-10-11", SUNDAY, _slot_zone_names=["NT", "HT"]),
+        _cached("2026-10-11", SUNDAY, _slot_zone_names={"NT": 1, "HT": 2}),
         "2026-10-12 09:00:00",
     )
     assert coord.data["daily_consumption_slot_1"] == 3.0
@@ -513,7 +513,7 @@ async def test_changed_sensor_set_withholds_cached_zone_values(
     """If the sensor set (zone names) differs from the cache, values go."""
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-10-11", SUNDAY, _slot_zone_names=["NT", "HT", "SPITZE"]),
+        _cached("2026-10-11", SUNDAY, _slot_zone_names={"NT": 1, "HT": 2, "SPITZE": 101}),
         "2026-10-12 09:00:00",
         stub=_FetchStub(exc=SmgwConnectionError("down")),
     )
@@ -529,7 +529,7 @@ async def test_new_weekend_only_name_refetches_to_fill_the_sensors(
     stub = _FetchStub(result=_dd(date(2026, 10, 5), {"NT": 2.0, "HT": 1.0}))
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-10-05", WEEKDAY, _slot_zone_names=["NT", "HT"]),
+        _cached("2026-10-05", WEEKDAY, _slot_zone_names={"NT": 1, "HT": 2}),
         "2026-10-06 09:00:00",
         stub=stub,
         **{CONF_TARIFF_ZONES_SUNDAY: [{"time": "00:00", "name": "SPITZE"}]},
@@ -537,7 +537,7 @@ async def test_new_weekend_only_name_refetches_to_fill_the_sensors(
     assert stub.calls == 1
     assert coord.data["daily_consumption_slot_1"] == 2.0
     assert coord.data["daily_consumption_slot_2"] == 1.0
-    assert coord.data["daily_consumption_slot_3"] == 0.0
+    assert coord.data["daily_consumption_slot_101"] == 0.0
     await coord.async_unload()
 
 
@@ -582,7 +582,7 @@ async def test_changed_times_withhold_the_day_they_affect(hass, hass_storage):
     stub = _FetchStub(exc=SmgwConnectionError("down"))
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-10-05", WEEKDAY, _slot_zone_names=["NT", "HT"]),
+        _cached("2026-10-05", WEEKDAY, _slot_zone_names={"NT": 1, "HT": 2}),
         "2026-10-06 09:00:00",
         stub=stub,
         **{CONF_TARIFF_ZONES: other_times},
@@ -598,7 +598,7 @@ async def test_changed_sunday_times_leave_a_weekday_cache_alone(
     """Nothing about the cached Monday changed: no withholding, no fetch."""
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-10-05", WEEKDAY, _slot_zone_names=["NT", "HT"]),
+        _cached("2026-10-05", WEEKDAY, _slot_zone_names={"NT": 1, "HT": 2}),
         "2026-10-06 09:00:00",
         **{
             CONF_TARIFF_ZONES_SUNDAY: [
@@ -622,7 +622,7 @@ async def test_old_day_stays_published_after_a_scheduled_time_change(
     ]
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-12-31", WEEKDAY, _slot_zone_names=["NT", "HT"]),
+        _cached("2026-12-31", WEEKDAY, _slot_zone_names={"NT": 1, "HT": 2}),
         "2027-01-01 09:00:00",
         **{
             CONF_TARIFF_ZONES: new_week,
@@ -662,7 +662,7 @@ async def test_changed_holiday_mode_keeps_cached_zone_values(
     """Same zone names, a day the setting does not touch: values stay."""
     coord = await _restart(
         hass, hass_storage,
-        _cached("2026-10-11", SUNDAY, _slot_zone_names=["NT", "HT"]),
+        _cached("2026-10-11", SUNDAY, _slot_zone_names={"NT": 1, "HT": 2}),
         "2026-10-12 09:00:00",
         **{CONF_HOLIDAYS: "by"},
     )
@@ -830,7 +830,7 @@ def test_schedule_holiday_codes_are_normalized():
     assert result[0]["holidays"] == "by"
 
 
-def test_fetch_after_scheduled_rename_feeds_sensors_by_position():
+def test_fetch_after_scheduled_rename_feeds_sensors_by_number():
     """Last day of the OLD layout, whose names are not today's slot names."""
     dd = DailyData(
         date=date(2026, 12, 31),
@@ -842,7 +842,7 @@ def test_fetch_after_scheduled_rename_feeds_sensors_by_position():
         export_next_midnight=0.0,
     )
     data = SmgwCoordinator._daily_data_to_dict(
-        dd, ["NT", "HT"], day_names=["Go", "Standard"]
+        dd, {"NT": 1, "HT": 2}, day_slots={"Go": 1, "Standard": 2}
     )
     assert data["daily_consumption_slot_1"] == 4.0
     assert data["daily_consumption_slot_2"] == 6.0
@@ -859,10 +859,77 @@ def test_fetch_with_same_names_still_fills_by_name():
         export_next_midnight=0.0,
     )
     data = SmgwCoordinator._daily_data_to_dict(
-        dd, ["HT", "NT"], day_names=["NT"]
+        dd, {"HT": 1, "NT": 2}, day_slots={"NT": 1}
     )
     assert data["daily_consumption_slot_1"] == 0.0
     assert data["daily_consumption_slot_2"] == 3.0
+
+
+WEEKEND_ONLY = [
+    {"time": "00:00", "name": "NT"},
+    {"time": "08:00", "name": "Weekend"},
+]
+
+
+def test_weekend_only_names_get_their_own_number_range():
+    assert day_rules.zone_slots(WEEKDAY, SATURDAY, SUNDAY) == {"NT": 1, "HT": 2}
+    assert day_rules.zone_slots(WEEKDAY, WEEKEND_ONLY, SUNDAY) == {
+        "NT": 1,
+        "HT": 2,
+        "Weekend": 101,
+    }
+
+
+def _slot_keys(*layouts) -> dict[str, str]:
+    return {
+        d.translation_placeholders["zone_name"]: d.key
+        for d in _dynamic_descriptions(*layouts)
+        if d.key.startswith("daily_consumption_slot_")
+    }
+
+
+def test_new_mon_fri_name_does_not_move_a_weekend_only_sensor():
+    before = _slot_keys(WEEKDAY, WEEKEND_ONLY, WEEKEND_ONLY)
+    with_peak = [*WEEKDAY, {"time": "23:00", "name": "Peak"}]
+    after = _slot_keys(with_peak, WEEKEND_ONLY, WEEKEND_ONLY)
+    assert before["Weekend"] == after["Weekend"] == "daily_consumption_slot_101"
+    assert after["Peak"] == "daily_consumption_slot_3"
+
+
+def test_scheduled_rename_keeps_a_weekend_only_value_on_its_sensor():
+    """Rename plus new Mon-Fri name: the old Sunday must not feed the new name."""
+    dd = DailyData(
+        date=date(2027, 1, 3),
+        daily_import_total=13.0,
+        daily_export_total=0.0,
+        zone_totals={"HT": 8.0, "Weekend": 5.0},
+        import_boundaries=[1.0, 9.0, 14.0],
+        export_midnight=0.0,
+        export_next_midnight=0.0,
+    )
+    data = SmgwCoordinator._daily_data_to_dict(
+        dd,
+        {"NT": 1, "Tag": 2, "Peak": 3, "Weekend": 101},
+        day_slots={"NT": 1, "HT": 2, "Weekend": 101},
+    )
+    assert data["daily_consumption_slot_1"] == 0.0
+    assert data["daily_consumption_slot_2"] == 8.0
+    assert data["daily_consumption_slot_3"] == 0.0
+    assert data["daily_consumption_slot_101"] == 5.0
+
+
+async def test_cache_of_the_first_beta_is_refetched_once(hass, hass_storage):
+    """v3.8.0-beta.1 stored its slot names as a list without numbers."""
+    stub = _FetchStub(result=_dd(date(2026, 10, 5), {"NT": 2.0, "HT": 1.0}))
+    coord = await _restart(
+        hass, hass_storage,
+        _cached("2026-10-05", WEEKDAY, _slot_zone_names=["NT", "HT"]),
+        "2026-10-06 09:00:00",
+        stub=stub,
+    )
+    assert stub.calls == 1
+    assert coord.data["_slot_zone_names"] == {"NT": 1, "HT": 2}
+    await coord.async_unload()
 
 
 def test_optional_zone_field_ignores_cleared_chips():

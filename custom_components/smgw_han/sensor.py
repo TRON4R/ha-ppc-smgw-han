@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import date as date_type, datetime
 from typing import Any
@@ -38,7 +39,7 @@ from .const import (
     slot_key,
     switch_key,
 )
-from .day_rules import distinct_zone_names
+from .day_rules import zone_slots
 from . import SmgwConfigEntry
 from .coordinator import SmgwCoordinator
 
@@ -124,18 +125,18 @@ def _dynamic_descriptions(
 ) -> list[SmgwSensorEntityDescription]:
     """Build the config-dependent sensor descriptions from the zone list.
 
-    One daily-consumption sensor per distinct zone name (slot index = order
-    of first appearance, so 2-zone installations keep slot_1/slot_2) and one
+    One daily-consumption sensor per distinct zone name (numbered by
+    day_rules.zone_slots, so 2-zone installations keep slot_1/slot_2) and one
     absolute meter-reading sensor per inner segment boundary.
     """
     descriptions: list[SmgwSensorEntityDescription] = []
     # The optional Saturday/Sunday layouts feed the SAME sensors by zone name,
     # so the sensor set covers every name of every layout.
-    zone_names = distinct_zone_names(zones_config, *extra_zones_configs)
+    slots = zone_slots(zones_config, *extra_zones_configs)
     switch_count = max(
         len(zones) for zones in (zones_config, *extra_zones_configs)
     ) - 1
-    for n, name in enumerate(zone_names, 1):
+    for name, n in slots.items():
         descriptions.append(
             SmgwSensorEntityDescription(
                 key=slot_key(n),
@@ -170,7 +171,7 @@ def _dynamic_descriptions(
 def _remove_stale_dynamic_entities(
     hass: HomeAssistant,
     config_entry: SmgwConfigEntry,
-    zone_count: int,
+    slot_numbers: Collection[int],
     switch_count: int,
 ) -> None:
     """Drop registry entries orphaned by a shrunk tariff-zone definition.
@@ -182,12 +183,12 @@ def _remove_stale_dynamic_entities(
     for reg_entry in er.async_entries_for_config_entry(
         registry, config_entry.entry_id
     ):
-        for pattern, limit in (
-            (_SLOT_UID_RE, zone_count),
-            (_SWITCH_UID_RE, switch_count),
+        for pattern, allowed in (
+            (_SLOT_UID_RE, slot_numbers),
+            (_SWITCH_UID_RE, range(1, switch_count + 1)),
         ):
             match = pattern.search(reg_entry.unique_id)
-            if match and int(match.group(1)) > limit:
+            if match and int(match.group(1)) not in allowed:
                 registry.async_remove(reg_entry.entity_id)
 
 
@@ -203,10 +204,10 @@ async def async_setup_entry(
     saturday = config_entry.data.get(CONF_TARIFF_ZONES_SATURDAY) or []
     sunday = config_entry.data.get(CONF_TARIFF_ZONES_SUNDAY) or []
     dynamic = _dynamic_descriptions(zones_config, saturday, sunday)
-    zone_count = len(distinct_zone_names(zones_config, saturday, sunday))
+    slot_numbers = zone_slots(zones_config, saturday, sunday).values()
     switch_count = max(len(zones_config), len(saturday), len(sunday)) - 1
     _remove_stale_dynamic_entities(
-        hass, config_entry, zone_count, switch_count
+        hass, config_entry, slot_numbers, switch_count
     )
 
     entities: list[SensorEntity] = [

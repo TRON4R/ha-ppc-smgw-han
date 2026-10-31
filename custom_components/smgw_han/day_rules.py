@@ -41,6 +41,7 @@ from .const import (
     HOLIDAY_STATES,
     HOLIDAYS_NATIONAL,
     HOLIDAYS_OFF,
+    WEEKEND_SLOT_BASE,
     ZONE_NAME,
 )
 from .zone_schedule import HOLIDAYS, SATURDAY, SUNDAY, ZONES
@@ -124,8 +125,10 @@ def _compute_holidays(mode: str, year: int) -> frozenset[date]:
     if mode == HOLIDAYS_NATIONAL:
         return frozenset(holidays.Germany(years=year).keys())
     if mode == "by":
-        # Mariä Himmelfahrt (15 Aug) is a Bavarian holiday in most
-        # municipalities; the library files it under "catholic".
+        # By law Mariä Himmelfahrt (15 Aug) only applies in municipalities
+        # with a predominantly Catholic population. It counts for all of
+        # Bavaria here, as the dialog says; the library files it under
+        # "catholic".
         return frozenset(
             holidays.Germany(
                 years=year, subdiv="BY", categories=("public", "catholic")
@@ -186,11 +189,25 @@ def zones_for_day(layout: dict[str, Any], day: date) -> list[dict[str, str]]:
 
 
 def distinct_zone_names(*zone_lists: list[dict[str, str]]) -> list[str]:
-    """Zone names in order of first appearance across all given layouts.
-
-    The position in this list is the sensor slot number, so every layout
-    (Mon-Fri, Saturday, Sunday) feeds the same sensors by NAME.
-    """
+    """Zone names in order of first appearance across all given layouts."""
     return list(
         dict.fromkeys(zone[ZONE_NAME] for zones in zone_lists for zone in zones)
     )
+
+
+def zone_slots(
+    zones: list[dict[str, str]], *weekend_zones: list[dict[str, str]]
+) -> dict[str, int]:
+    """The sensor-slot number of every zone name of a layout.
+
+    Every layout (Mon-Fri, Saturday, Sunday) feeds the same sensors by NAME.
+    Mon-Fri names count from 1, names that only occur in the other lists from
+    WEEKEND_SLOT_BASE + 1, so adding a Mon-Fri name leaves their sensors alone.
+    """
+    slots = {name: n for n, name in enumerate(distinct_zone_names(zones), 1)}
+    n = WEEKEND_SLOT_BASE
+    for name in distinct_zone_names(*weekend_zones):
+        if name not in slots:
+            n += 1
+            slots[name] = n
+    return slots

@@ -326,8 +326,10 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self._unsub_time_listener = async_track_time_change(
             self.hass,
-            self._handle_daily_fetch,
-            hour=fetch_time.hour,
+            self._handle_fetch_time,
+            # The spring clock change removes 02:00-02:59 and HA then skips the
+            # trigger for that day, so the same minute of 03:00 stands in.
+            hour=[2, 3] if fetch_time.hour == 2 else fetch_time.hour,
             minute=fetch_time.minute,
             second=0,
         )
@@ -409,6 +411,13 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.hass.async_create_task(
             self.hass.config_entries.async_reload(self.config_entry.entry_id)
         )
+
+    async def _handle_fetch_time(self, now: datetime) -> None:
+        """Start the daily fetch; in the stand-in hour only if its time was skipped."""
+        fetch_hour = self._configured_fetch_time().hour
+        an_hour_ago = dt_util.as_local(dt_util.as_utc(now) - timedelta(hours=1))
+        if dt_util.as_local(now).hour == fetch_hour or an_hour_ago.hour != fetch_hour:
+            await self._handle_daily_fetch(now)
 
     async def _handle_daily_fetch(self, now: datetime) -> None:
         """Handle the scheduled daily fetch.
@@ -781,7 +790,7 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data = self._daily_data_to_dict(
             daily_data,
             self._slot_zone_names,
-            day_names=day_rules.distinct_zone_names(
+            day_slots=day_rules.zone_slots(
                 day_layout[zone_schedule.ZONES],
                 day_layout[zone_schedule.SATURDAY],
                 day_layout[zone_schedule.SUNDAY],
@@ -887,10 +896,10 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return stored.get("_tariff_zones") == self.zones_config_for(day)
 
     @property
-    def _slot_zone_names(self) -> list[str]:
-        """Zone names in sensor-slot order (same rule as the sensor setup)."""
+    def _slot_zone_names(self) -> dict[str, int]:
+        """Zone names with their slot numbers (same rule as the sensor setup)."""
         layout = self._layout_for(dt_util.now().date())
-        return day_rules.distinct_zone_names(
+        return day_rules.zone_slots(
             layout[zone_schedule.ZONES],
             layout[zone_schedule.SATURDAY],
             layout[zone_schedule.SUNDAY],
@@ -1090,13 +1099,13 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @staticmethod
     def _daily_data_to_dict(
         daily_data: DailyData,
-        slot_names: list[str] | None = None,
-        day_names: list[str] | None = None,
+        slots: dict[str, int] | None = None,
+        day_slots: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         """Convert DailyData to a flat dict for coordinator.data.
 
-        Zone totals become ``daily_consumption_slot_{n}`` (n = order of first
-        appearance in the config); the absolute readings at the inner
+        Zone totals become ``daily_consumption_slot_{n}`` (n = the slot number,
+        see day_rules.zone_slots); the absolute readings at the inner
         boundaries become ``meter_consumption_switch_{n}``.
         """
         data = {
@@ -1114,21 +1123,22 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 daily_data.export_next_midnight
             ),
         }
-        if slot_names is None:
-            slot_names = list(daily_data.zone_totals)
+        if slots is None:
+            slots = {name: n for n, name in enumerate(daily_data.zone_totals, 1)}
         # Fill the sensors by zone NAME, not by position: with different
         # layouts per day type (e.g. Sunday = all NT) a zone that does not
         # occur on the fetched day simply consumed 0 kWh there.
-        if day_names and not set(daily_data.zone_totals) <= set(slot_names):
+        if day_slots and not set(daily_data.zone_totals) <= set(slots):
             # The fetched day was split by a layout whose zone names are not
             # today's (a scheduled change renamed a zone, and this is the last
-            # day of the old layout): the sensors are identified by position,
-            # so the day's n-th zone feeds the n-th sensor.
-            for n in range(1, len(slot_names) + 1):
-                name = day_names[n - 1] if n <= len(day_names) else None
+            # day of the old layout): the sensors are identified by number,
+            # so each zone feeds the sensor it had under that layout.
+            day_names = {n: name for name, n in day_slots.items()}
+            for n in slots.values():
+                name = day_names.get(n)
                 data[slot_key(n)] = daily_data.zone_totals.get(name, 0.0)
         else:
-            for n, name in enumerate(slot_names, 1):
+            for name, n in slots.items():
                 data[slot_key(n)] = daily_data.zone_totals.get(name, 0.0)
         for n, value in enumerate(daily_data.import_boundaries[1:-1], 1):
             data[switch_key(n)] = value

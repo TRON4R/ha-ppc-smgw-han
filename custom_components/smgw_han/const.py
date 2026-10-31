@@ -230,11 +230,19 @@ SENSOR_METER_FEEDIN_PREV_DAY_CLOSE = "meter_feedin_prev_day_close"
 SENSOR_DATE = "date"
 
 
+# Zone names that only occur on Saturday or Sunday are numbered from here on, so
+# a new Mon-Fri name cannot push them onto another sensor. The 15-minute grid
+# allows at most 96 zones a day, so the two ranges cannot meet.
+WEEKEND_SLOT_BASE = 100
+
+
 def slot_key(n: int) -> str:
     """Sensor key of the daily consumption value for tariff zone ``n`` (1-based).
 
     ``n`` is the zone's position by first appearance in the configured zone
     list, so existing 2-zone installations keep their slot_1/slot_2 history.
+    Names that only occur on Saturday or Sunday count from WEEKEND_SLOT_BASE
+    (see day_rules.zone_slots).
     """
     return f"daily_consumption_slot_{n}"
 
