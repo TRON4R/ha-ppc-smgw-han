@@ -18,7 +18,10 @@ from homeassistant.exceptions import (
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.smgw_han import async_remove_entry, gateway_lock
 from custom_components.smgw_han.const import (
@@ -1269,3 +1272,71 @@ async def test_cleanup_runs_even_after_an_unexpected_error(hass: HomeAssistant):
 
     cleanup.assert_awaited_once_with(hass)
     await coord.async_unload()
+
+
+@pytest.mark.parametrize(
+    ("fetch_time", "start", "moments", "expected_runs"),
+    [
+        # Spring: 02:30 does not exist, the same minute of 03:00 stands in.
+        (
+            "02:30:00",
+            "2026-03-29T00:00:00+01:00",
+            ["2026-03-29T03:30:00+02:00"],
+            ["2026-03-29T03:30:00+02:00"],
+        ),
+        # Ordinary day: only the configured time runs.
+        (
+            "02:30:00",
+            "2026-05-15T00:00:00+02:00",
+            ["2026-05-15T02:30:00+02:00", "2026-05-15T03:30:00+02:00"],
+            ["2026-05-15T02:30:00+02:00"],
+        ),
+        # Autumn: both passes trigger as before, the stand-in does not.
+        (
+            "02:30:00",
+            "2026-10-25T00:00:00+02:00",
+            [
+                "2026-10-25T02:30:00+02:00",
+                "2026-10-25T02:30:00+01:00",
+                "2026-10-25T03:30:00+01:00",
+            ],
+            ["2026-10-25T02:30:00+02:00", "2026-10-25T02:30:00+01:00"],
+        ),
+        # Any other fetch time is untouched, also on the change day.
+        (
+            "00:15:00",
+            "2026-03-29T00:00:00+01:00",
+            ["2026-03-29T00:15:00+01:00", "2026-03-29T03:15:00+02:00"],
+            ["2026-03-29T00:15:00+01:00"],
+        ),
+    ],
+)
+async def test_fetch_trigger_on_the_clock_change_days(
+    hass: HomeAssistant, fetch_time, start, moments, expected_runs
+):
+    await hass.config.async_set_time_zone("Europe/Berlin")
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_METER_ID: "M", CONF_UPDATE_TIME: fetch_time}
+    )
+    entry.add_to_hass(hass)
+    coord = SmgwCoordinator(hass, entry, _StubClient(SmgwClientError("unused")))
+    runs: list[datetime] = []
+
+    async def record(now):
+        runs.append(now)
+
+    with (
+        patch.object(coord, "_handle_daily_fetch", side_effect=record),
+        freeze_time(datetime.fromisoformat(start)) as frozen,
+    ):
+        coord._schedule_daily_fetch()
+        for moment in map(datetime.fromisoformat, moments):
+            frozen.move_to(moment)
+            async_fire_time_changed(hass, moment)
+            await hass.async_block_till_done()
+    coord._unsub_time_listener()
+
+    # HA fires a fraction of a second after the full second.
+    assert [int(run.timestamp()) for run in runs] == [
+        int(datetime.fromisoformat(run).timestamp()) for run in expected_runs
+    ]

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
@@ -9,11 +11,14 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smgw_han.const import (
     CONF_INSTANCE_ID,
+    CONF_TARIFF_ZONES,
+    CONF_TARIFF_ZONES_SUNDAY,
     DOMAIN,
     ZONE_NAME,
     ZONE_TIME,
 )
 from custom_components.smgw_han.sensor import (
+    async_setup_entry,
     _dynamic_descriptions,
     _remove_stale_dynamic_entities,
 )
@@ -110,7 +115,7 @@ async def test_remove_stale_dynamic_entities(hass: HomeAssistant):
             "sensor", DOMAIN, uid, config_entry=entry
         )
 
-    _remove_stale_dynamic_entities(hass, entry, zone_count=2, switch_count=1)
+    _remove_stale_dynamic_entities(hass, entry, slot_numbers={1, 2}, switch_count=1)
 
     remaining = {
         reg_entry.unique_id
@@ -143,7 +148,7 @@ async def test_shrinking_to_one_zone_removes_every_switch_sensor(
             "sensor", DOMAIN, uid, config_entry=entry
         )
 
-    _remove_stale_dynamic_entities(hass, entry, zone_count=1, switch_count=0)
+    _remove_stale_dynamic_entities(hass, entry, slot_numbers={1}, switch_count=0)
 
     remaining = {
         reg_entry.unique_id
@@ -155,3 +160,40 @@ async def test_shrinking_to_one_zone_removes_every_switch_sensor(
         "smgw_meter1_daily_consumption_total",
         "smgw_meter1_daily_consumption_slot_1",
     }
+
+
+async def test_setup_keeps_the_weekend_only_sensor_and_drops_old_numbers(
+    hass: HomeAssistant,
+):
+    # Slot 3 is what v3.8.0-beta.1 gave a name that only occurs on Sunday.
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_INSTANCE_ID: 1,
+            CONF_TARIFF_ZONES: GO_CONFIG,
+            CONF_TARIFF_ZONES_SUNDAY: [{ZONE_TIME: "00:00", ZONE_NAME: "Weekend"}],
+        },
+    )
+    entry.add_to_hass(hass)
+    entry.runtime_data = MagicMock()
+    registry = er.async_get(hass)
+    for n in (3, 101, 102):
+        registry.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"smgw_meter1_daily_consumption_slot_{n}",
+            config_entry=entry,
+        )
+
+    added = []
+    await async_setup_entry(hass, entry, added.extend)
+
+    assert "smgw_meter1_daily_consumption_slot_101" in {
+        entity.unique_id for entity in added
+    }
+    assert {
+        reg_entry.unique_id
+        for reg_entry in er.async_entries_for_config_entry(
+            registry, entry.entry_id
+        )
+    } == {"smgw_meter1_daily_consumption_slot_101"}
