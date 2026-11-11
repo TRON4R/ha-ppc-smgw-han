@@ -41,6 +41,7 @@ Back to the [README](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.
 **Tariffs**
 - [T1](#t1) My tariff has several time windows per price level
 - [T2](#t2) How do I handle time-variable grid fees (Modul 3)?
+- [T3](#t3) I only have one price around the clock
 
 **Data export**
 - [X1](#x1) The download links lead nowhere or to the dashboard
@@ -269,6 +270,12 @@ That works: enter each time window as its own switch point and give windows with
 ### <a id="t2"></a>T2 · How do I handle time-variable grid fees (§ 14a EnWG, Modul 3)?
 
 Add the same meter a second time – once with your supplier tariff's time windows, once with your grid operator's. That way you check each bill against exactly the time windows it was calculated with. As grid operators usually change their windows at the turn of the year, you can store the new schedule in advance. Details in the README under [Multiple SMGWs / multiple logins](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#multiple-smgws--multiple-logins) (item "One meter, two sets of time windows") and [Scheduling a tariff-zone change in advance](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#scheduling-a-tariff-zone-change-in-advance).
+
+### <a id="t3"></a>T3 · I only have one price around the clock (single-rate tariff)
+
+When setting up, choose **"Single-rate tariff (one price around the clock)"**. It prefills the only zone, `00:00 Standard`. Daily sensors, meter readings, export and outage warnings work as with any other tariff; only the "Meter consumption tariff switch" sensors are not created. "Daily consumption Standard" shows the same value as "Daily consumption total"; add only one of the two to the Energy Dashboard.
+
+To switch an existing entry, use **Configure → "Apply a tariff-zone template"**. Mind the note on the statistics history in the dialog: the first zone sensor continues under the new name and from then on holds the whole day, the other zone sensors are removed.
 
 ---
 
