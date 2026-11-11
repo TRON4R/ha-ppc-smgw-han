@@ -414,6 +414,106 @@ async def test_meter_swap_refused_on_multimeter_setup(hass: HomeAssistant):
     assert entry.data[CONF_METER_ID] == "OLDMETER"  # left untouched
 
 
+@pytest.mark.parametrize("opened", ["primary", "view"])
+async def test_meter_swap_moves_additional_evaluations(
+    hass: HomeAssistant, opened: str
+):
+    """An additional evaluation of the swapped meter is no second meter: the
+    swap goes through and moves both entries to the new meter id, whichever
+    of the two the settings were opened from. Before 3.8.1 the evaluation
+    counted as a sibling and both entries were refused."""
+    primary = _entry("OLDMETER", instance_id=1)
+    primary.add_to_hass(hass)
+    view = _entry(
+        "OLDMETER", instance_id=2, view_id=2, **{CONF_DEVICE_NAME: "Modul 3"}
+    )
+    view.add_to_hass(hass)
+
+    result = await _open_settings(hass, primary if opened == "primary" else view)
+    with (
+        patch(VALIDATE, return_value=_info("NEWMETER", ["NEWMETER"])),
+        patch(CLOSE, return_value=None),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ) as reload,
+    ):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {**USER_INPUT, CONF_DEVICE_NAME: "Modul 3"}
+            if opened == "view"
+            else dict(USER_INPUT),
+        )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert primary.data[CONF_METER_ID] == "NEWMETER"
+    assert view.data[CONF_METER_ID] == "NEWMETER"
+    assert primary.unique_id == "NEWMETER:user"
+    assert view.unique_id == "NEWMETER:user:view2"
+    # Identity and the evaluation's own settings stay as they were.
+    assert primary.data[CONF_INSTANCE_ID] == 1
+    assert view.data[CONF_INSTANCE_ID] == 2
+    assert view.data[CONF_VIEW_ID] == 2
+    assert view.data[CONF_DEVICE_NAME] == "Modul 3"
+    reloaded = {call.args[0] for call in reload.await_args_list}
+    assert reloaded == {primary.entry_id, view.entry_id}
+
+
+async def test_meter_swap_with_evaluation_still_refused_on_multimeter(
+    hass: HomeAssistant,
+):
+    """Taking the evaluation along must not weaken the multi-meter guard: an
+    entry for a different meter on the same SMGW still blocks the swap, and
+    neither the entry nor its evaluation is touched."""
+    entry = _entry("OLDMETER", instance_id=1)
+    entry.add_to_hass(hass)
+    view = _entry("OLDMETER", instance_id=2, view_id=2)
+    view.add_to_hass(hass)
+    _entry("SIBLING", instance_id=3).add_to_hass(hass)
+
+    result = await _open_settings(hass, entry)
+    with (
+        patch(VALIDATE, return_value=_info("NEWMETER", ["NEWMETER"])),
+        patch(CLOSE, return_value=None),
+    ):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], dict(USER_INPUT)
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"]["base"] == "configured_meter_missing"
+    assert entry.data[CONF_METER_ID] == "OLDMETER"
+    assert view.data[CONF_METER_ID] == "OLDMETER"
+    assert view.unique_id == "OLDMETER:user:view2"
+
+
+async def test_settings_without_swap_leaves_evaluation_alone(
+    hass: HomeAssistant,
+):
+    """Saving the settings of an unchanged meter neither rewrites nor reloads
+    its additional evaluation."""
+    primary = _entry("M", instance_id=1)
+    primary.add_to_hass(hass)
+    view = _entry("M", instance_id=2, view_id=2)
+    view.add_to_hass(hass)
+
+    result = await _open_settings(hass, primary)
+    with (
+        patch(VALIDATE, return_value=_info("M", ["M"])),
+        patch(CLOSE, return_value=None),
+        patch.object(
+            hass.config_entries, "async_reload", new_callable=AsyncMock
+        ) as reload,
+    ):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], dict(USER_INPUT)
+        )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert view.unique_id == "M:user:view2"
+    reloaded = {call.args[0] for call in reload.await_args_list}
+    assert reloaded == {primary.entry_id}
+
+
 def _other_entry(meter_id: str, username: str, instance_id: int) -> MockConfigEntry:
     """A second entry with an explicit username (so its unique_id can differ)."""
     return MockConfigEntry(
