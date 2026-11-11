@@ -53,7 +53,7 @@ Beispiel Proxmox:
    - _IPv6_: _Deaktiviert_ wählen, im Netz des SMGW gibt es kein IPv6.
    - _**Speichern**_
 5. Die bisherige Schnittstelle nicht anfassen, sie bleibt auf _Automatisch_.
-6. Kurz prüfen, ob HA weiterhin ins Internet kommt, z. B. ob HACS seine Liste lädt. Das Gateway der neuen Schnittstelle ist ein zweiter Weg nach draußen; normalerweise behält die bisherige Schnittstelle den Vorrang. Falls nicht, Variante A verwenden.
+6. Kurz prüfen, ob HA weiterhin ins Internet kommt, z. B. ob der Marketplace bzw. HACS seine Liste lädt. Das Gateway der neuen Schnittstelle ist ein zweiter Weg nach draußen; normalerweise behält die bisherige Schnittstelle den Vorrang. Falls nicht, Variante A verwenden.
 
 **So sieht die neue Schnittstelle am Ende aus:**
 ![Eigene Netzwerkschnittstelle für das SMGW in Home Assistant](network-setup-second-interface.png)

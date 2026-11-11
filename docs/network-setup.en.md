@@ -53,7 +53,7 @@ Example Proxmox:
    - _IPv6_: select _Disabled_ — there is no IPv6 in the SMGW's network.
    - _**Save**_
 5. Leave the existing interface alone; it stays on _Automatic_.
-6. Briefly check that HA can still reach the internet, e.g. that HACS loads its list. The new interface's gateway is a second way out; normally the existing interface keeps priority. If it doesn't, use Option A.
+6. Briefly check that HA can still reach the internet, e.g. that the Marketplace or HACS loads its list. The new interface's gateway is a second way out; normally the existing interface keeps priority. If it doesn't, use Option A.
 
 **This is what the new interface looks like when done:**
 
