@@ -63,15 +63,17 @@ Another SMGW integration polls current meter readings at fixed 10 minute interva
 
 ## Installation
 
-### HACS (recommended)
+### Marketplace (recommended)
 
-The integration is listed in the HACS store.
+The integration is listed in Home Assistant's store. Since Home Assistant 2026.11 that store is built in as the **Marketplace**; before, it was the separate HACS integration.
 
-1. Open **HACS** from the Home Assistant sidebar
-2. Search for `PPC SMGW HAN` in the search box, open the **PPC SMGW HAN Daily Import** entry and click <kbd>DOWNLOAD</kbd> in the bottom right
+1. Open **Marketplace** from the Home Assistant sidebar
+2. On the **"Browse"** tab, search for `PPC SMGW HAN`, open the **PPC SMGW HAN Daily Import** entry and click **"Install"**
 3. Restart Home Assistant
 
-Even quicker: the **"Open your Home Assistant instance…"** button at the top opens the integration directly in your HACS.
+Even quicker: the **"Open your Home Assistant instance…"** button at the top opens the entry directly in your Marketplace.
+
+> With Home Assistant before 2026.11: open **HACS** from the sidebar, search for `PPC SMGW HAN`, open the entry and click <kbd>DOWNLOAD</kbd> in the bottom right. The button at the top works there too.
 
 ### Manual
 
@@ -82,12 +84,15 @@ Even quicker: the **"Open your Home Assistant instance…"** button at the top o
 
 If a pre-release is available and you want to try it:
 
-1. Open **HACS** and click the **PPC SMGW HAN Daily Import** entry
-2. Three-dot menu in the top right → **"Re-download"**
-3. Expand **"Need a different version?"** in the dialog
-4. From the **"Release"** dropdown, pick the desired version (with an orange `pre-release` label)
-5. Click **"Download"**
-6. Restart Home Assistant
+1. Open **Marketplace** and click the **PPC SMGW HAN Daily Import** entry
+2. Three-dot menu in the top right → **"Install another version"**
+3. Pick the desired version in the **"Version"** field; pre-releases are marked **"Pre-release"** there
+4. Confirm the dialog in the bottom right
+5. Restart Home Assistant
+
+In the same three-dot menu, **"Include pre-releases"** makes future pre-releases show up as updates too.
+
+> With Home Assistant before 2026.11, in **HACS**: three-dot menu → **"Re-download"** → expand **"Need a different version?"** → pick the version from the **"Release"** dropdown (orange `pre-release` label) → **"Download"** → restart Home Assistant.
 
 Your existing configuration remains untouched — all entities and the Energy Dashboard history are preserved.
 
@@ -305,7 +310,7 @@ The integration does that for you: **Settings → Devices & Services → your SM
 
 ## Dashboard card: Daily consumption history
 
-**Prerequisite:** [ApexCharts Card](https://github.com/RomRider/apexcharts-card) (installable via HACS)
+**Prerequisite:** [ApexCharts Card](https://github.com/RomRider/apexcharts-card) (installable via the Marketplace or HACS)
 
 ![Daily consumption history SMGW](dashboard/verbrauchshistorie_taeglich.png)
 

@@ -63,15 +63,17 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 
 ## Installation
 
-### HACS (empfohlen)
+### Marketplace (empfohlen)
 
-Die Integration ist im HACS-Store gelistet.
+Die Integration ist im Store von Home Assistant gelistet. Seit Home Assistant 2026.11 ist dieser Store als **Marketplace** fest eingebaut, vorher war er die eigene Integration HACS.
 
-1. In Home Assistant in der linken Seitenleiste **HACS** öffnen
-2. Im Suchfeld nach `PPC SMGW HAN` suchen, den Eintrag **PPC SMGW HAN Daily Import** öffnen und unten rechts <kbd>HERUNTERLADEN</kbd> klicken
+1. In Home Assistant in der linken Seitenleiste **Marketplace** öffnen
+2. Im Reiter **„Durchstöbern"** nach `PPC SMGW HAN` suchen, den Eintrag **PPC SMGW HAN Daily Import** öffnen und **„Installieren"** klicken
 3. Home Assistant neu starten
 
-Noch schneller geht es über den Button **„Open your Home Assistant instance…"** oben: Er öffnet die Integration direkt in deinem HACS.
+Noch schneller geht es über den Button **„Open your Home Assistant instance…"** oben: Er öffnet den Eintrag direkt in deinem Marketplace.
+
+> Mit Home Assistant vor 2026.11: in der Seitenleiste **HACS** öffnen, nach `PPC SMGW HAN` suchen, den Eintrag öffnen und unten rechts <kbd>HERUNTERLADEN</kbd> klicken. Der Button oben funktioniert dort genauso.
 
 ### Manuell
 
@@ -82,12 +84,15 @@ Noch schneller geht es über den Button **„Open your Home Assistant instance�
 
 Falls eine Vorab-Version (Pre-Release) verfügbar ist und du sie testen möchtest:
 
-1. **HACS** öffnen und den Eintrag **PPC SMGW HAN Daily Import** anklicken
-2. Drei-Punkte-Menü oben rechts → **„Erneut herunterladen"**
-3. Im Dialog **„Benötigst du eine andere Version?"** aufklappen
-4. Im Dropdown **„Release"** die gewünschte Version (mit orangem `pre-release`-Label) auswählen
-5. **„Herunterladen"** klicken
-6. Home Assistant neu starten
+1. **Marketplace** öffnen und den Eintrag **PPC SMGW HAN Daily Import** anklicken
+2. Drei-Punkte-Menü oben rechts → **„Andere Version installieren"**
+3. Im Feld **„Version"** die gewünschte Version auswählen; Vorab-Versionen sind dort als **„Vorabversion"** gekennzeichnet
+4. Den Dialog unten rechts bestätigen
+5. Home Assistant neu starten
+
+Im selben Drei-Punkte-Menü sorgt **„Vorabversionen einschließen"** dafür, dass dir auch künftige Vorab-Versionen als Update angeboten werden.
+
+> Mit Home Assistant vor 2026.11 in **HACS**: Drei-Punkte-Menü → **„Erneut herunterladen"** → **„Benötigst du eine andere Version?"** aufklappen → im Dropdown **„Release"** die Version wählen (oranges `pre-release`-Label) → **„Herunterladen"** → Home Assistant neu starten.
 
 Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy-Dashboard-Historie bleiben erhalten.
 
@@ -304,7 +309,7 @@ Die Integration nimmt dir das ab: **Einstellungen → Geräte & Dienste → dein
 
 ## Dashboard-Kachel: Verbrauchshistorie (täglich)
 
-**Voraussetzung:** [ApexCharts Card](https://github.com/RomRider/apexcharts-card) (über HACS installierbar)
+**Voraussetzung:** [ApexCharts Card](https://github.com/RomRider/apexcharts-card) (über den Marketplace bzw. HACS installierbar)
 
 ![Verbrauchshistorie SMGW täglich](dashboard/verbrauchshistorie_taeglich.png)
 

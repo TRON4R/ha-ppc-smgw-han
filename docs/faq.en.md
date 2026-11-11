@@ -307,7 +307,7 @@ Via **Configure → "Export the SMGW log for a custom time range"**, details in 
 
 ### <a id="k1"></a>K1 · The daily consumption history card shows no bars
 
-- **ApexCharts Card installed?** The card needs the [ApexCharts Card](https://github.com/RomRider/apexcharts-card) from HACS. Reload the browser afterwards.
+- **ApexCharts Card installed?** The card needs the [ApexCharts Card](https://github.com/RomRider/apexcharts-card) from the Marketplace or HACS. Reload the browser afterwards.
 - **Entity IDs adjusted?** The IDs in the YAML file are examples and must be replaced with your own (**Settings → Devices & services → Entities**).
 - **Only from the second fetch on:** Home Assistant uses a new sensor's first value as the starting point of its statistics. Bars therefore only appear after the second nightly fetch.
 
@@ -319,7 +319,7 @@ Via **Configure → "Export the SMGW log for a custom time range"**, details in 
 
 With the following information I can usually help you right away instead of having to ask first. You're welcome to write in English or German.
 
-1. **Latest version?** Check in HACS whether an update is available, and test with it.
+1. **Latest version?** Check in the Marketplace or HACS whether an update is available, and test with it.
 2. **Versions:** version of the integration and of Home Assistant.
 3. **Gateway:** manufacturer and type from the type plate, your metering point operator.
 4. **Error message verbatim** or as a screenshot.

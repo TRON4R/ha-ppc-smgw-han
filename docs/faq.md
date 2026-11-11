@@ -307,7 +307,7 @@ Ja, über die Aktionen `smgw_han.export_readings` und `smgw_han.export_period`, 
 
 ### <a id="k1"></a>K1 · Die Kachel „Verbrauchshistorie" zeigt keine Balken
 
-- **ApexCharts Card installiert?** Die Kachel braucht die [ApexCharts Card](https://github.com/RomRider/apexcharts-card) aus HACS. Danach den Browser neu laden.
+- **ApexCharts Card installiert?** Die Kachel braucht die [ApexCharts Card](https://github.com/RomRider/apexcharts-card) aus dem Marketplace bzw. HACS. Danach den Browser neu laden.
 - **Entity-IDs angepasst?** Die IDs in der YAML-Datei sind Beispiele und müssen durch deine eigenen ersetzt werden (**Einstellungen → Geräte & Dienste → Entitäten**).
 - **Erst ab dem zweiten Abruf:** Der erste Wert eines neuen Sensors dient Home Assistant als Startpunkt der Statistik. Balken erscheinen deshalb erst nach dem zweiten nächtlichen Abruf.
 
@@ -319,7 +319,7 @@ Ja, über die Aktionen `smgw_han.export_readings` und `smgw_han.export_period`, 
 
 Mit diesen Angaben kann ich dir meist direkt helfen, statt erst nachzufragen:
 
-1. **Neueste Version?** Prüfe in HACS, ob ein Update bereitsteht, und teste damit.
+1. **Neueste Version?** Prüfe im Marketplace bzw. in HACS, ob ein Update bereitsteht, und teste damit.
 2. **Versionen:** Version der Integration und von Home Assistant.
 3. **Gateway:** Hersteller und Typ vom Typenschild, dein Messstellenbetreiber.
 4. **Fehlermeldung im Wortlaut** oder als Screenshot.
