@@ -164,7 +164,7 @@ Leave **Device name** empty when you only run a single SMGW or your SMGWs target
 
 ### Behaviour on meter replacement
 
-When your metering point operator swaps the physical meter in your basement, you can simply update the credentials via the options dialog of the existing entry — entities and statistics history remain untouched. Even if you instead delete the entry and add it back, the new entry will reuse the freed internal slot (e.g. `smgw_meter1` again), so long-term statistics in the Energy Dashboard continue seamlessly.
+When your metering point operator swaps the physical meter in your basement, you can simply update the credentials via the options dialog of the existing entry — entities and statistics history remain untouched. Even without new credentials, saving once under **gear "Configure" → "Change settings"** is enough: the integration detects the new meter and adopts its number. If you also set up the same meter as an additional evaluation (see above), doing this in one of the entries is enough — all evaluations of the same meter with the same login move to the new meter together. Even if you instead delete the entry and add it back, the new entry will reuse the freed internal slot (e.g. `smgw_meter1` again), so long-term statistics in the Energy Dashboard continue seamlessly.
 
 ## Sensors
 

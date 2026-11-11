@@ -164,7 +164,7 @@ Das Feld **Gerätename** bleibt leer, wenn du nur einen einzelnen SMGW konfiguri
 
 ### Verhalten beim Zählertausch
 
-Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst du die Zugangsdaten einfach über den Optionen-Dialog des bestehenden Eintrags aktualisieren — Entitäten und Statistik-Historie bleiben unverändert erhalten. Auch wenn du den Eintrag stattdessen löschst und neu anlegst, bekommt der neue Eintrag dieselbe interne Nummer wie der vorherige (z.B. wieder „smgw_meter1"), sodass die Long-Term-Statistik im Energie-Dashboard nahtlos weitergeführt wird.
+Wenn der Messstellenbetreiber den physischen Zähler im Keller tauscht, kannst du die Zugangsdaten einfach über den Optionen-Dialog des bestehenden Eintrags aktualisieren — Entitäten und Statistik-Historie bleiben unverändert erhalten. Auch ohne neue Zugangsdaten genügt ein Speichern unter **Zahnrad „Konfigurieren" → „Einstellungen ändern"**: Die Integration erkennt den neuen Zähler und übernimmt seine Nummer. Hast du denselben Zähler zusätzlich als zweite Auswertung angelegt (siehe oben), reicht das in einem der Einträge — alle Auswertungen desselben Zählers mit demselben Login wechseln gemeinsam auf den neuen Zähler. Auch wenn du den Eintrag stattdessen löschst und neu anlegst, bekommt der neue Eintrag dieselbe interne Nummer wie der vorherige (z.B. wieder „smgw_meter1"), sodass die Long-Term-Statistik im Energie-Dashboard nahtlos weitergeführt wird.
 
 ## Sensoren
 

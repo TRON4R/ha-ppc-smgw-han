@@ -1642,6 +1642,9 @@ class SmgwOptionsFlow(OptionsFlow):
             )
 
             old_meter_id = self.config_entry.data.get(CONF_METER_ID)
+            # Additional evaluations of the same meter that follow this entry
+            # to the new meter id on a hardware swap.
+            swap_companions: list[ConfigEntry] = []
 
             try:
                 # Always inspect the *full* dropdown so we can decide whether
@@ -1667,10 +1670,25 @@ class SmgwOptionsFlow(OptionsFlow):
                     # SMGW's dropdown (PLC glitch, firmware update, ...),
                     # and adopting it would silently re-point this entry at
                     # the wrong meter.
+                    #
+                    # Additional evaluations of the same meter with the same
+                    # login are no second meter: they read the swapped meter
+                    # too and move to the new id together with this entry.
+                    companions = [
+                        e
+                        for e in _entries_for_meter_login(
+                            self.hass,
+                            old_meter_id,
+                            self.config_entry.data.get(CONF_USERNAME, ""),
+                        )
+                        if e.entry_id != self.config_entry.entry_id
+                    ]
+                    companion_ids = {e.entry_id for e in companions}
                     other_entries = [
                         e
                         for e in self.hass.config_entries.async_entries(DOMAIN)
                         if e.entry_id != self.config_entry.entry_id
+                        and e.entry_id not in companion_ids
                     ]
                     same_smgw_other_entry_exists = any(
                         e.data.get(CONF_URL) == new_data[CONF_URL]
@@ -1703,10 +1721,13 @@ class SmgwOptionsFlow(OptionsFlow):
                         _LOGGER.info(
                             "Meter ID changed from %s to %s - hardware "
                             "replacement detected on single-meter SMGW. "
-                            "Updating stored meter ID, entities unchanged.",
+                            "Updating stored meter ID of this entry and %d "
+                            "additional evaluation(s), entities unchanged.",
                             old_meter_id, device_info.meter_id,
+                            len(companions),
                         )
                         new_data[CONF_METER_ID] = device_info.meter_id
+                        swap_companions = companions
                 elif old_meter_id:
                     # Multi-meter SMGW and configured meter vanished — we
                     # can't pick a replacement blindly. Surface as error so
@@ -1741,24 +1762,33 @@ class SmgwOptionsFlow(OptionsFlow):
                 # swap) or username changed, so the duplicate guard keeps
                 # matching reality. Entities/devices ride on instance_id, not
                 # this unique_id, so history is unaffected (see test
-                # test_meter_swap_keeps_identity). Refuse if the new identity
-                # would collide with another configured entry.
-                new_unique_id = _expected_unique_id(new_data)
-                if new_unique_id != self.config_entry.unique_id and (
-                    _unique_id_collision(
-                        self.hass, new_unique_id, self.config_entry.entry_id
+                # test_meter_swap_keeps_identity). Additional evaluations of
+                # a swapped meter get the new meter id the same way. Refuse
+                # if any new identity would collide with another configured
+                # entry.
+                updates = [(self.config_entry, new_data)] + [
+                    (e, {**e.data, CONF_METER_ID: new_data[CONF_METER_ID]})
+                    for e in swap_companions
+                ]
+                if any(
+                    _expected_unique_id(data) != entry.unique_id
+                    and _unique_id_collision(
+                        self.hass, _expected_unique_id(data), entry.entry_id
                     )
+                    for entry, data in updates
                 ):
                     errors["base"] = "duplicate_login"
                 else:
-                    self.hass.config_entries.async_update_entry(
-                        self.config_entry,
-                        data=new_data,
-                        unique_id=new_unique_id,
-                    )
-                    await self.hass.config_entries.async_reload(
-                        self.config_entry.entry_id
-                    )
+                    for entry, data in updates:
+                        self.hass.config_entries.async_update_entry(
+                            entry,
+                            data=data,
+                            unique_id=_expected_unique_id(data),
+                        )
+                    for entry, _data in updates:
+                        await self.hass.config_entries.async_reload(
+                            entry.entry_id
+                        )
                     return self.async_create_entry(title="", data={})
 
         # A template chosen from the menu overrides the stored zones for
