@@ -42,7 +42,7 @@ LOG_EXPORT_TARGET_ENTRIES = 900
 LOG_EXPORT_MAX_REQUESTS = 200
 
 # Meter export (action=exportMeterValues). The gateway assembles the whole
-# signed file before it sends the first byte, so this one request may stay
+# signed file before it sends its answer, so this one request may stay
 # silent much longer than a page view. Only it gets the longer read limit; a
 # hanging login, the navigation and the nightly fetch still fail after 30 s.
 # The read limit is the longest SILENCE, not the total duration: the transfer
@@ -542,9 +542,13 @@ class SmgwClient:
         error answer too, because the gateway names the entry count there.
         ``timeout`` replaces the client's 30 s for this one request.
 
-        The time until the first byte and the transfer after it are logged
-        at INFO: for the meter export they are the only way to learn how long
-        the gateway really needs, which the export timeout is a guess about.
+        The time until the response headers and the transfer of the body
+        after them are logged at INFO: for the meter export they are the only
+        way to learn how long the gateway really needs, which the export
+        timeout is a guess about. Headers are not the first byte of the file:
+        a nine-month export once ran into the read limit while still waiting
+        for them, so the gateway seems to send them only once the file is
+        assembled, but that is not proven.
         """
         if not self._token:
             raise SmgwClientError("Not logged in - no CSRF token available")
@@ -565,7 +569,7 @@ class SmgwClient:
                 auth=httpx.DigestAuth(self._username, self._password),
                 stream=True,
             )
-            first_byte = monotonic() - started
+            headers_after = monotonic() - started
             try:
                 await response.aread()
             finally:
@@ -587,10 +591,10 @@ class SmgwClient:
                 f"Request error: {err}"
             ) from err
         _LOGGER.info(
-            "SMGW %s: first byte after %.1f s, %d bytes in a further %.1f s "
-            "(HTTP %s)",
-            data.get("action"), first_byte, len(response.content),
-            monotonic() - started - first_byte, response.status_code,
+            "SMGW %s: response headers after %.1f s, body of %d bytes in a "
+            "further %.1f s (HTTP %s)",
+            data.get("action"), headers_after, len(response.content),
+            monotonic() - started - headers_after, response.status_code,
         )
         return response
 

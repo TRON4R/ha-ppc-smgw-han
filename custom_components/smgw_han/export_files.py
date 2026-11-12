@@ -376,8 +376,8 @@ def write_xlsx(
         info[f"A{row}"] = (
             f"Der Zeitraum wurde in {len(parts)} Teilabrufen zu höchstens drei "
             "Monaten vom SMGW geholt, um das Gateway nicht zu überlasten. "
-            "Jeder Teilabruf ist eine eigene signierte CMS-Datei; diese "
-            "Mappe enthält alle Teile zusammengeführt. Aufeinanderfolgende "
+            "Jeder Teilabruf mit Daten ist eine eigene signierte CMS-Datei; "
+            "diese Mappe enthält alle Teile zusammengeführt. Aufeinanderfolgende "
             "Teile überlappen um 15 Minuten, doppelte Werte sind nur einmal "
             "enthalten."
         )

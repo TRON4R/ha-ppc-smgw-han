@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import calendar
 import contextlib
+import html
 import logging
 import math
 import re
@@ -65,7 +66,7 @@ from .const import (
 )
 from .downloads import export_links, new_export_dir, valid_until_label
 from .export_files import write_cms_zip, write_readings_csv, write_xlsx
-from .smgw_client import MeterReading, TariffZones, utc_instant
+from .smgw_client import MeterReading, TariffZones, _visible_text, utc_instant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -89,6 +90,10 @@ EXPORT_MIN_LAST_PART = timedelta(days=1)
 # Pause between two parts. Whether the gateway needs it is unknown; for a
 # year it costs 30 seconds.
 EXPORT_PART_PAUSE_S = 10.0
+# A part starts at a midnight cut, and a gateway that already recorded then
+# has its reading at 00:00:01-00:00:05 (the grid is 15 minutes). A first
+# reading later than this proves its history begins inside the part.
+_HISTORY_START_TOLERANCE = timedelta(minutes=15)
 
 # --- Progress ring of the options flow ---------------------------------------
 # Share of the ring for downloading and parsing the parts; the rest is the
@@ -483,11 +488,22 @@ class _Progress:
 async def _fetch_part(
     coordinator, from_dt: datetime, to_dt: datetime
 ) -> tuple[bytes | None, str | None]:
-    """One gateway request; ``(None, None)`` when the gateway has no data.
+    """One gateway request; ``(None, None)`` when the gateway reports no data.
 
-    The gateway says "no data" in two ways: an answer without a signed
-    payload, or an HTTP error (mapped to ``no_data_in_range`` by the
-    coordinator). Everything else is a real failure and propagates.
+    "No data" arrives as an HTTP error (mapped to ``no_data_in_range`` by the
+    coordinator), an empty answer, or the text "Keine Daten". Any other answer
+    without a signed payload, such as a login or error page, is a failure:
+    taking it for an empty range would let it pass as a gap in the history.
+
+    An HTTP error alone does NOT prove that the range is empty, though. An
+    external review (2026-11-12) proposed telling "no data" from a real
+    failure by the gateway's answer. That does not work: measured on a real
+    gateway the same day, a range without data is answered with HTTP 500 and
+    a generic 369-byte page "500 - Internal Server Error" within 0.1 s -
+    the same size as the page that came after 48 s when a gateway failed on
+    a whole year (2026-10-03). The caller therefore checks against the data
+    itself whether a skipped part can really have been empty
+    (see :func:`_download_parts`).
     """
     try:
         content, name = await coordinator.async_download_cms(from_dt, to_dt)
@@ -495,9 +511,18 @@ async def _fetch_part(
         if err.translation_key != "no_data_in_range":
             raise
         return None, None
-    if not content or b"<?xml" not in content:
+    if content and b"<?xml" in content:
+        return content, name
+    text = html.unescape((content or b"").decode("utf-8", "replace"))
+    if not text.strip() or "Keine Daten" in text:
         return None, None
-    return content, name
+    _LOGGER.warning(
+        "SMGW answered the export %s .. %s with neither a signed file nor "
+        "'no data': %s", from_dt, to_dt, _visible_text(content),
+    )
+    raise HomeAssistantError(
+        translation_domain=DOMAIN, translation_key="cms_download_failed"
+    )
 
 
 def _fmt_moment(hass: HomeAssistant, value: datetime) -> str:
@@ -553,12 +578,20 @@ async def _download_parts(
 ) -> tuple[list[_Part], int]:
     """Fetch and parse every part; returns the parts with data + skipped ones.
 
-    Parts without data at the START are skipped: the gateway simply has no
-    data that far back (younger than the range, or older data deleted). A
-    part without data AFTER one with data is a hole in the middle of the
-    export and aborts it, as does any part that fails: a merged file with a
-    quarter missing would look complete at first glance. There is no
-    automatic retry, to keep the load on the gateway predictable.
+    Parts without data at the START may be skipped: the gateway simply has
+    no data that far back (younger than the range, or older data deleted).
+    Its answer cannot prove that (see :func:`_fetch_part`), so the data
+    has to: the gateway records without interruption from its first
+    reading on, so if the first part with data begins clearly after its own
+    start, the history begins there and the parts before it cannot hold
+    anything. If it begins right at its start, the gateway had data before
+    as well, and the empty part before it was a failure. That aborts the
+    export, as do a part without data AFTER one with data (a hole in the
+    middle) and any part that fails: a merged file with a quarter missing
+    would look complete at first glance. In the rare case that a gateway's
+    history begins exactly at a cut, the export aborts too - the safe side.
+    There is no automatic retry, to keep the load on the gateway
+    predictable.
     """
     parts: list[_Part] = []
     skipped = 0
@@ -571,11 +604,25 @@ async def _download_parts(
             )
         except HomeAssistantError as err:
             raise _part_error(hass, err, ranges, index) from err
-        readings = (
-            await hass.async_add_executor_job(parse_cms_readings, content)
-            if content
-            else []
-        )
+        try:
+            readings = (
+                await hass.async_add_executor_job(parse_cms_readings, content)
+                if content
+                else []
+            )
+        except Exception as err:
+            if len(ranges) == 1:
+                raise
+            # A signed file that cannot be read: name the part it belongs to.
+            _LOGGER.exception(
+                "Export part %d/%d %s .. %s: the signed file could not be read",
+                index + 1, len(ranges), start, end,
+            )
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="cms_part_failed",
+                translation_placeholders=_part_placeholders(hass, ranges, index),
+            ) from err
         progress.part_done(index)
         _LOGGER.info(
             "Export part %d/%d %s .. %s: %d readings",
@@ -583,19 +630,34 @@ async def _download_parts(
         )
         if not readings:
             if parts:
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="cms_part_no_data",
-                    translation_placeholders=_part_placeholders(
-                        hass, ranges, index
-                    ),
-                )
+                raise _gap_error(hass, ranges, index)
             skipped += 1
             continue
+        if skipped and not parts:
+            first = min(r.timestamp for r in readings)
+            if first <= start + _HISTORY_START_TOLERANCE:
+                _LOGGER.warning(
+                    "Export part %d/%d returned no data, but the next part "
+                    "has readings from its very start (%s): the gateway had "
+                    "data then, so the empty answer was a failure",
+                    index, len(ranges), first,
+                )
+                raise _gap_error(hass, ranges, index - 1)
         parts.append(
             _Part(start, end, readings, content if keep_cms else None, name)
         )
     return parts, skipped
+
+
+def _gap_error(
+    hass: HomeAssistant, ranges: list[tuple[datetime, datetime]], index: int
+) -> HomeAssistantError:
+    """A part that returned nothing although its neighbours show data."""
+    return HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key="cms_part_no_data",
+        translation_placeholders=_part_placeholders(hass, ranges, index),
+    )
 
 
 async def run_export(

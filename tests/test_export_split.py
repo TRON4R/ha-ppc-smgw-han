@@ -327,6 +327,148 @@ async def test_leading_http_error_counts_as_no_data(hass: HomeAssistant):
     assert response["parts"] == 1
 
 
+class _Http500Before(SliceGateway):
+    """Answers ranges ending before ``cut`` the way a real gateway does.
+
+    Measured 2026-11-12: a range without data gets HTTP 500 with a generic
+    error page - the same answer a gateway gave when it failed on a year -
+    which the coordinator maps to ``no_data_in_range``.
+    """
+
+    def __init__(self, readings, cut):
+        super().__init__(readings)
+        self.cut = cut
+
+    async def async_download_cms(self, from_dt, to_dt):
+        if to_dt <= self.cut:
+            self.requests.append((from_dt, to_dt))
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="no_data_in_range"
+            )
+        return await super().async_download_cms(from_dt, to_dt)
+
+
+async def test_http_500_first_part_with_data_right_after_aborts(
+    hass: HomeAssistant,
+):
+    """The review's scenario: part 1 fails with HTTP 500, part 2 has data.
+
+    Part 2 has a reading right at its start, so the gateway recorded before
+    that too: the HTTP 500 of part 1 was a failure, not an empty range, and
+    the export must not pass as complete without January to March.
+    """
+    hass.config.language = "de"
+    series = _series(date(2025, 6, 1), 400)  # data long before the range
+    gateway = _Http500Before(series, cut=datetime(2026, 4, 2))
+    with pytest.raises(HomeAssistantError) as err:
+        await _export(hass, gateway, datetime(2026, 1, 1), datetime(2026, 9, 1))
+    assert err.value.translation_key == "cms_part_no_data"
+    assert err.value.translation_placeholders["part"] == "1"
+    assert err.value.translation_placeholders["range"].startswith("01.01.2026")
+    assert len(gateway.requests) == 2  # stops after the part that proves it
+
+
+async def test_history_starting_exactly_at_a_cut_aborts_on_the_safe_side(
+    hass: HomeAssistant,
+):
+    """Indistinguishable from the failure above, so it aborts as well."""
+    series = _series(date(2026, 4, 1), 200)  # first reading 01.04. 00:00:01
+    gateway = SliceGateway(series, empty_before=datetime(2026, 4, 2))
+    with pytest.raises(HomeAssistantError) as err:
+        await _export(hass, gateway, datetime(2026, 1, 1), datetime(2026, 9, 1))
+    assert err.value.translation_key == "cms_part_no_data"
+
+
+async def test_history_starting_inside_the_part_proves_the_skip(
+    hass: HomeAssistant,
+):
+    """The live case of 2026-11-12: data from 11.11. 12:15, part from 01.10."""
+    series = _series(date(2026, 11, 11), 1)[98:]  # from 11.11. 12:15:01 on
+    gateway = _Http500Before(series, cut=datetime(2026, 10, 2))
+    response = await _export(
+        hass, gateway, datetime(2026, 1, 1), datetime(2026, 11, 12, 0, 15),
+        do_xlsx=False,
+    )
+    assert len(gateway.requests) == 4
+    assert response["parts_without_data"] == 3
+    assert response["readings"][0]["timestamp"].startswith("2026-11-11T12:")
+
+
+@pytest.mark.parametrize(
+    ("answer", "outcome"),
+    [
+        (b"", "skipped"),
+        (b"Keine Daten\n", "skipped"),
+        (b"<p>Keine Daten vorhanden.</p>", "skipped"),
+        (b"<html><body>Bitte anmelden</body></html>", "cms_part_failed"),
+    ],
+)
+async def test_an_unexpected_answer_is_no_empty_range(
+    hass: HomeAssistant, answer, outcome
+):
+    """Only an empty answer or 'Keine Daten' counts as no data.
+
+    A login or error page with HTTP 200 must not pass as a gap in the
+    history.
+    """
+    series = _series(date(2026, 5, 10), 120)
+
+    class Gateway(SliceGateway):
+        async def async_download_cms(self, from_dt, to_dt):
+            if to_dt <= datetime(2026, 4, 2):
+                self.requests.append((from_dt, to_dt))
+                return answer, None
+            return await super().async_download_cms(from_dt, to_dt)
+
+    gateway = Gateway(series)
+    if outcome == "skipped":
+        response = await _export(
+            hass, gateway, datetime(2026, 1, 1), datetime(2026, 9, 1), do_xlsx=False
+        )
+        assert response["parts_without_data"] == 1
+    else:
+        with pytest.raises(HomeAssistantError) as err:
+            await _export(hass, gateway, datetime(2026, 1, 1), datetime(2026, 9, 1))
+        assert err.value.translation_key == outcome
+        assert err.value.translation_placeholders["part"] == "1"
+
+
+async def test_an_unexpected_answer_to_one_request_is_a_failure(
+    hass: HomeAssistant,
+):
+    class Gateway(SliceGateway):
+        async def async_download_cms(self, from_dt, to_dt):
+            return b"<html>Fehler</html>", None
+
+    with pytest.raises(HomeAssistantError) as err:
+        await _export(
+            hass, Gateway([]), datetime(2026, 5, 1), datetime(2026, 6, 1)
+        )
+    assert not isinstance(err.value, ServiceValidationError)
+    assert err.value.translation_key == "cms_download_failed"
+
+
+async def test_an_unreadable_part_is_named(hass: HomeAssistant):
+    series = _series(date(2026, 1, 1), 250)
+    gateway = SliceGateway(series)
+
+    def parse(content):
+        if content == b"<?xml part 1":
+            raise ValueError("broken XML")
+        return gateway.parse(content)
+
+    with (
+        patch.object(services, "parse_cms_readings", parse),
+        pytest.raises(HomeAssistantError) as err,
+    ):
+        await run_export(
+            hass, gateway, datetime(2026, 1, 1), datetime(2026, 9, 1),
+            download_cms=False, do_csv=False, do_xlsx=False,
+        )
+    assert err.value.translation_key == "cms_part_failed"
+    assert err.value.translation_placeholders["part"] == "2"
+
+
 async def test_no_data_anywhere_is_the_familiar_message(hass: HomeAssistant):
     gateway = SliceGateway([], empty_before=datetime(2030, 1, 1))
     with pytest.raises(ServiceValidationError) as err:

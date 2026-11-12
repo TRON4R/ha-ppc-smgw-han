@@ -218,7 +218,7 @@
       "cms_download_timeout": "Das SMGW hat nicht innerhalb von {minutes} Minuten auf die Exportanfrage geantwortet. Bitte später erneut versuchen; hilft das nicht, einen kürzeren Zeitraum wählen.",
       "cms_part_timeout": "Der Zeitraum wurde in {parts} Teilabrufe zerlegt. Bei Teil {part} ({range}) hat das SMGW nicht innerhalb von {minutes} Minuten geantwortet, deshalb wurde der Export abgebrochen. Bitte später erneut versuchen.",
       "cms_part_failed": "Der Zeitraum wurde in {parts} Teilabrufe zerlegt. Teil {part} ({range}) ist fehlgeschlagen, deshalb wurde der Export abgebrochen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen.",
-      "cms_part_no_data": "Der Zeitraum wurde in {parts} Teilabrufe zerlegt. Für Teil {part} ({range}) hat das SMGW keine Daten geliefert, obwohl es für die Zeit davor welche hatte. Damit keine Datei mit einer unbemerkten Lücke entsteht, wurde der Export abgebrochen. Bitte später erneut versuchen. Hat das SMGW in dieser Zeit wirklich nichts erfasst, die Zeiträume davor und danach einzeln exportieren.",
+      "cms_part_no_data": "Der Zeitraum wurde in {parts} Teilabrufe zerlegt. Für Teil {part} ({range}) hat das SMGW keine Daten geliefert, obwohl die angrenzenden Teile zeigen, dass es für diese Zeit Daten haben müsste. Damit keine Datei mit einer unbemerkten Lücke entsteht, wurde der Export abgebrochen. Bitte später erneut versuchen. Hat das SMGW in dieser Zeit wirklich nichts erfasst, die Zeiträume davor und danach einzeln exportieren.",
       "no_outputs": "Bitte mindestens eine Ausgabe wählen (zertifizierte CMS-Datei, CSV oder Excel).",
       "no_data_in_range": "Für den gewählten Zeitraum sind keine Zählerdaten vorhanden (z. B. vor der Inbetriebnahme des Zählers).",
       "from_after_to": "„Von\" muss vor „Bis\" liegen.",
@@ -246,8 +246,8 @@
       "log_export_incomplete": "{count} Logeinträge exportiert, in {parts} Teil(en). Achtung: Die Vollständigkeitsprüfung hat Auffälligkeiten gefunden. Details und mögliche Ursachen stehen im Blatt „Info“ der Excel-Datei.\n\n{links}\n\nDie Links sind bis {expires} Uhr gültig und liegen zusätzlich als Benachrichtigung (Glockensymbol) bereit."
     },
     "progress": {
-      "export": "Die Zählerdaten werden vom SMGW abgerufen. Zeiträume über drei Monate holt die Integration in mehreren Teilen mit kurzen Pausen dazwischen, ein Jahr dauert deshalb einige Minuten. Bitte dieses Fenster offen lassen – Schließen bricht den Export ab.",
-      "log_export": "Die Logdaten werden vom SMGW abgerufen. Große Zeiträume brauchen mehrere Teilabrufe und können im Extremfall einige Minuten dauern. Bitte dieses Fenster offen lassen – Schließen bricht den Abruf ab."
+      "export": "Die Zählerdaten werden vom SMGW abgerufen. Zeiträume über drei Monate holt die Integration in mehreren Teilen mit kurzen Pausen dazwischen, ein Jahr dauert deshalb einige Minuten. Bitte dieses Fenster offen lassen. Schließen bricht den Export ab.",
+      "log_export": "Die Logdaten werden vom SMGW abgerufen. Große Zeiträume brauchen mehrere Teilabrufe und können im Extremfall einige Minuten dauern. Bitte dieses Fenster offen lassen. Schließen bricht den Abruf ab."
     }
   },
   "entity": {
@@ -426,7 +426,7 @@
       "message": "Der Zeitraum wurde in {parts} Teilabrufe zerlegt. Teil {part} ({range}) ist fehlgeschlagen, deshalb wurde der Export abgebrochen. Bitte SMGW-Verbindung und das Home-Assistant-Protokoll prüfen."
     },
     "cms_part_no_data": {
-      "message": "Der Zeitraum wurde in {parts} Teilabrufe zerlegt. Für Teil {part} ({range}) hat das SMGW keine Daten geliefert, obwohl es für die Zeit davor welche hatte. Damit keine Datei mit einer unbemerkten Lücke entsteht, wurde der Export abgebrochen. Bitte später erneut versuchen. Hat das SMGW in dieser Zeit wirklich nichts erfasst, die Zeiträume davor und danach einzeln exportieren."
+      "message": "Der Zeitraum wurde in {parts} Teilabrufe zerlegt. Für Teil {part} ({range}) hat das SMGW keine Daten geliefert, obwohl die angrenzenden Teile zeigen, dass es für diese Zeit Daten haben müsste. Damit keine Datei mit einer unbemerkten Lücke entsteht, wurde der Export abgebrochen. Bitte später erneut versuchen. Hat das SMGW in dieser Zeit wirklich nichts erfasst, die Zeiträume davor und danach einzeln exportieren."
     },
     "log_no_entries": {
       "message": "Das SMGW-Log enthält für den gewählten Zeitraum keine Einträge."
