@@ -59,6 +59,7 @@ from .const import (
 )
 from .downloads import async_remove_expired_exports
 from .smgw_client import (
+    CMS_EXPORT_READ_TIMEOUT_S,
     DailyData,
     LogExportResult,
     SmgwAuthError,
@@ -67,6 +68,7 @@ from .smgw_client import (
     SmgwLogLimitError,
     SmgwNoDataError,
     SmgwServerError,
+    SmgwTimeoutError,
     TariffZones,
 )
 
@@ -1060,15 +1062,36 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except SmgwServerError as err:
             # The SMGW returns an HTTP error for a range it has no data for
             # (e.g. before commissioning) -> surface as a clean localized
-            # "no data", not a raw connection/HTTP error.
+            # "no data", not a raw connection/HTTP error. Logged with the
+            # gateway's text, because the same status also meant "too much"
+            # once (a whole year, 2026-10-03).
+            _LOGGER.warning(
+                "SMGW answered the export %s .. %s with an error, treated as "
+                "no data: %s", from_dt, to_dt, err,
+            )
             raise ServiceValidationError(
                 translation_domain=DOMAIN, translation_key="no_data_in_range"
+            ) from err
+        except SmgwTimeoutError as err:
+            _LOGGER.error(
+                "SMGW did not answer the export %s .. %s in time: %s",
+                from_dt, to_dt, err,
+            )
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="cms_download_timeout",
+                translation_placeholders={
+                    "minutes": f"{CMS_EXPORT_READ_TIMEOUT_S / 60:g}"
+                },
             ) from err
         except SmgwAuthError as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN, translation_key="cms_auth_failed"
             ) from err
         except SmgwClientError as err:
+            _LOGGER.error(
+                "SMGW export %s .. %s failed: %s", from_dt, to_dt, err
+            )
             raise HomeAssistantError(
                 translation_domain=DOMAIN, translation_key="cms_download_failed"
             ) from err

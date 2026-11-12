@@ -151,7 +151,7 @@
       },
       "export": {
         "title": "Export consumption and feed-in data",
-        "description": "Choose a period and which files to create. The next step lets you fine-tune the exact date range.",
+        "description": "Choose a period and which files to create. The next step lets you fine-tune the exact date range.\n\nRanges over three months are fetched in parts of at most three months each, so the SMGW is not overloaded: the signed CMS originals then come together in one ZIP file, CSV and Excel stay one file each.",
         "data": {
           "period": "Period",
           "download_cms": "Download certified CMS file",
@@ -164,7 +164,7 @@
       },
       "export_dates": {
         "title": "Confirm time range",
-        "description": "Adjust the range if needed, then submit to start the export. Tip: to include the last day's closing reading, set 'To' to 00:15 of the following day.",
+        "description": "Adjust the range if needed, then submit to start the export. Tip: to include the last day's closing reading, set 'To' to 00:15 of the following day. Ranges over three months take a few minutes.",
         "data": {
           "from_datetime": "From",
           "to_datetime": "To"
@@ -215,6 +215,10 @@
       "unknown": "An unexpected error occurred.",
       "invalid_range": "'From' must be before 'To'.",
       "export_failed": "The export failed. Check the SMGW connection and the Home Assistant log.",
+      "cms_download_timeout": "The SMGW did not answer the export request within {minutes} minutes. Please try again later; if that does not help, choose a shorter range.",
+      "cms_part_timeout": "The range was split into {parts} requests. For part {part} ({range}) the SMGW did not answer within {minutes} minutes, so the export was cancelled. Please try again later.",
+      "cms_part_failed": "The range was split into {parts} requests. Part {part} ({range}) failed, so the export was cancelled. Check the SMGW connection and the Home Assistant log.",
+      "cms_part_no_data": "The range was split into {parts} requests. For part {part} ({range}) the SMGW returned no data, although it had data for the time before. The export was cancelled so that no file with an unnoticed gap is created. Please try again later. If the SMGW really recorded nothing during that time, export the ranges before and after it separately.",
       "no_outputs": "Select at least one output (certified CMS file, CSV or Excel).",
       "no_data_in_range": "No meter data is available for the selected time range (e.g. before the meter was commissioned).",
       "from_after_to": "The start ('From') must be before the end ('To').",
@@ -234,11 +238,15 @@
     },
     "abort": {
       "export_done": "Export created.\n\n{links}\n\nThe links are valid until {expires} and are also saved as a notification (bell icon).",
+      "export_done_split": "Export created. The range was fetched in {parts} parts of at most three months each, so the SMGW is not overloaded. Signed CMS originals come one by one in a ZIP file; CSV and Excel cover the whole range.\n\n{links}\n\nThe links are valid until {expires} and are also saved as a notification (bell icon).",
+      "export_done_late": "Export created. The SMGW had no data for the beginning of the range; the readings start on {data_from}.\n\n{links}\n\nThe links are valid until {expires} and are also saved as a notification (bell icon).",
+      "export_done_split_late": "Export created. The range was fetched in parts of at most three months each, so the SMGW is not overloaded. The SMGW had no data for the beginning of the range; the readings start on {data_from}. The {parts} signed CMS originals with data come one by one in a ZIP file; CSV and Excel cover everything.\n\n{links}\n\nThe links are valid until {expires} and are also saved as a notification (bell icon).",
       "log_export_done": "{count} log entries exported.\n\n{links}\n\nThe links are valid until {expires} and are also saved as a notification (bell icon).",
       "log_export_done_split": "{count} log entries exported. The SMGW hands out at most 1000 entries per request, so the range was split into {parts} requests. The signed CMS originals are in the ZIP file one by one; CSV and Excel contain all entries.\n\n{links}\n\nThe links are valid until {expires} and are also saved as a notification (bell icon).",
       "log_export_incomplete": "{count} log entries exported in {parts} part(s). Warning: the completeness check found irregularities. Details and possible causes are on the \"Info\" sheet of the Excel file.\n\n{links}\n\nThe links are valid until {expires} and are also saved as a notification (bell icon)."
     },
     "progress": {
+      "export": "Fetching the meter readings from the SMGW. Ranges over three months are fetched in several parts with short pauses in between, so a year takes a few minutes. Please keep this dialog open - closing it cancels the export.",
       "log_export": "Fetching the log from the SMGW. Long ranges need several requests and can take a few minutes in extreme cases. Please keep this dialog open - closing it cancels the download."
     }
   },
@@ -289,7 +297,7 @@
         },
         "download_cms": {
           "name": "Download certified CMS file",
-          "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
+          "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original). Ranges over three months are fetched in parts; the signed files then come together in one ZIP file."
         },
         "write_csv": {
           "name": "Create CSV",
@@ -315,7 +323,7 @@
         },
         "download_cms": {
           "name": "Download certified CMS file",
-          "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original)."
+          "description": "Also save the signed CMS file exactly as delivered by the SMGW (the tamper-evident original). Ranges over three months are fetched in parts; the signed files then come together in one ZIP file."
         },
         "write_csv": {
           "name": "Create CSV",
@@ -407,6 +415,18 @@
     },
     "cms_download_failed": {
       "message": "The SMGW export could not be downloaded. Check the SMGW connection and the Home Assistant log."
+    },
+    "cms_download_timeout": {
+      "message": "The SMGW did not answer the export request within {minutes} minutes. Please try again later; if that does not help, choose a shorter range."
+    },
+    "cms_part_timeout": {
+      "message": "The range was split into {parts} requests. For part {part} ({range}) the SMGW did not answer within {minutes} minutes, so the export was cancelled. Please try again later."
+    },
+    "cms_part_failed": {
+      "message": "The range was split into {parts} requests. Part {part} ({range}) failed, so the export was cancelled. Check the SMGW connection and the Home Assistant log."
+    },
+    "cms_part_no_data": {
+      "message": "The range was split into {parts} requests. For part {part} ({range}) the SMGW returned no data, although it had data for the time before. The export was cancelled so that no file with an unnoticed gap is created. Please try again later. If the SMGW really recorded nothing during that time, export the ranges before and after it separately."
     },
     "log_no_entries": {
       "message": "The SMGW log holds no entries for the selected time range."

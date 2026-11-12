@@ -18,7 +18,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.selector import (
     BooleanSelector,
     DateSelector,
@@ -82,6 +82,8 @@ from .services import (
     _period_range,
     _validate_range,
     build_links_markdown,
+    data_from_label,
+    export_summary,
     run_export,
     validity_note,
 )
@@ -93,6 +95,17 @@ from .smgw_client import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Export failures with a message of their own in the dialog (options.error);
+# any other failure shows the generic "export_failed".
+_EXPORT_FORM_ERRORS = frozenset(
+    {
+        "cms_download_timeout",
+        "cms_part_failed",
+        "cms_part_timeout",
+        "cms_part_no_data",
+    }
+)
 
 # One tariff-zone entry as typed by the user: "HH:MM Zonenname"
 # (time, whitespace, then the zone name = everything after the first blank).
@@ -889,6 +902,13 @@ class SmgwOptionsFlow(OptionsFlow):
         self._export_input: dict[str, Any] = {}
         self._export_from: datetime | None = None
         self._export_to: datetime | None = None
+        # Meter export: the running download (progress step) and its
+        # outcome, like the log export below. The error placeholders name
+        # the part that failed when a long range was fetched in parts.
+        self._export_task: asyncio.Task[dict[str, Any]] | None = None
+        self._export_result: dict[str, Any] | None = None
+        self._export_error: str | None = None
+        self._export_error_placeholders: dict[str, str] = {}
         # Zones from a template menu; prefills the settings form for review.
         # None means "keep the stored zones" (the normal settings path).
         self._template_zones: list[dict[str, str]] | None = None
@@ -1280,8 +1300,23 @@ class SmgwOptionsFlow(OptionsFlow):
     async def async_step_export_dates(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Step 2: confirm/edit the prefilled date range, then run the export."""
+        """Step 2: confirm/edit the prefilled date range, then start the export.
+
+        Also the landing step when the export failed: the progress step hands
+        back here with the error, so the user can adjust and retry.
+        """
         errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
+        if self._export_error:
+            errors["base"] = self._export_error
+            placeholders = self._export_error_placeholders
+            self._export_error = None
+            self._export_error_placeholders = {}
+            # A download that fails before its first await finishes inside the
+            # submit call, and the flow manager then replays that same input
+            # into this step. Taking it as a new submission would restart the
+            # failing export in a loop, so show the form with the error.
+            user_input = None
 
         if user_input is not None:
             from_dt = self._coerce_dt(user_input.get(ATTR_FROM_DATETIME))
@@ -1291,40 +1326,16 @@ class SmgwOptionsFlow(OptionsFlow):
             else:
                 try:
                     # Same validation as the service path (from<to, future day,
-                    # 760-day limit); run_export adds no_data_in_range. All carry
-                    # a translation_key that doubles as the options.error key.
+                    # 760-day limit). Each carries a translation_key that
+                    # doubles as the options.error key.
                     _validate_range(from_dt, to_dt)
-                    result = await run_export(
-                        self.hass,
-                        self.config_entry.runtime_data,
-                        from_dt,
-                        to_dt,
-                        download_cms=self._export_input[ATTR_DOWNLOAD_CMS],
-                        do_csv=self._export_input[ATTR_WRITE_CSV],
-                        do_xlsx=self._export_input[ATTR_WRITE_XLSX],
-                    )
                 except ServiceValidationError as err:
                     errors["base"] = err.translation_key or "export_failed"
-                except Exception:  # noqa: BLE001 - surface as a form error
-                    _LOGGER.exception("Export via options flow failed")
-                    errors["base"] = "export_failed"
                 else:
-                    links = (
-                        build_links_markdown(result.get("files", {}))
-                        or "_(keine Dateien)_"
-                    )
-                    self._notify_export(result, links)
-                    return self.async_abort(
-                        reason="export_done",
-                        description_placeholders={
-                            "links": links,
-                            "expires": valid_until_label(
-                                result.get("files_valid_until")
-                            ) or "–",
-                        },
-                    )
+                    self._export_from, self._export_to = from_dt, to_dt
+                    return await self.async_step_export_run()
 
-        # Prefill with the submitted values (on error) or the preset range.
+        # Prefill with the submitted values (on error) or the chosen range.
         submitted = user_input or {}
         suggested = {
             ATTR_FROM_DATETIME: submitted.get(ATTR_FROM_DATETIME)
@@ -1342,7 +1353,85 @@ class SmgwOptionsFlow(OptionsFlow):
             suggested,
         )
         return self.async_show_form(
-            step_id="export_dates", data_schema=schema, errors=errors
+            step_id="export_dates",
+            data_schema=schema,
+            errors=errors,
+            # The error texts of a split export name the failed part; the
+            # frontend fills an error's placeholders from these.
+            description_placeholders=placeholders,
+        )
+
+    async def async_step_export_run(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show progress while the meter values download.
+
+        A range over three months takes several gateway requests with pauses
+        in between, so the export runs as a task behind HA's progress screen
+        instead of blocking the form. The ring shows the finished parts; while
+        a part downloads, it creeps forward on an estimate.
+        """
+        if self._export_task is None:
+            self._export_task = self.hass.async_create_task(
+                run_export(
+                    self.hass,
+                    self.config_entry.runtime_data,
+                    self._export_from,
+                    self._export_to,
+                    download_cms=self._export_input[ATTR_DOWNLOAD_CMS],
+                    do_csv=self._export_input[ATTR_WRITE_CSV],
+                    do_xlsx=self._export_input[ATTR_WRITE_XLSX],
+                    progress=self.async_update_progress,
+                )
+            )
+        if not self._export_task.done():
+            return self.async_show_progress(
+                step_id="export_run",
+                progress_action="export",
+                progress_task=self._export_task,
+            )
+
+        task, self._export_task = self._export_task, None
+        try:
+            self._export_result = task.result()
+        except ServiceValidationError as err:
+            self._export_error = err.translation_key or "export_failed"
+        except HomeAssistantError as err:
+            if err.translation_key in _EXPORT_FORM_ERRORS:
+                self._export_error = err.translation_key
+                self._export_error_placeholders = dict(
+                    err.translation_placeholders or {}
+                )
+            else:
+                self._export_error = "export_failed"
+        except Exception:  # noqa: BLE001 - surface as a form error
+            _LOGGER.exception("Export via options flow failed")
+            self._export_error = "export_failed"
+        if self._export_error:
+            return self.async_show_progress_done(next_step_id="export_dates")
+        return self.async_show_progress_done(next_step_id="export_finish")
+
+    async def async_step_export_finish(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show the download links and keep a copy as a notification."""
+        result = self._export_result or {}
+        links = build_links_markdown(result.get("files", {})) or "_(keine Dateien)_"
+        self._notify_export(result, links)
+        split = result.get("parts", 1) > 1
+        late = bool(result.get("parts_without_data"))
+        reason = "export_done" + ("_split" if split else "") + (
+            "_late" if late else ""
+        )
+        return self.async_abort(
+            reason=reason,
+            description_placeholders={
+                "links": links,
+                "expires": valid_until_label(result.get("files_valid_until"))
+                or "–",
+                "parts": str(result.get("parts", 1)),
+                "data_from": data_from_label(self.hass, result),
+            },
         )
 
     @staticmethod
@@ -1364,8 +1453,7 @@ class SmgwOptionsFlow(OptionsFlow):
     def _notify_export(self, result: dict[str, Any], links: str) -> None:
         """Post a persistent notification as a lasting copy of the links."""
         message = (
-            f"{result['reading_count']} Werte, "
-            f"{len(result['daily_summary'])} Tage.\n\n{links}"
+            f"{export_summary(self.hass, result)}\n\n{links}"
             f"{validity_note(result.get('files_valid_until'))}"
         )
         persistent_notification.async_create(

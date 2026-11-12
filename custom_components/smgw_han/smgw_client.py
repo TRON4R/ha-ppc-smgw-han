@@ -10,6 +10,7 @@ import re
 import urllib.parse
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time, timedelta
+from time import monotonic
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -40,6 +41,21 @@ LOG_EXPORT_TARGET_ENTRIES = 900
 # few refused attempts; anything far beyond that is a runaway, not a log.
 LOG_EXPORT_MAX_REQUESTS = 200
 
+# Meter export (action=exportMeterValues). The gateway assembles the whole
+# signed file before it sends the first byte, so this one request may stay
+# silent much longer than a page view. Only it gets the longer read limit; a
+# hanging login, the navigation and the nightly fetch still fail after 30 s.
+# The read limit is the longest SILENCE, not the total duration: the transfer
+# that follows may take longer as long as data keeps arriving.
+# Why 2 minutes (a judgement, not a measurement): every export of up to 111
+# days finished within the old 30 s limit (exact times were never measured),
+# and the one request that took long - a whole year, 2026-10-03 - was aborted
+# by the gateway itself with HTTP 500 after 48 s. Waiting much longer than
+# that gains nothing. Exports are split into parts of at most three months
+# (services.split_export_range), so no request comes near a year.
+CMS_EXPORT_READ_TIMEOUT_S = 120.0
+CMS_EXPORT_TIMEOUT = httpx.Timeout(30.0, read=CMS_EXPORT_READ_TIMEOUT_S)
+
 _LOG_COUNT_RE = re.compile(r"liefert\s+(\d+)\s+Datens", re.IGNORECASE)
 
 
@@ -55,10 +71,21 @@ class SmgwConnectionError(SmgwClientError):
     """Connection error."""
 
 
+class SmgwTimeoutError(SmgwConnectionError):
+    """The gateway accepted a request but sent no answer in time.
+
+    Raised for a read timeout only: the gateway was reachable and silent, for
+    an export typically still assembling the file. A timeout while connecting
+    stays a plain :class:`SmgwConnectionError`.
+    """
+
+
 class SmgwServerError(SmgwClientError):
     """HTTP 4xx/5xx from the SMGW. On the CMS export endpoint this typically
     means the gateway has no data for the requested range (e.g. before the
-    meter was commissioned)."""
+    meter was commissioned). It is also how the gateway refused a whole year
+    (HTTP 500 after 48 s, 2026-10-03), so the message carries the readable
+    text of the answer to tell the two apart in the log."""
 
 
 class SmgwNoDataError(SmgwClientError):
@@ -475,23 +502,29 @@ class SmgwClient:
 
         return response.text
 
-    async def _post_binary(self, data: dict) -> tuple[bytes, str | None]:
+    async def _post_binary(
+        self, data: dict, *, timeout: httpx.Timeout | None = None
+    ) -> tuple[bytes, str | None]:
         """Send a POST and return the raw body + suggested filename.
 
         Like :meth:`_post` but for binary downloads (the signed CMS export):
         returns the response bytes instead of decoded text and does not try to
         parse a CSRF token from the body. All httpx exceptions are wrapped into
-        SmgwClientError subtypes.
+        SmgwClientError subtypes. ``timeout`` replaces the client's 30 s for
+        this one request.
         """
-        response = await self._send(data)
+        response = await self._send(data, timeout=timeout)
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as err:
             # The CMS export endpoint answers with an HTTP error for a range it
             # has no data for (e.g. before the meter was commissioned); surface
             # that distinctly so the coordinator can map it to a clean "no data".
+            # The gateway's own words go along: the year it refused on
+            # 2026-10-03 answered HTTP 500 too, and its text was never seen.
             raise SmgwServerError(
-                f"HTTP error: {err.response.status_code}"
+                f"HTTP error: {err.response.status_code}: "
+                f"{_visible_text(response.content)!r}"
             ) from err
 
         filename = self._parse_content_disposition_filename(
@@ -499,28 +532,51 @@ class SmgwClient:
         )
         return response.content, filename
 
-    async def _send(self, data: dict) -> httpx.Response:
+    async def _send(
+        self, data: dict, *, timeout: httpx.Timeout | None = None
+    ) -> httpx.Response:
         """POST with the current session and return the response unchecked.
 
         Transport errors are wrapped into SmgwClientError subtypes; the HTTP
         status is left to the caller. The log export needs the body of an
         error answer too, because the gateway names the entry count there.
+        ``timeout`` replaces the client's 30 s for this one request.
+
+        The time until the first byte and the transfer after it are logged
+        at INFO: for the meter export they are the only way to learn how long
+        the gateway really needs, which the export timeout is a guess about.
         """
         if not self._token:
             raise SmgwClientError("Not logged in - no CSRF token available")
 
         client = await self._get_client()
-        post_data = {"tkn": self._token, **data}
-
+        request = client.build_request(
+            "POST",
+            self._base_url,
+            data={"tkn": self._token, **data},
+            timeout=timeout or client.timeout,
+        )
+        started = monotonic()
         try:
-            return await client.post(
-                self._base_url,
-                data=post_data,
+            # Streamed only to tell the gateway's preparation time from the
+            # transfer; the body is read completely right here.
+            response = await client.send(
+                request,
                 auth=httpx.DigestAuth(self._username, self._password),
+                stream=True,
             )
+            first_byte = monotonic() - started
+            try:
+                await response.aread()
+            finally:
+                await response.aclose()
         except (httpx.ConnectError, httpx.RemoteProtocolError) as err:
             raise SmgwConnectionError(
                 f"Connection lost during request: {err}"
+            ) from err
+        except httpx.ReadTimeout as err:
+            raise SmgwTimeoutError(
+                f"No answer within {monotonic() - started:.0f} s: {err!r}"
             ) from err
         except httpx.TimeoutException as err:
             raise SmgwConnectionError(
@@ -530,6 +586,13 @@ class SmgwClient:
             raise SmgwConnectionError(
                 f"Request error: {err}"
             ) from err
+        _LOGGER.info(
+            "SMGW %s: first byte after %.1f s, %d bytes in a further %.1f s "
+            "(HTTP %s)",
+            data.get("action"), first_byte, len(response.content),
+            monotonic() - started - first_byte, response.status_code,
+        )
+        return response
 
     @staticmethod
     def _parse_content_disposition_filename(
@@ -977,7 +1040,8 @@ class SmgwClient:
                     "mid": mid,
                     "from": from_str,
                     "to": to_str,
-                }
+                },
+                timeout=CMS_EXPORT_TIMEOUT,
             )
             # An empty body is not an error here: a range entirely before the
             # meter's first reading legitimately returns no CMS. run_export
