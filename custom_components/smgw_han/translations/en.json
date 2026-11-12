@@ -151,7 +151,7 @@
       },
       "export": {
         "title": "Export consumption and feed-in data",
-        "description": "Choose a period and which files to create. The next step lets you fine-tune the exact date range.\n\nRanges over three months are fetched in parts of at most three months each, so the SMGW is not overloaded: the signed CMS originals then come together in one ZIP file, CSV and Excel stay one file each.",
+        "description": "Choose a period and which files to create. The next step lets you fine-tune the exact date range.\n\nRanges over three months are fetched in parts of at most three months each, so the SMGW is not overloaded: the signed CMS originals then come together in one ZIP file, but the result is still combined into just one CSV and one Excel file.",
         "data": {
           "period": "Period",
           "download_cms": "Download certified CMS file",

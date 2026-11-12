@@ -151,7 +151,7 @@
       },
       "export": {
         "title": "Verbrauchs- und Einspeisedaten exportieren",
-        "description": "Wähle einen Zeitraum und welche Dateien erzeugt werden sollen. Im nächsten Schritt kannst du den genauen Zeitraum noch anpassen.\n\nZeiträume über drei Monate holt die Integration in Teilen zu höchstens drei Monaten, um das SMGW nicht zu überlasten: Die signierten CMS-Originale kommen dann gemeinsam in eine ZIP-Datei, CSV und Excel bleiben je eine Datei.",
+        "description": "Wähle einen Zeitraum und welche Dateien erzeugt werden sollen. Im nächsten Schritt kannst du den genauen Zeitraum noch anpassen.\n\nZeiträume über drei Monate holt die Integration in Teilen zu höchstens drei Monaten, um das SMGW nicht zu überlasten: Die signierten CMS-Originale kommen dann gemeinsam in eine ZIP-Datei, das Endergebnis wird aber weiterhin in nur jeweils einer CSV- und Excel-Datei zusammengefasst.",
         "data": {
           "period": "Zeitraum",
           "download_cms": "Zertifizierte CMS-Datei downloaden",
