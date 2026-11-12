@@ -306,7 +306,7 @@ Via **Configure → "Export the SMGW log for a custom time range"**, details in 
 
 Ranges over three months are fetched in parts of at most three months, with short pauses in between. One SMGW refused a whole-year export in one piece with an error, whereas requests of up to three months worked reliably. Each part is a separate original signed by the SMGW. Signed files cannot be merged without breaking the signature, which is why the parts come together in one ZIP file. CSV and Excel cover the whole range in one file each. A year therefore takes a few minutes; the dialog shows the progress as a ring.
 
-If the readings start later than your range, the SMGW had no data for the beginning, for example because it was installed later or has already deleted older values. The final step and the notification then name the first day with data. Details in the README under [Data export for user-defined time ranges](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#-data-export-for-user-defined-time-ranges).
+If the readings start later than your range, the SMGW returned no data for the beginning, usually because it was installed later or has already deleted older values. The final step and the notification then name the first day with data. Details in the README under [Data export for user-defined time ranges](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#-data-export-for-user-defined-time-ranges).
 
 ---
 

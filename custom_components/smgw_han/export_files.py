@@ -383,7 +383,7 @@ def write_xlsx(
         )
         row += 1
         for index, part in enumerate(parts, 1):
-            note = "" if part.get("has_data") else " – keine Daten im SMGW"
+            note = "" if part.get("has_data") else " – keine Daten geliefert"
             info[f"A{row}"] = (
                 f"Teil {index}: {part.get('from', '')} bis {part.get('to', '')}"
                 f"{note}"
@@ -391,9 +391,11 @@ def write_xlsx(
             row += 1
         if not all(part.get("has_data") for part in parts):
             info[f"A{row}"] = (
-                "Für die Teile ohne Daten hatte das SMGW keine Messwerte, etwa "
-                "weil es damals noch nicht in Betrieb war oder ältere Werte "
-                "bereits gelöscht hat."
+                "Für die Teile ohne Daten hat das SMGW keine Messwerte "
+                "geliefert. Meist war es damals noch nicht in Betrieb oder hat "
+                "ältere Werte bereits gelöscht. Übersprungen werden solche "
+                "Teile nur am Anfang des Zeitraums und nur, wenn die Werte "
+                "erst deutlich nach Beginn des folgenden Teils einsetzen."
             )
             row += 1
     info.column_dimensions["A"].width = 140
