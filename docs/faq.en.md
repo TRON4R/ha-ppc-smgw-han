@@ -48,6 +48,7 @@ Back to the [README](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.
 - [X2](#x2) My export "until 23:59:59" is incomplete
 - [X3](#x3) Can I automate the export?
 - [X4](#x4) How do I download the SMGW log – and why do I get a ZIP?
+- [X5](#x5) My export of a whole year comes as a ZIP – and why does it take so long?
 
 **Dashboard card**
 - [K1](#k1) The daily consumption history card shows no bars
@@ -300,6 +301,12 @@ Yes, via the actions `smgw_han.export_readings` and `smgw_han.export_period`, e.
 ### <a id="x4"></a>X4 · How do I download the SMGW log – and why do I get a ZIP?
 
 Via **Configure → "Export the SMGW log for a custom time range"**, details in the README under [Exporting the SMGW log](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#-exporting-the-smgw-log). The SMGW hands out at most 1000 entries per export and otherwise answers "Die Abfrage liefert … Datensätze zurück. Es sind nur 1000 erlaubt." ("the query returns … records; only 1000 are allowed"). If your range holds more, the integration splits it automatically. Each part is a separate original signed by the SMGW, and signed files cannot be merged without breaking the signature. That is why the parts come together in one ZIP file. CSV and Excel still contain all entries in one file each.
+
+### <a id="x5"></a>X5 · My export of a whole year comes as a ZIP – and why does it take so long?
+
+Ranges over three months are fetched in parts of at most three months, with short pauses in between. One SMGW refused a whole-year export in one piece with an error, whereas requests of up to three months worked reliably. Each part is a separate original signed by the SMGW. Signed files cannot be merged without breaking the signature, which is why the parts come together in one ZIP file. CSV and Excel cover the whole range in one file each. A year therefore takes a few minutes; the dialog shows the progress as a ring.
+
+If the readings start later than your range, the SMGW had no data for the beginning, for example because it was installed later or has already deleted older values. The final step and the notification then name the first day with data. Details in the README under [Data export for user-defined time ranges](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/README.en.md#-data-export-for-user-defined-time-ranges).
 
 ---
 

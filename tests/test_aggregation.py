@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time
+from pathlib import Path
 
+import pytest
+
+from custom_components.smgw_han import aggregation
 from custom_components.smgw_han.aggregation import _diff, build_daily_summary
+from custom_components.smgw_han.cms_parser import parse_cms_readings
 from custom_components.smgw_han.const import OBIS_EXPORT, OBIS_IMPORT
 from custom_components.smgw_han.smgw_client import MeterReading
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def _fixed(zones):
@@ -174,3 +181,43 @@ def test_missing_inner_boundary_affects_only_adjacent_zones():
     assert s.zone_consumptions["Niedrig"] is None  # 12-16 segment broken
     assert s.consumption_total == 28.0
     assert s.import_switches["12:00"] is None
+
+
+# ----------------------------------------------------------------------
+# Per-day candidate lists (3.9.0): same result as scanning everything
+# ----------------------------------------------------------------------
+
+
+def _full_scan(days, _day):
+    """The old lookup: every reading of the range, in original order."""
+    return [
+        reading
+        for _position, reading in sorted(
+            (item for items in days.values() for item in items),
+            key=lambda item: item[0],
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        "cms_sample.xml.cms",
+        "cms_dst_spring_2026-03-29.xml.cms",
+        "cms_dst_autumn_2025-10-26.xml.cms",
+    ],
+)
+@pytest.mark.parametrize("zones", [GO_ZONES, HEAT_ZONES])
+def test_per_day_lookup_matches_the_full_scan(monkeypatch, fixture, zones):
+    """Each boundary only looks at its own day and the two neighbours.
+
+    That made the summary linear instead of quadratic; on real exports,
+    including both DST days and a boundary inside the change hour (Heat at
+    02:00), it must give exactly what the full scan gave.
+    """
+    readings = parse_cms_readings((FIXTURES / fixture).read_bytes())
+    fast = build_daily_summary(readings, _fixed(zones))
+    monkeypatch.setattr(aggregation, "_near", _full_scan)
+    slow = build_daily_summary(readings, _fixed(zones))
+    assert [s.to_dict() for s in fast] == [s.to_dict() for s in slow]
+    assert fast

@@ -367,6 +367,35 @@ def write_xlsx(
         "Umstellung auf Sommerzeit (letzter Sonntag im März) fehlen diese "
         "Uhrzeiten, weil es sie nicht gibt."
     )
+    parts: list[dict[str, Any]] = meta.get("parts") or []
+    if parts:
+        row += 2
+        info[f"A{row}"] = "Abruf in Teilen"
+        info[f"A{row}"].font = bold
+        row += 1
+        info[f"A{row}"] = (
+            f"Der Zeitraum wurde in {len(parts)} Teilabrufen zu höchstens drei "
+            "Monaten vom SMGW geholt, um das Gateway nicht zu überlasten. "
+            "Jeder Teilabruf mit Daten ist eine eigene signierte CMS-Datei; "
+            "diese Mappe enthält alle Teile zusammengeführt. Aufeinanderfolgende "
+            "Teile überlappen um 15 Minuten, doppelte Werte sind nur einmal "
+            "enthalten."
+        )
+        row += 1
+        for index, part in enumerate(parts, 1):
+            note = "" if part.get("has_data") else " – keine Daten im SMGW"
+            info[f"A{row}"] = (
+                f"Teil {index}: {part.get('from', '')} bis {part.get('to', '')}"
+                f"{note}"
+            )
+            row += 1
+        if not all(part.get("has_data") for part in parts):
+            info[f"A{row}"] = (
+                "Für die Teile ohne Daten hatte das SMGW keine Messwerte, etwa "
+                "weil es damals noch nicht in Betrieb war oder ältere Werte "
+                "bereits gelöscht hat."
+            )
+            row += 1
     info.column_dimensions["A"].width = 140
 
     # --- header styling + autosize for all data sheets ------------------

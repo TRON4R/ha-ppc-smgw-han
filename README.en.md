@@ -194,7 +194,15 @@ Under the hood there are **two actions/services**:
 - **`smgw_han.export_readings`** — custom range via `from_datetime` / `to_datetime`.
 - **`smgw_han.export_period`** — a ready-made **period preset** (`Yesterday`, `Last 7 days`, `Last 30 days`, `Current month`, `Last month`); `from`/`to` incl. the correct day-closing reading are computed automatically.
 
-Both return the same result: a response variable with `readings` + `daily_summary`, and (if file switches are set) `files` with download links.
+Both return the same result: a response variable with `readings` + `daily_summary`, and (if file switches are set) `files` with download links. `parts` is the number of requests that returned data, `parts_without_data` the parts at the start for which the SMGW had no data (see below).
+
+**Long ranges** are fetched in parts of at most three months, with short pauses in between. One SMGW refused a whole-year export in one piece with an error, whereas requests of up to three months worked reliably. The range is cut every three months on the start's day of the month, so a year from 1 January gives exactly the four quarters. Little changes for you:
+
+- **CSV and Excel** cover the whole range in one file each. The "Definition" sheet of the Excel file lists the parts.
+- **The signed CMS originals** come one by one in a **ZIP file**, because signed files cannot be merged without breaking their signatures.
+- **If the SMGW has no data for the beginning of the range**, for example because it is younger than the range or has already deleted older values, the export starts at the first available reading and tells you so.
+- **If a part in the middle of the range is missing** or a request fails, the export is cancelled and names the part. There is no merged file with an unnoticed gap.
+- **A year takes a few minutes.** The dialog shows the progress as a ring. If the SMGW does not answer a request for two minutes, the export is cancelled with a message of its own.
 
 ---
 

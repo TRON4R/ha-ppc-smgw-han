@@ -74,6 +74,39 @@ def _diff(a: float | None, b: float | None) -> float | None:
     return round(b - a, 4)
 
 
+def _by_day(
+    readings: list[MeterReading],
+) -> dict[date, list[tuple[int, MeterReading]]]:
+    """Readings grouped by calendar day, each tagged with its list position."""
+    days: dict[date, list[tuple[int, MeterReading]]] = {}
+    for position, reading in enumerate(readings):
+        days.setdefault(reading.timestamp.date(), []).append((position, reading))
+    return days
+
+
+def _near(
+    days: dict[date, list[tuple[int, MeterReading]]], day: date
+) -> list[MeterReading]:
+    """All readings of ``day`` and its two neighbours, in original list order.
+
+    Every boundary of a day lies between its 00:00 and the next day's 00:00,
+    and the lookups accept readings at most minutes away (or, on the spring
+    DST day, an hour later), so no candidate can lie outside these three
+    days. Scanning only them instead of the whole range turns the summary
+    from quadratic into linear: a quarter took 9.5 s, nine months 63 s on a
+    desktop PC before (2026-10-03), well under a second afterwards. Keeping
+    the original order keeps every tie-break of the lookups unchanged, so
+    the result is identical to scanning everything.
+    """
+    tagged = [
+        item
+        for neighbour in (day - timedelta(days=1), day, day + timedelta(days=1))
+        for item in days.get(neighbour, ())
+    ]
+    tagged.sort(key=lambda item: item[0])
+    return [reading for _position, reading in tagged]
+
+
 def build_daily_summary(
     readings: list[MeterReading],
     zones_for: Callable[[date], TariffZones],
@@ -94,8 +127,8 @@ def build_daily_summary(
     if not readings:
         return []
 
-    import_readings = [r for r in readings if r.obis_code == OBIS_IMPORT]
-    export_readings = [r for r in readings if r.obis_code == OBIS_EXPORT]
+    import_by_day = _by_day([r for r in readings if r.obis_code == OBIS_IMPORT])
+    export_by_day = _by_day([r for r in readings if r.obis_code == OBIS_EXPORT])
 
     first_day = min(r.timestamp for r in readings).date()
     last_day = max(r.timestamp for r in readings).date()
@@ -105,6 +138,8 @@ def build_daily_summary(
     while day <= last_day:
         zones = zones_for(day)
         next_day = day + timedelta(days=1)
+        import_readings = _near(import_by_day, day)
+        export_readings = _near(export_by_day, day)
         # Segment boundaries: each configured segment start (second :01, like
         # the strict daily processing) plus next-day midnight as the closer.
         boundary_times = [

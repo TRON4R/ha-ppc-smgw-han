@@ -11,16 +11,28 @@ through short-lived signed download links (see ``downloads.py``):
 
 They are kept separate so each action form is unambiguous (no "which input
 wins" between a preset and a custom range).
+
+A range longer than three months is fetched in parts (see
+:func:`split_export_range`): the gateway refused a whole year in one request
+on 2026-10-03 and was unreachable afterwards. The signed parts go into one
+ZIP unchanged; CSV and Excel are merged into one file each.
 """
 
 from __future__ import annotations
 
+import asyncio
+import calendar
+import contextlib
+import html
 import logging
+import math
 import re
-from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
-from typing import Any
+from time import monotonic
+from typing import Any, TypeVar
 
 import voluptuous as vol
 from homeassistant.components import persistent_notification
@@ -31,7 +43,7 @@ from homeassistant.core import (
     ServiceResponse,
     SupportsResponse,
 )
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.util import dt as dt_util
 
@@ -53,10 +65,45 @@ from .const import (
     ZONE_TIME,
 )
 from .downloads import export_links, new_export_dir, valid_until_label
-from .export_files import write_readings_csv, write_xlsx
-from .smgw_client import MeterReading, TariffZones
+from .export_files import write_cms_zip, write_readings_csv, write_xlsx
+from .smgw_client import MeterReading, TariffZones, _visible_text, utc_instant
 
 _LOGGER = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
+
+# --- Splitting long ranges (owner decision 2026-11-12) ---------------------
+# Up to this many days the export stays ONE request, as it always was. Every
+# export of up to 111 days worked; a whole year made the gateway answer HTTP
+# 500 after 48 s and then become unreachable (2026-10-03, cause unproven).
+EXPORT_SINGLE_REQUEST_DAYS = 93
+# Longer ranges are cut every three calendar months, on the start's day of
+# the month and counted from the start (a part holds at most 92 days).
+EXPORT_PART_MONTHS = 3
+# Each part runs this far past its cut, like the presets' closing margin, so
+# every signed part also holds the closing reading of its own last day. The
+# overlapping readings are dropped again when the parts are merged.
+EXPORT_PART_OVERLAP = timedelta(minutes=15)
+# A remainder up to this long joins the part before it instead of becoming a
+# request of its own (keeps every request within EXPORT_SINGLE_REQUEST_DAYS).
+EXPORT_MIN_LAST_PART = timedelta(days=1)
+# Pause between two parts. Whether the gateway needs it is unknown; for a
+# year it costs 30 seconds.
+EXPORT_PART_PAUSE_S = 10.0
+# A part starts at a midnight cut, and a gateway that already recorded then
+# has its reading at 00:00:01-00:00:05 (the grid is 15 minutes). A first
+# reading later than this proves its history begins inside the part.
+_HISTORY_START_TOLERANCE = timedelta(minutes=15)
+
+# --- Progress ring of the options flow ---------------------------------------
+# Share of the ring for downloading and parsing the parts; the rest is the
+# daily summary and the files.
+_DOWNLOAD_SHARE = 0.9
+# While a part downloads its real progress is unknown (the gateway sends
+# nothing until the whole file is assembled), so the ring creeps towards this
+# fraction of the part's share and jumps to the full share when it arrives.
+_PART_ESTIMATE_CAP = 0.85
+_PART_TIME_CONSTANT_S = 10.0
 
 PERIOD_PRESETS = (
     "yesterday",
@@ -117,6 +164,48 @@ def _period_range(period: str) -> tuple[datetime, datetime]:
         translation_key="unknown_period",
         translation_placeholders={"period": str(period)},
     )
+
+
+def _add_months(day: date, months: int) -> date:
+    """``day`` shifted by whole months; a missing day becomes the month end.
+
+    31 January + 3 months is 30 April. Callers always count from the same
+    start, so a short month never shifts the later cuts (31.01. -> 30.04. ->
+    31.07., not 30.07.).
+    """
+    index = day.month - 1 + months
+    year, month = day.year + index // 12, index % 12 + 1
+    return date(year, month, min(day.day, calendar.monthrange(year, month)[1]))
+
+
+def split_export_range(
+    from_dt: datetime, to_dt: datetime
+) -> list[tuple[datetime, datetime]]:
+    """The gateway requests one export is fetched with, in order.
+
+    Up to :data:`EXPORT_SINGLE_REQUEST_DAYS` days: the range itself, one
+    request. Longer: cut at midnight every three months on the start's day
+    of the month (17.02. -> 17.05. -> 17.08. ...); the last part takes the
+    rest, and a rest of at most :data:`EXPORT_MIN_LAST_PART` stays with the
+    part before it. Each part but the last ends
+    :data:`EXPORT_PART_OVERLAP` after its cut. Cuts at midnight never fall
+    into the hour a DST change touches. The user's own from/to are kept.
+    """
+    if to_dt - from_dt <= timedelta(days=EXPORT_SINGLE_REQUEST_DAYS):
+        return [(from_dt, to_dt)]
+    cuts: list[datetime] = []
+    step = 1
+    while True:
+        cut = datetime.combine(
+            _add_months(from_dt.date(), EXPORT_PART_MONTHS * step), time()
+        )
+        if to_dt - cut <= EXPORT_MIN_LAST_PART:
+            break
+        cuts.append(cut)
+        step += 1
+    starts = [from_dt, *cuts]
+    ends = [*(cut + EXPORT_PART_OVERLAP for cut in cuts), to_dt]
+    return list(zip(starts, ends, strict=True))
 
 
 # German umlauts are transliterated rather than blanked out by _sanitize: a
@@ -250,6 +339,21 @@ def _validate_range(from_dt: datetime, to_dt: datetime) -> None:
         )
 
 
+@dataclass
+class _Part:
+    """One gateway request of an export that returned readings."""
+
+    from_dt: datetime
+    to_dt: datetime
+    readings: list[MeterReading]
+    content: bytes | None  # the signed file; dropped unless it is to be saved
+    name: str | None  # the gateway's filename for it
+
+
+def _stamp(value: datetime) -> str:
+    return value.strftime("%Y-%m-%d_%H%M%S")
+
+
 def _write_export_files(
     export_dir: Path,
     base: str,
@@ -258,19 +362,38 @@ def _write_export_files(
     meta: dict[str, Any],
     do_csv: bool,
     do_xlsx: bool,
-    cms_bytes: bytes | None,
-    cms_name: str | None,
+    cms_parts: list[_Part] | None,
+    fallback_cms_name: str,
 ) -> dict[str, str]:
     """Write the requested files (blocking) and return ``kind -> filename``.
 
     Order follows the selection order in the action form (CMS, CSV, XLSX) so
-    the response links come out in that same order.
+    the response links come out in that same order. ``cms_parts`` is None
+    when no CMS file was requested. One part is saved as the gateway named
+    it; several go into one ZIP unchanged, because a signed file cannot be
+    merged without breaking its signature.
     """
     export_dir.mkdir(parents=True, exist_ok=True)
     written: dict[str, str] = {}
-    if cms_bytes is not None:
-        fname = _sanitize(cms_name) if cms_name else f"{base}.sm_data.xml.cms"
-        (export_dir / fname).write_bytes(cms_bytes)
+    if cms_parts and len(cms_parts) == 1:
+        part = cms_parts[0]
+        fname = _sanitize(part.name) if part.name else fallback_cms_name
+        (export_dir / fname).write_bytes(part.content or b"")
+        written["cms"] = fname
+    elif cms_parts:
+        total = len(cms_parts)
+        members = [
+            (
+                _sanitize(
+                    f"Teil{index:02d}von{total:02d}_{_stamp(part.from_dt)}_bis_"
+                    f"{_stamp(part.to_dt)}_{part.name or fallback_cms_name}"
+                ),
+                part.content or b"",
+            )
+            for index, part in enumerate(cms_parts, 1)
+        ]
+        fname = f"{base}_CMS.zip"
+        write_cms_zip(export_dir / fname, members)
         written["cms"] = fname
     if do_csv:
         fname = f"{base}.csv"
@@ -283,19 +406,258 @@ def _write_export_files(
     return written
 
 
-def _parse_and_aggregate(
-    cms_bytes: bytes, zones_for: Callable[[date], TariffZones]
+def _merge_and_aggregate(
+    part_readings: list[list[MeterReading]],
+    zones_for: Callable[[date], TariffZones],
 ) -> tuple[list[MeterReading], list[DailySummary]]:
-    """Parse CMS bytes and build the daily summary (blocking; run in executor).
+    """Merge the parts' readings, build the daily summary (blocking).
 
-    Both steps are CPU-bound on large ranges (multi-MB XML, per-day reading
-    scans), so they belong off the event loop. ``zones_for`` is the
-    coordinator's snapshotted resolver, so each day is split by the layout
-    that was valid on it even when the range crosses a scheduled change.
+    CPU-bound on large ranges, so it belongs off the event loop. Neighbouring
+    parts overlap by :data:`EXPORT_PART_OVERLAP`; a reading both deliver is
+    kept once, identified by its real moment (UTC) and register, so the two
+    passes of the repeated autumn hour stay apart. The summary runs over the
+    merged readings, so a day at a seam gets its boundaries from both sides.
+    ``zones_for`` is the coordinator's snapshotted resolver, so each day is
+    split by the layout that was valid on it even when the range crosses a
+    scheduled change.
     """
-    readings = parse_cms_readings(cms_bytes)
-    daily_summary = build_daily_summary(readings, zones_for)
-    return readings, daily_summary
+    if len(part_readings) == 1:
+        readings = part_readings[0]  # already in parser order, as before
+    else:
+        seen: dict[tuple[datetime, str], float] = {}
+        readings = []
+        for part in part_readings:
+            for reading in part:
+                key = (utc_instant(reading.timestamp), reading.obis_code)
+                if key in seen:
+                    if seen[key] != reading.value:
+                        _LOGGER.warning(
+                            "Two parts disagree on %s %s: %s vs %s; the "
+                            "first is kept",
+                            reading.obis_code, reading.timestamp,
+                            seen[key], reading.value,
+                        )
+                    continue
+                seen[key] = reading.value
+                readings.append(reading)
+        readings.sort(key=lambda r: (utc_instant(r.timestamp), r.obis_code))
+    return readings, build_daily_summary(readings, zones_for)
+
+
+class _Progress:
+    """Feeds the options flow's progress ring (0..1); idle without a callback."""
+
+    def __init__(self, report: Callable[[float], None] | None, parts: int) -> None:
+        self._report = report
+        self._share = _DOWNLOAD_SHARE / parts
+
+    def set(self, value: float) -> None:
+        if self._report is not None:
+            self._report(min(max(value, 0.0), 1.0))
+
+    def part_done(self, index: int) -> None:
+        self.set(self._share * (index + 1))
+
+    async def track(self, index: int, awaitable: Awaitable[_T]) -> _T:
+        """Await one part's download while the ring creeps forward."""
+        if self._report is None:
+            return await awaitable
+        base = self._share * index
+
+        async def creep() -> None:
+            started = monotonic()
+            while True:
+                await asyncio.sleep(1)
+                elapsed = monotonic() - started
+                self.set(
+                    base
+                    + self._share
+                    * _PART_ESTIMATE_CAP
+                    * (1 - math.exp(-elapsed / _PART_TIME_CONSTANT_S))
+                )
+
+        creeper = asyncio.create_task(creep())
+        try:
+            return await awaitable
+        finally:
+            creeper.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await creeper
+
+
+async def _fetch_part(
+    coordinator, from_dt: datetime, to_dt: datetime
+) -> tuple[bytes | None, str | None]:
+    """One gateway request; ``(None, None)`` when the gateway reports no data.
+
+    "No data" arrives as an HTTP error (mapped to ``no_data_in_range`` by the
+    coordinator), an empty answer, or the text "Keine Daten". Any other answer
+    without a signed payload, such as a login or error page, is a failure:
+    taking it for an empty range would let it pass as a gap in the history.
+
+    An HTTP error alone does NOT prove that the range is empty, though. An
+    external review (2026-11-12) proposed telling "no data" from a real
+    failure by the gateway's answer. That does not work: measured on a real
+    gateway the same day, a range without data is answered with HTTP 500 and
+    a generic 369-byte page "500 - Internal Server Error" within 0.1 s -
+    the same size as the page that came after 48 s when a gateway failed on
+    a whole year (2026-10-03). The caller therefore checks against the data
+    itself whether a skipped part can really have been empty
+    (see :func:`_download_parts`).
+    """
+    try:
+        content, name = await coordinator.async_download_cms(from_dt, to_dt)
+    except ServiceValidationError as err:
+        if err.translation_key != "no_data_in_range":
+            raise
+        return None, None
+    if content and b"<?xml" in content:
+        return content, name
+    text = html.unescape((content or b"").decode("utf-8", "replace"))
+    if not text.strip() or "Keine Daten" in text:
+        return None, None
+    _LOGGER.warning(
+        "SMGW answered the export %s .. %s with neither a signed file nor "
+        "'no data': %s", from_dt, to_dt, _visible_text(content),
+    )
+    raise HomeAssistantError(
+        translation_domain=DOMAIN, translation_key="cms_download_failed"
+    )
+
+
+def _fmt_moment(hass: HomeAssistant, value: datetime) -> str:
+    """A part's start or end the way the reader's language writes it."""
+    if (hass.config.language or "").lower().startswith("de"):
+        return value.strftime("%d.%m.%Y %H:%M")
+    return value.strftime("%Y-%m-%d %H:%M")
+
+
+def _part_placeholders(
+    hass: HomeAssistant, ranges: list[tuple[datetime, datetime]], index: int
+) -> dict[str, str]:
+    start, end = ranges[index]
+    return {
+        "part": str(index + 1),
+        "parts": str(len(ranges)),
+        "range": f"{_fmt_moment(hass, start)} – {_fmt_moment(hass, end)}",
+    }
+
+
+def _part_error(
+    hass: HomeAssistant,
+    err: HomeAssistantError,
+    ranges: list[tuple[datetime, datetime]],
+    index: int,
+) -> HomeAssistantError:
+    """Name the failed part in the message, so the user knows what is missing."""
+    if len(ranges) == 1 or err.translation_key == "cms_auth_failed":
+        return err  # one request, or a login problem that no part can fix
+    placeholders = _part_placeholders(hass, ranges, index)
+    if err.translation_key == "cms_download_timeout":
+        return HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="cms_part_timeout",
+            translation_placeholders={
+                **placeholders,
+                **(err.translation_placeholders or {}),
+            },
+        )
+    return HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key="cms_part_failed",
+        translation_placeholders=placeholders,
+    )
+
+
+async def _download_parts(
+    hass: HomeAssistant,
+    coordinator,
+    ranges: list[tuple[datetime, datetime]],
+    progress: _Progress,
+    keep_cms: bool,
+) -> tuple[list[_Part], int]:
+    """Fetch and parse every part; returns the parts with data + skipped ones.
+
+    Parts without data at the START may be skipped: the gateway simply has
+    no data that far back (younger than the range, or older data deleted).
+    Its answer cannot prove that (see :func:`_fetch_part`), so the data
+    has to: the gateway records without interruption from its first
+    reading on, so if the first part with data begins clearly after its own
+    start, the history begins there and the parts before it cannot hold
+    anything. If it begins right at its start, the gateway had data before
+    as well, and the empty part before it was a failure. That aborts the
+    export, as do a part without data AFTER one with data (a hole in the
+    middle) and any part that fails: a merged file with a quarter missing
+    would look complete at first glance. In the rare case that a gateway's
+    history begins exactly at a cut, the export aborts too - the safe side.
+    There is no automatic retry, to keep the load on the gateway
+    predictable.
+    """
+    parts: list[_Part] = []
+    skipped = 0
+    for index, (start, end) in enumerate(ranges):
+        if index:
+            await asyncio.sleep(EXPORT_PART_PAUSE_S)
+        try:
+            content, name = await progress.track(
+                index, _fetch_part(coordinator, start, end)
+            )
+        except HomeAssistantError as err:
+            raise _part_error(hass, err, ranges, index) from err
+        try:
+            readings = (
+                await hass.async_add_executor_job(parse_cms_readings, content)
+                if content
+                else []
+            )
+        except Exception as err:
+            if len(ranges) == 1:
+                raise
+            # A signed file that cannot be read: name the part it belongs to.
+            _LOGGER.exception(
+                "Export part %d/%d %s .. %s: the signed file could not be read",
+                index + 1, len(ranges), start, end,
+            )
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="cms_part_failed",
+                translation_placeholders=_part_placeholders(hass, ranges, index),
+            ) from err
+        progress.part_done(index)
+        _LOGGER.info(
+            "Export part %d/%d %s .. %s: %d readings",
+            index + 1, len(ranges), start, end, len(readings),
+        )
+        if not readings:
+            if parts:
+                raise _gap_error(hass, ranges, index)
+            skipped += 1
+            continue
+        if skipped and not parts:
+            first = min(r.timestamp for r in readings)
+            if first <= start + _HISTORY_START_TOLERANCE:
+                _LOGGER.warning(
+                    "Export part %d/%d returned no data, but the next part "
+                    "has readings from its very start (%s): the gateway had "
+                    "data then, so the empty answer was a failure",
+                    index, len(ranges), first,
+                )
+                raise _gap_error(hass, ranges, index - 1)
+        parts.append(
+            _Part(start, end, readings, content if keep_cms else None, name)
+        )
+    return parts, skipped
+
+
+def _gap_error(
+    hass: HomeAssistant, ranges: list[tuple[datetime, datetime]], index: int
+) -> HomeAssistantError:
+    """A part that returned nothing although its neighbours show data."""
+    return HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key="cms_part_no_data",
+        translation_placeholders=_part_placeholders(hass, ranges, index),
+    )
 
 
 async def run_export(
@@ -307,11 +669,13 @@ async def run_export(
     download_cms: bool,
     do_csv: bool,
     do_xlsx: bool,
+    progress: Callable[[float], None] | None = None,
 ) -> dict[str, Any]:
     """Shared export core, reused by the services and the options flow.
 
     ``coordinator`` is a loaded :class:`SmgwCoordinator`. Returns the
-    response dict (download links first, then meter data).
+    response dict (download links first, then meter data). ``progress``
+    receives values from 0 to 1 for the options flow's progress ring.
     """
     # A holiday rule needs the library's data loaded off the event loop; the
     # export may reach back years, so cover its whole range.
@@ -320,24 +684,26 @@ async def run_export(
     )
     zones_for = coordinator.zone_resolver()
 
-    # The signed CMS export delivers the whole range in a single request and is
-    # the authoritative source. Download once, then parse + aggregate off the
-    # event loop. The same bytes are reused below if the user asked to keep the
-    # .cms file (so there is never a second download).
-    cms_bytes, cms_name = await coordinator.async_download_cms(from_dt, to_dt)
-    # A range entirely before the meter's first reading comes back without a CMS
-    # payload — surface that as a clean "no data" message, not a raw parse error.
-    if not cms_bytes or b"<?xml" not in cms_bytes:
+    # The signed CMS export is the authoritative source. Each part is
+    # downloaded once and parsed off the event loop; its bytes are kept only
+    # if the user asked for the CMS file (so there is never a second
+    # download).
+    ranges = split_export_range(from_dt, to_dt)
+    tracker = _Progress(progress, len(ranges))
+    parts, skipped = await _download_parts(
+        hass, coordinator, ranges, tracker, keep_cms=download_cms
+    )
+    # A range entirely before the meter's first reading comes back without a
+    # CMS payload — surface that as a clean "no data" message, not a raw
+    # parse error.
+    if not parts:
         raise ServiceValidationError(
             translation_domain=DOMAIN, translation_key="no_data_in_range"
         )
     readings, daily_summary = await hass.async_add_executor_job(
-        _parse_and_aggregate, cms_bytes, zones_for
+        _merge_and_aggregate, [part.readings for part in parts], zones_for
     )
-    if not readings:
-        raise ServiceValidationError(
-            translation_domain=DOMAIN, translation_key="no_data_in_range"
-        )
+    tracker.set(_DOWNLOAD_SHARE + (1 - _DOWNLOAD_SHARE) / 2)
 
     meter_id = coordinator.target_meter_id
     from_str = from_dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -356,7 +722,8 @@ async def run_export(
             )
             + device_suffix
         )
-        cms_name = _cms_name_with_device(cms_name, device_suffix)
+        for part in parts:
+            part.name = _cms_name_with_device(part.name, device_suffix)
         token, export_dir = new_export_dir(hass)
         # Document every layout the range touches, not just the current one:
         # an export crossing a scheduled change is split by two of them, and
@@ -399,6 +766,17 @@ async def run_export(
                 }
                 for period in periods
             ],
+            # How the range was fetched, for the workbook (one request: []).
+            "parts": [
+                {
+                    "from": start.strftime("%Y-%m-%d %H:%M:%S"),
+                    "to": end.strftime("%Y-%m-%d %H:%M:%S"),
+                    "has_data": index >= skipped,
+                }
+                for index, (start, end) in enumerate(ranges)
+            ]
+            if len(ranges) > 1
+            else [],
         }
 
         # The CMS bytes are already in hand; save the file only if requested.
@@ -406,7 +784,7 @@ async def run_export(
             _write_export_files,
             export_dir, base, readings, daily_summary, meta,
             do_csv, do_xlsx,
-            cms_bytes if download_cms else None, cms_name,
+            parts if download_cms else None, f"{base}.sm_data.xml.cms",
         )
         files, valid_until = export_links(hass, token, written)
         _LOGGER.info(
@@ -423,9 +801,14 @@ async def run_export(
     response["meter_id"] = meter_id
     response["from"] = from_str
     response["to"] = to_str
+    # Gateway requests that returned data (= signed files), and the requests
+    # at the start of the range for which the gateway had none.
+    response["parts"] = len(parts)
+    response["parts_without_data"] = skipped
     response["reading_count"] = len(readings)
     response["readings"] = [_reading_to_dict(r) for r in readings]
     response["daily_summary"] = [s.to_dict() for s in daily_summary]
+    tracker.set(1.0)
     return response
 
 
@@ -466,8 +849,7 @@ def _notify_export_files(hass: HomeAssistant, response: dict[str, Any]) -> None:
     if not files:
         return
     message = (
-        f"{response['reading_count']} Werte, "
-        f"{len(response['daily_summary'])} Tage.\n\n"
+        f"{export_summary(hass, response)}\n\n"
         f"{build_links_markdown(files)}"
         f"{validity_note(response.get('files_valid_until'))}"
     )
@@ -477,6 +859,39 @@ def _notify_export_files(hass: HomeAssistant, response: dict[str, Any]) -> None:
         title="SMGW Export",
         notification_id="smgw_export_service",
     )
+
+
+def data_from_label(hass: HomeAssistant, response: dict[str, Any]) -> str:
+    """The day of the export's first reading, in the reader's notation."""
+    readings = response.get("readings") or []
+    if not readings:
+        return "–"
+    first = datetime.fromisoformat(readings[0]["timestamp"])
+    if (hass.config.language or "").lower().startswith("de"):
+        return first.strftime("%d.%m.%Y")
+    return first.date().isoformat()
+
+
+def export_summary(hass: HomeAssistant, response: dict[str, Any]) -> str:
+    """The notification's first lines: what came back, and how it was fetched."""
+    text = (
+        f"{response['reading_count']} Werte, "
+        f"{len(response['daily_summary'])} Tage."
+    )
+    parts = response.get("parts", 1)
+    if parts > 1:
+        text += (
+            f" In {parts} Teilabrufen geholt, weil die Integration Zeiträume "
+            "über drei Monate aufteilt, um das SMGW nicht zu überlasten."
+        )
+        if (response.get("files") or {}).get("cms"):
+            text += " Die signierten CMS-Originale liegen einzeln in der ZIP-Datei."
+    if response.get("parts_without_data"):
+        text += (
+            " Für den Anfang des Zeitraums hatte das SMGW keine Daten; die "
+            f"Werte beginnen am {data_from_label(hass, response)}."
+        )
+    return text
 
 
 def validity_note(valid_until: str | None) -> str:
