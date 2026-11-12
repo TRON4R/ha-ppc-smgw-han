@@ -92,7 +92,8 @@ EXPORT_MIN_LAST_PART = timedelta(days=1)
 EXPORT_PART_PAUSE_S = 10.0
 # A part starts at a midnight cut, and a gateway that already recorded then
 # has its reading at 00:00:01-00:00:05 (the grid is 15 minutes). A first
-# reading later than this proves its history begins inside the part.
+# reading later than this indicates that its history begins inside the
+# part - under the assumption described in _download_parts.
 _HISTORY_START_TOLERANCE = timedelta(minutes=15)
 
 # --- Progress ring of the options flow ---------------------------------------
@@ -578,14 +579,22 @@ async def _download_parts(
 ) -> tuple[list[_Part], int]:
     """Fetch and parse every part; returns the parts with data + skipped ones.
 
-    Parts without data at the START may be skipped: the gateway simply has
-    no data that far back (younger than the range, or older data deleted).
-    Its answer cannot prove that (see :func:`_fetch_part`), so the data
-    has to: the gateway records without interruption from its first
-    reading on, so if the first part with data begins clearly after its own
-    start, the history begins there and the parts before it cannot hold
-    anything. If it begins right at its start, the gateway had data before
-    as well, and the empty part before it was a failure. That aborts the
+    Parts without data at the START may be skipped: usually the gateway
+    simply has no data that far back (younger than the range, or older
+    data deleted). Its answer cannot tell that from a failure (see
+    :func:`_fetch_part`), so the data is used as evidence instead: if the
+    first part with data begins clearly after its own start, the history
+    most likely begins there. If it begins right at its start, the gateway
+    had data before as well, and the empty part before it was a failure.
+
+    This is evidence, not proof. It ASSUMES the gateway records without
+    gaps from its first reading on. A real failure of one part together
+    with missing readings right at the start of the next part would still
+    be taken for an empty range (pointed out by the external review of
+    2026-11-12, accepted as residual risk: never observed, and no answer
+    of the gateway can rule it out). Skipped parts are therefore always
+    reported as "returned no data" - in the dialog, the notification and
+    the workbook - never as "the gateway had no data". That aborts the
     export, as do a part without data AFTER one with data (a hole in the
     middle) and any part that fails: a merged file with a quarter missing
     would look complete at first glance. In the rare case that a gateway's
@@ -802,7 +811,7 @@ async def run_export(
     response["from"] = from_str
     response["to"] = to_str
     # Gateway requests that returned data (= signed files), and the requests
-    # at the start of the range for which the gateway had none.
+    # at the start of the range for which the gateway returned none.
     response["parts"] = len(parts)
     response["parts_without_data"] = skipped
     response["reading_count"] = len(readings)
@@ -888,8 +897,8 @@ def export_summary(hass: HomeAssistant, response: dict[str, Any]) -> str:
             text += " Die signierten CMS-Originale liegen einzeln in der ZIP-Datei."
     if response.get("parts_without_data"):
         text += (
-            " Für den Anfang des Zeitraums hatte das SMGW keine Daten; die "
-            f"Werte beginnen am {data_from_label(hass, response)}."
+            " Für den Anfang des Zeitraums hat das SMGW keine Daten "
+            f"geliefert; die Werte beginnen am {data_from_label(hass, response)}."
         )
     return text
 

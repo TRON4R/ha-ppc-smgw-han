@@ -306,7 +306,7 @@ Ja, über die Aktionen `smgw_han.export_readings` und `smgw_han.export_period`, 
 
 Zeiträume über drei Monate holt die Integration in Teilen zu höchstens drei Monaten, mit kurzen Pausen dazwischen. Ein SMGW hat einen Jahresexport am Stück mit einem Fehler abgelehnt, Abrufe bis drei Monate liefen dagegen zuverlässig. Jeder Teil ist ein eigenes, vom SMGW signiertes Original. Signierte Dateien lassen sich nicht zusammenfügen, ohne die Signatur zu zerstören, deshalb liegen die Teile gemeinsam in einer ZIP-Datei. CSV und Excel enthalten den ganzen Zeitraum in je einer Datei. Ein Jahr dauert so einige Minuten, der Dialog zeigt den Fortschritt als Ring.
 
-Beginnen die Werte später als dein Zeitraum, hatte das SMGW für den Anfang keine Daten, etwa weil es erst später eingebaut wurde oder ältere Werte schon gelöscht hat. Abschluss-Schritt und Benachrichtigung nennen dann den ersten Tag mit Daten. Details im README unter [Datenexport für beliebige Zeiträume](https://github.com/TRON4R/ha-ppc-smgw-han#-datenexport-f%C3%BCr-beliebige-zeitr%C3%A4ume).
+Beginnen die Werte später als dein Zeitraum, hat das SMGW für den Anfang keine Daten geliefert, meist weil es erst später eingebaut wurde oder ältere Werte schon gelöscht hat. Abschluss-Schritt und Benachrichtigung nennen dann den ersten Tag mit Daten. Details im README unter [Datenexport für beliebige Zeiträume](https://github.com/TRON4R/ha-ppc-smgw-han#-datenexport-f%C3%BCr-beliebige-zeitr%C3%A4ume).
 
 ---
 

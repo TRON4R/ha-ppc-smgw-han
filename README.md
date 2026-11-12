@@ -90,8 +90,6 @@ Falls eine Vorab-Version (Pre-Release) verfügbar ist und du sie testen möchtes
 4. Den Dialog unten rechts bestätigen
 5. Home Assistant neu starten
 
-Im selben Drei-Punkte-Menü sorgt **„Vorabversionen einschließen"** dafür, dass dir auch künftige Vorab-Versionen als Update angeboten werden.
-
 > Mit Home Assistant vor 2026.11 in **HACS**: Drei-Punkte-Menü → **„Erneut herunterladen"** → **„Benötigst du eine andere Version?"** aufklappen → im Dropdown **„Release"** die Version wählen (oranges `pre-release`-Label) → **„Herunterladen"** → Home Assistant neu starten.
 
 Die Bestandskonfiguration bleibt unverändert — alle Entitäten und die Energy-Dashboard-Historie bleiben erhalten.
@@ -193,13 +191,13 @@ Technisch dahinter stehen **zwei Aktionen/Dienste**:
 - **`smgw_han.export_readings`** — eigener Zeitraum über `from_datetime` / `to_datetime`.
 - **`smgw_han.export_period`** — fertige **Zeitraum-Vorgabe** (`Gestern`, `Letzte 7 Tage`, `Letzte 30 Tage`, `Aktueller Monat`, `Letzter Monat`); `from`/`to` inkl. korrektem Tagesabschluss werden automatisch berechnet.
 
-Beide liefern dasselbe Ergebnis: eine Antwort-Variable mit `readings` + `daily_summary`, bei gesetzten Datei-Schaltern zusätzlich `files` mit Download-Links. `parts` nennt die Zahl der Teilabrufe mit Daten, `parts_without_data` die Teile am Anfang, für die das SMGW keine Daten hatte (siehe unten).
+Beide liefern dasselbe Ergebnis: eine Antwort-Variable mit `readings` + `daily_summary`, bei gesetzten Datei-Schaltern zusätzlich `files` mit Download-Links. `parts` nennt die Zahl der Teilabrufe mit Daten, `parts_without_data` die Teile am Anfang, für die das SMGW keine Daten geliefert hat (siehe unten).
 
 **Lange Zeiträume** holt die Integration in Teilen zu höchstens drei Monaten, mit kurzen Pausen dazwischen. Ein SMGW hat einen Jahresexport am Stück mit einem Fehler abgelehnt, Abrufe bis drei Monate liefen dagegen zuverlässig. Geschnitten wird alle drei Monate am Monatstag des Beginns, ein Jahr ab dem 01.01. ergibt also genau die vier Quartale. Für dich ändert sich dabei wenig:
 
 - **CSV und Excel** enthalten den ganzen Zeitraum in je einer Datei. Das Blatt „Definition" der Excel-Datei nennt die Teilabrufe.
 - **Die signierten CMS-Originale** liegen einzeln in einer **ZIP-Datei**, denn signierte Dateien lassen sich nicht zusammenfügen, ohne die Signatur zu zerstören.
-- **Hat das SMGW für den Anfang des Zeitraums keine Daten**, etwa weil es jünger ist als der Zeitraum oder ältere Werte schon gelöscht hat, beginnt der Export beim ersten vorhandenen Wert und sagt dir das.
+- **Liefert das SMGW für den Anfang des Zeitraums keine Daten**, meist weil es jünger ist als der Zeitraum oder ältere Werte schon gelöscht hat, beginnt der Export beim ersten gelieferten Wert und sagt dir das.
 - **Fehlt mitten im Zeitraum ein Teil** oder scheitert ein Teilabruf, bricht der Export ab und nennt den Teil. Eine zusammengeführte Datei mit einer unbemerkten Lücke gibt es nicht.
 - **Ein Jahr dauert einige Minuten.** Der Dialog zeigt den Fortschritt als Ring. Antwortet das SMGW auf einen Abruf zwei Minuten lang nicht, bricht der Export mit einer eigenen Meldung ab.
 
