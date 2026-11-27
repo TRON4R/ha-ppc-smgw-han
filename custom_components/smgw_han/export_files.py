@@ -57,6 +57,21 @@ def _safe_text(value: str) -> str:
     return "'" + value if value[:1] in ("=", "+", "-", "@") else value
 
 
+def _source_line(meta: dict[str, Any]) -> str:
+    """The line "Gateway: …    Firmware beim Export: …" minus unknown fields.
+
+    The gateway id comes from the signature, so it names the gateway that
+    recorded and signed the values. The firmware is the one at the export,
+    not necessarily the one at the time of the readings.
+    """
+    fields = []
+    if meta.get("gateway_id"):
+        fields.append(f"Gateway: {meta['gateway_id']}")
+    if meta.get("firmware"):
+        fields.append(f"Firmware beim Export: {meta['firmware']}")
+    return "    ".join(fields)
+
+
 def _pivot_by_timestamp(
     readings: list[MeterReading],
 ) -> list[tuple[datetime, float | None, float | None, str]]:
@@ -278,16 +293,24 @@ def write_xlsx(
         f"Zähler: {meta.get('meter_id', '')}    "
         f"Zeitraum: {meta.get('from', '')} bis {meta.get('to', '')}"
     )
-    info["A6"] = "Tagesendwert"
-    info["A6"].font = bold
-    info["A7"] = (
+    row = 5
+    source = _source_line(meta)
+    if source:
+        info[f"A{row}"] = _safe_text(source)
+        row += 1
+    row += 1
+    info[f"A{row}"] = "Tagesendwert"
+    info[f"A{row}"].font = bold
+    row += 1
+    info[f"A{row}"] = (
         "Der Tagesendwert eines Tages D ist der erste vorhandene kumulative "
         "Zählerstand am Folgetag D+1 um 00:00 Uhr lokaler Zeit "
         "(Europe/Berlin)."
     )
-    info["A9"] = "Tarifzonen (konfiguriert, lokale Zeit des Kalendertags D)"
-    info["A9"].font = bold
-    row = 10
+    row += 2
+    info[f"A{row}"] = "Tarifzonen (konfiguriert, lokale Zeit des Kalendertags D)"
+    info[f"A{row}"].font = bold
+    row += 1
     for valid_from, windows in period_windows:
         if len(period_windows) > 1:
             info[f"A{row}"] = _safe_text(f"ab {valid_from}:")
@@ -474,7 +497,8 @@ def write_log_xlsx(
 ) -> None:
     """Write the log workbook: Logbuch, Übersicht, Info. Imports openpyxl lazily.
 
-    ``meta`` keys: ``gateway_id``, ``from``, ``to``, ``created`` (strings),
+    ``meta`` keys: ``gateway_id``, ``firmware`` (optional), ``from``, ``to``,
+    ``created`` (strings),
     ``parts`` (``(from, to, entry_count)`` per signed file), ``gaps``
     (missing running-number ranges), ``refused`` (``(from, to, count)`` the
     gateway named when refusing a range) and ``shortfalls`` (refused ranges
@@ -588,6 +612,10 @@ def write_log_xlsx(
     lines: list[tuple[str, bool]] = [
         ("SMGW-Logdaten", True),
         (f"Gateway: {meta.get('gateway_id', '')}", False),
+    ]
+    if meta.get("firmware"):
+        lines.append((f"Firmware beim Export: {meta['firmware']}", False))
+    lines += [
         (
             f"Zeitraum: {meta.get('from', '')} bis {meta.get('to', '')} "
             "(Ortszeit)",

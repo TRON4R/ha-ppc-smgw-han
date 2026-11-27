@@ -395,6 +395,9 @@ class SmgwClient:
         self._password = password
         self._token: str | None = None
         self._client: httpx.AsyncClient | None = None
+        # Firmware from the footer of the last login page (None before the
+        # first login or if the footer had none).
+        self._firmware: str | None = None
         # Serializes all SMGW sessions. The SMGW allows only one active
         # session per account, so the nightly daily fetch, user-triggered
         # exports and config-flow validation must not run concurrently —
@@ -458,8 +461,17 @@ class SmgwClient:
         if not self._token:
             raise SmgwParseError("Could not extract CSRF token from login page")
 
+        firmware = self._parse_firmware(response.text)
+        if firmware != "unknown":
+            self._firmware = firmware
+
         _LOGGER.debug("SMGW login successful, token obtained")
         return response.text
+
+    @property
+    def firmware_version(self) -> str | None:
+        """Firmware the gateway reported at the last login, if any."""
+        return self._firmware
 
     async def _post(self, data: dict) -> str:
         """Send a POST request with the current session.

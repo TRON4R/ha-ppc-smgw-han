@@ -70,6 +70,7 @@ def test_log_xlsx_sheets_highlighting_and_summary(tmp_path, log_cms, log_row):
     path = tmp_path / "log.xlsx"
     meta = {
         "gateway_id": "eppc0000000001",
+        "firmware": "00950-34900",
         "from": "2026-03-01 00:00:00",
         "to": "2026-05-01 00:00:00",
         "created": "2026-10-01 18:00:00",
@@ -102,6 +103,7 @@ def test_log_xlsx_sheets_highlighting_and_summary(tmp_path, log_cms, log_row):
 
     info = "\n".join(str(c.value or "") for c in wb["Info"]["A"])
     assert "eppc0000000001" in info
+    assert "Firmware beim Export: 00950-34900" in info
     assert "in 2 Teilabrufe zerlegt" in info
     assert "Laufende Nummern 10 bis 13: lückenlos." in info
     assert "mindestens so viele Einträge angekommen" in info
@@ -125,6 +127,7 @@ def test_log_xlsx_reports_gaps_and_shortfalls(tmp_path, log_cms, log_row):
     assert "Lücke in den laufenden Nummern: 14 bis 20" in info
     assert "vom SMGW gemeldet 9 Einträge, angekommen 4" in info
     assert "lückenlos" not in info
+    assert "Firmware" not in info  # unknown: no line at all
     # 13 and 21 do not exist here, so there is no clock-jump hint.
     assert "springt die Uhrzeit" not in info
 

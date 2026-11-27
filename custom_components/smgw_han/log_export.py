@@ -206,6 +206,8 @@ async def run_log_export(
     fmt = "%Y-%m-%d %H:%M:%S"
     meta = {
         "gateway_id": processed.gateway_id,
+        # As reported at this export's login, not when the entries were written.
+        "firmware": coordinator.firmware_version or "",
         "from": from_dt.strftime(fmt),
         "to": to_dt.strftime(fmt),
         "created": dt_util.now().strftime(fmt),

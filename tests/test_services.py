@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from openpyxl import load_workbook
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
@@ -30,6 +31,8 @@ from custom_components.smgw_han.services import (
 NOTIFY = "custom_components.smgw_han.services.persistent_notification.async_create"
 
 FIXTURE = Path(__file__).parent / "fixtures" / "cms_sample.xml.cms"
+# A real export of the owner's old gateway, signature included.
+SIGNED = Path(__file__).parent / "fixtures" / "cms_dst_spring_2026-03-29.xml.cms"
 
 
 @pytest.fixture(autouse=True)
@@ -56,6 +59,7 @@ class FakeCoordinator:
 
     target_meter_id = "1lgz0072999211"
     device_name = None  # unnamed: filenames stay as they were pre-3.5.2
+    firmware_version = None
     tariff_zones = [(time(0, 0), "Go"), (time(5, 0), "Standard")]
 
     async def async_download_cms(self, from_dt, to_dt):
@@ -346,3 +350,34 @@ async def test_export_filenames_unchanged_without_a_device_name(
         "_1lgz0072999211.csv"
     )
     assert names["cms"] == "export.sm_data.xml.cms"
+
+
+async def test_workbook_names_the_signing_gateway_and_firmware(
+    hass: HomeAssistant,
+):
+    class Signed(FakeCoordinator):
+        firmware_version = "00950-34900"
+
+        async def async_download_cms(self, from_dt, to_dt):
+            return SIGNED.read_bytes(), "export.sm_data.xml.cms"
+
+    resp = await run_export(
+        hass,
+        Signed(),
+        datetime(2026, 3, 29, 0, 0, 0),
+        datetime(2026, 3, 30, 0, 15, 0),
+        download_cms=False,
+        do_csv=False,
+        do_xlsx=True,
+    )
+    token, name = URL(resp["files"]["xlsx"]).parts[-2:]
+    path = os.path.join(hass.config.config_dir, "smgw_han_exports", token, name)
+    lines = [
+        str(c.value or "")
+        for c in (await hass.async_add_executor_job(load_workbook, path))[
+            "Definition"
+        ]["A"]
+    ]
+    assert (
+        "Gateway: eppc0215990320    Firmware beim Export: 00950-34900" in lines
+    )

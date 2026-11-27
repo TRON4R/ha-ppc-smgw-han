@@ -213,6 +213,7 @@ class _FetchStub:
     """Client stub for the daily fetch; remembers the zones it was given."""
 
     zones = None
+    firmware_version = None  # the login page named none
 
     def __init__(self, *, result=None, exc=None):
         self._result = result

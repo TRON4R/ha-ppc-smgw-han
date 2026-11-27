@@ -36,6 +36,7 @@ from .const import (
     SENSOR_DATE,
     SENSOR_METER_CONSUMPTION_PREV_DAY_CLOSE,
     SENSOR_METER_FEEDIN_PREV_DAY_CLOSE,
+    device_slug,
     slot_key,
     switch_key,
 )
@@ -246,12 +247,12 @@ class SmgwSensor(CoordinatorEntity[SmgwCoordinator], SensorEntity):
         # reused if an entry is deleted and re-added, so historical statistics
         # carry over after a physical meter swap.
         instance_id = config_entry.data.get(CONF_INSTANCE_ID, 1)
-        device_slug = f"smgw_meter{instance_id}"
-        self._attr_unique_id = f"{device_slug}_{description.key}"
+        slug = device_slug(instance_id)
+        self._attr_unique_id = f"{slug}_{description.key}"
         meter_id = config_entry.data.get(CONF_METER_ID)
         custom_name = (config_entry.data.get(CONF_DEVICE_NAME) or "").strip()
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_slug)},
+            identifiers={(DOMAIN, slug)},
             name=custom_name or DEFAULT_DEVICE_NAME,
             manufacturer="PPC",
             model="Smart Meter Gateway",
@@ -312,12 +313,12 @@ class SmgwDeviceIdSensor(SensorEntity):
     def __init__(self, config_entry: SmgwConfigEntry) -> None:
         """Initialize the device-id sensor."""
         instance_id = config_entry.data.get(CONF_INSTANCE_ID, 1)
-        device_slug = f"smgw_meter{instance_id}"
-        self._attr_unique_id = f"{device_slug}_device_id"
+        slug = device_slug(instance_id)
+        self._attr_unique_id = f"{slug}_device_id"
         meter_id = config_entry.data.get(CONF_METER_ID)
         custom_name = (config_entry.data.get(CONF_DEVICE_NAME) or "").strip()
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_slug)},
+            identifiers={(DOMAIN, slug)},
             name=custom_name or DEFAULT_DEVICE_NAME,
             manufacturer="PPC",
             model="Smart Meter Gateway",

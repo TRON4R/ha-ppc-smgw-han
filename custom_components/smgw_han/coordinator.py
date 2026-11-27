@@ -11,6 +11,7 @@ from typing import Any
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers import translation
 from homeassistant.helpers.event import (
@@ -34,6 +35,7 @@ from homeassistant.util import dt as dt_util
 from . import day_rules, zone_schedule
 from .const import (
     CONF_DEVICE_NAME,
+    CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_UPDATE_TIME,
     CONF_ZONE_SCHEDULE,
@@ -54,6 +56,7 @@ from .const import (
     STORE_VERSION,
     ZONE_NAME,
     ZONE_TIME,
+    device_slug,
     slot_key,
     switch_key,
 )
@@ -781,6 +784,8 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(
                 f"Failed to fetch SMGW data for {yesterday}: {err}"
             ) from err
+        finally:
+            self._async_note_firmware()
 
         # A successful fetch clears any prior "no recent data" repair issue
         # (idempotent: a no-op when none exists).
@@ -1095,6 +1100,8 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise HomeAssistantError(
                 translation_domain=DOMAIN, translation_key="cms_download_failed"
             ) from err
+        finally:
+            self._async_note_firmware()
 
     async def async_export_log(
         self, from_dt: datetime, to_dt: datetime
@@ -1118,6 +1125,49 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise HomeAssistantError(
                 translation_domain=DOMAIN, translation_key="log_download_failed"
             ) from err
+        finally:
+            self._async_note_firmware()
+
+    @property
+    def firmware_version(self) -> str | None:
+        """Gateway firmware: from the last login, else from the device page.
+
+        After a restart the client has not logged in yet; the device registry
+        still holds what the last login of the previous run reported.
+        """
+        if firmware := self._client.firmware_version:
+            return firmware
+        device = self._device_entry()
+        return device.sw_version if device else None
+
+    def _device_entry(self) -> dr.DeviceEntry | None:
+        instance_id = self.config_entry.data.get(CONF_INSTANCE_ID, 1)
+        return dr.async_get(self.hass).async_get_device(
+            identifiers={(DOMAIN, device_slug(instance_id))}
+        )
+
+    @callback
+    def _async_note_firmware(self) -> None:
+        """Show the firmware of the last login on the device page.
+
+        Runs after every gateway contact, so an update of the gateway shows up
+        with the next nightly fetch. No extra request: the login page carries
+        the firmware anyway.
+        """
+        firmware = self._client.firmware_version
+        if not firmware:
+            return
+        device = self._device_entry()
+        if device is None or device.sw_version == firmware:
+            return
+        if device.sw_version:
+            _LOGGER.info(
+                "SMGW firmware changed from %s to %s",
+                device.sw_version, firmware,
+            )
+        dr.async_get(self.hass).async_update_device(
+            device.id, sw_version=firmware
+        )
 
     @staticmethod
     def _daily_data_to_dict(

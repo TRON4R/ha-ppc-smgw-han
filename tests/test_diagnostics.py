@@ -19,7 +19,10 @@ METER_ID = "1xyz0123456789"
 
 def _entry(**data) -> SimpleNamespace:
     return SimpleNamespace(
-        data=data, runtime_data=SimpleNamespace(data={"date": "2026-10-29"})
+        data=data,
+        runtime_data=SimpleNamespace(
+            data={"date": "2026-10-29"}, firmware_version="00950-34900"
+        ),
     )
 
 
@@ -52,6 +55,11 @@ async def test_the_config_entry_itself_is_not_changed():
     entry = _entry(**{CONF_METER_ID: METER_ID})
     await async_get_config_entry_diagnostics(None, entry)
     assert entry.data[CONF_METER_ID] == METER_ID
+
+
+async def test_firmware_is_in_the_output():
+    result = await async_get_config_entry_diagnostics(None, _entry())
+    assert result["firmware_version"] == "00950-34900"
 
 
 async def test_entry_without_meter_id_still_works():

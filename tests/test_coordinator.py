@@ -15,6 +15,7 @@ from homeassistant.exceptions import (
     HomeAssistantError,
     ServiceValidationError,
 )
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -25,6 +26,7 @@ from pytest_homeassistant_custom_component.common import (
 
 from custom_components.smgw_han import async_remove_entry, gateway_lock
 from custom_components.smgw_han.const import (
+    CONF_INSTANCE_ID,
     CONF_METER_ID,
     CONF_TARIFF_ZONES,
     CONF_UPDATE_TIME,
@@ -64,6 +66,8 @@ def _enable(enable_custom_integrations):
 class _StubClient:
     """Client stub whose CMS download always raises the given exception."""
 
+    firmware_version = None  # the login page named none
+
     def __init__(self, exc: Exception) -> None:
         self._exc = exc
 
@@ -82,6 +86,8 @@ def _coordinator(hass: HomeAssistant, exc: Exception) -> SmgwCoordinator:
 
 class _FetchStub:
     """Client stub for the daily fetch: returns ``result`` or raises ``exc``."""
+
+    firmware_version = None  # the login page named none
 
     def __init__(self, *, result: DailyData | None = None,
                  exc: Exception | None = None) -> None:
@@ -1340,3 +1346,53 @@ async def test_fetch_trigger_on_the_clock_change_days(
     assert [int(run.timestamp()) for run in runs] == [
         int(datetime.fromisoformat(run).timestamp()) for run in expected_runs
     ]
+
+
+async def test_firmware_of_the_last_login_shows_on_the_device_page(
+    hass: HomeAssistant,
+):
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_METER_ID: "M", CONF_INSTANCE_ID: 2}
+    )
+    entry.add_to_hass(hass)
+    registry = dr.async_get(hass)
+    device = registry.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={(DOMAIN, "smgw_meter2")}
+    )
+    stub = _StubClient(SmgwConnectionError("down"))
+    coord = SmgwCoordinator(hass, entry, stub)
+
+    # Logged in, then the request failed: the firmware is known anyway.
+    stub.firmware_version = "00950-34900"
+    with pytest.raises(HomeAssistantError):
+        await coord.async_download_cms(datetime(2026, 1, 1), datetime(2026, 1, 2))
+    assert registry.async_get(device.id).sw_version == "00950-34900"
+
+    # The gateway was updated in between.
+    stub.firmware_version = "00951-35000"
+    with pytest.raises(HomeAssistantError):
+        await coord.async_download_cms(datetime(2026, 1, 1), datetime(2026, 1, 2))
+    assert registry.async_get(device.id).sw_version == "00951-35000"
+
+    # After a restart the client has not logged in yet: the device page has
+    # the last value, and a contact without login leaves it alone.
+    stub.firmware_version = None
+    assert coord.firmware_version == "00951-35000"
+    with pytest.raises(HomeAssistantError):
+        await coord.async_download_cms(datetime(2026, 1, 1), datetime(2026, 1, 2))
+    assert registry.async_get(device.id).sw_version == "00951-35000"
+
+
+async def test_daily_fetch_records_the_firmware(hass: HomeAssistant):
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_METER_ID: "M"})
+    entry.add_to_hass(hass)
+    registry = dr.async_get(hass)
+    device = registry.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={(DOMAIN, "smgw_meter1")}
+    )
+    stub = _FetchStub(exc=SmgwNoDataError("no values"))
+    stub.firmware_version = "00950-34900"
+    coord = SmgwCoordinator(hass, entry, stub)
+    # No values for the day, but the login worked and named the firmware.
+    assert await coord._async_do_daily_fetch(date(2026, 11, 26)) is False
+    assert registry.async_get(device.id).sw_version == "00950-34900"

@@ -256,7 +256,7 @@ In **Entwicklerwerkzeuge → Aktionen** lassen sich beide Dienste mit beliebigen
 | `period` | `export_period` | Fertiger Zeitraum (Dropdown) |
 | `download_cms` | beide | Speichert zusätzlich das signierte **CMS-Original** (fälschungssicher, wie der „Exportieren"-Button im Webinterface) |
 | `write_csv` | beide | Speichert zusätzlich die Rohdaten als **CSV** (semikolongetrennt, Excel-freundlich) |
-| `write_xlsx` | beide | Speichert zusätzlich eine **Excel-Mappe** (Rohdaten, Tagesendwerte, Tarifzonen) |
+| `write_xlsx` | beide | Speichert zusätzlich eine **Excel-Mappe** (Rohdaten, Tagesendwerte, Tarifzonen; das Blatt „Definition“ nennt Zähler, Gateway und Firmware) |
 
 > **Tipp:** „Letzter Monat" (in `export_period`) liefert automatisch den **vollständigen** Vormonat inklusive des Abschluss-Zählerstands am Monatsersten 00:00 — der Wert, den man bei manueller Eingabe leicht vergisst. Bei `export_readings` daran denken: für den Tagesabschluss des letzten Tages das `to` auf **00:15 des Folgetags** setzen.
 
@@ -302,7 +302,7 @@ Die Integration nimmt dir das ab: **Einstellungen → Geräte & Dienste → dein
 
 - **CMS** – das signierte Original des SMGW. Musste aufgeteilt werden, liegen alle Teile unverändert in **einer ZIP-Datei**, denn signierte Dateien lassen sich nicht zusammenfügen, ohne die Signatur zu zerstören.
 - **CSV** – eine Zeile pro Eintrag: Zeitpunkt (Ortszeit und UTC), Level, Status, Meldungs-ID, laufende Nummer und ganz rechts der Meldungstext im Klartext.
-- **Excel** – das Blatt **„Logbuch"** wie die CSV, mit Filter und farbig hinterlegten Warnungen (gelb) und Fehlern (rot); das Blatt **„Übersicht"** zählt die Einträge je Monat und je Meldungstyp, so fällt etwa ein Monat voller Anmeldungen sofort auf; das Blatt **„Info"** dokumentiert Gateway, Zeitraum, Teilabrufe und die Vollständigkeitsprüfung.
+- **Excel** – das Blatt **„Logbuch"** wie die CSV, mit Filter und farbig hinterlegten Warnungen (gelb) und Fehlern (rot); das Blatt **„Übersicht"** zählt die Einträge je Monat und je Meldungstyp, so fällt etwa ein Monat voller Anmeldungen sofort auf; das Blatt **„Info"** dokumentiert Gateway, Firmware, Zeitraum, Teilabrufe und die Vollständigkeitsprüfung.
 
 **Vollständigkeitsprüfung:** Jeder Logeintrag trägt eine fortlaufende Nummer des SMGW. Nach dem Zusammenführen prüft die Integration, dass diese Nummern lückenlos sind, und für jeden zu großen Bereich, dass so viele Einträge angekommen sind, wie das SMGW dort gemeldet hat. Auffälligkeiten stehen im Abschluss-Schritt, in der Benachrichtigung und im Blatt „Info".
 

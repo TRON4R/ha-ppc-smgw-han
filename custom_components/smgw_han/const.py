@@ -236,6 +236,11 @@ SENSOR_DATE = "date"
 WEEKEND_SLOT_BASE = 100
 
 
+def device_slug(instance_id: int) -> str:
+    """Device identifier and unique-id prefix of one config entry."""
+    return f"smgw_meter{instance_id}"
+
+
 def slot_key(n: int) -> str:
     """Sensor key of the daily consumption value for tariff zone ``n`` (1-based).
 

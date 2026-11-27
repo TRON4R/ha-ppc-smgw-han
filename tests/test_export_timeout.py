@@ -107,6 +107,8 @@ async def test_http_error_carries_the_gateway_text():
 
 
 class _Raises:
+    firmware_version = None  # the login page named none
+
     def __init__(self, exc: Exception) -> None:
         self._exc = exc
 
