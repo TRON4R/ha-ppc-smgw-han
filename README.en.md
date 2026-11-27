@@ -257,7 +257,7 @@ In **Developer Tools → Actions** both services can be called with any paramete
 | `period` | `export_period` | Ready-made range (dropdown) |
 | `download_cms` | both | Also save the signed **CMS original** (tamper-evident, like the "Exportieren" button in the web interface) |
 | `write_csv` | both | Also save the raw readings as **CSV** (semicolon-separated, Excel-friendly) |
-| `write_xlsx` | both | Also save an **Excel workbook** (raw data, daily end values, tariff zones) |
+| `write_xlsx` | both | Also save an **Excel workbook** (raw data, daily end values, tariff zones; the "Definition" sheet names the meter, gateway and firmware) |
 
 > **Tip:** "Last month" (in `export_period`) automatically returns the **complete** previous month including the closing meter reading at midnight on the 1st — the value that's easy to miss by hand. With `export_readings`, remember to set `to` to **00:15 of the following day** to include the last day's closing reading.
 
@@ -303,7 +303,7 @@ The integration does that for you: **Settings → Devices & Services → your SM
 
 - **CMS** – the SMGW's signed original. If the range had to be split, all parts are kept unchanged in **one ZIP file**, because signed files cannot be merged without breaking the signature.
 - **CSV** – one row per entry: time (local and UTC), level, status, message ID, running number and, in the rightmost column, the message in plain text.
-- **Excel** – the **"Logbuch"** (log) sheet like the CSV, with filters and highlighted warnings (yellow) and errors (red); the **"Übersicht"** (overview) sheet counts the entries per month and per message type, so a month full of logins stands out at once; the **"Info"** sheet documents the gateway, the range, the partial requests and the completeness check.
+- **Excel** – the **"Logbuch"** (log) sheet like the CSV, with filters and highlighted warnings (yellow) and errors (red); the **"Übersicht"** (overview) sheet counts the entries per month and per message type, so a month full of logins stands out at once; the **"Info"** sheet documents the gateway, the firmware, the range, the partial requests and the completeness check.
 
 **Completeness check:** every log entry carries a running number assigned by the SMGW. After merging, the integration checks that these numbers have no gaps and, for every range that was too large, that as many entries arrived as the SMGW reported for it. Irregularities are shown in the final step, in the notification and on the "Info" sheet.
 

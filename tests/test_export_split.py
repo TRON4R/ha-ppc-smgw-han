@@ -173,6 +173,7 @@ class SliceGateway:
 
     target_meter_id = "1lgz0072999211"
     device_name = None
+    firmware_version = None
 
     def __init__(self, readings, *, empty_before=None, fail_at=None, error=None):
         self.readings = readings

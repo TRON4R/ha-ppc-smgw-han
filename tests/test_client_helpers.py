@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
+import httpx
+
 from custom_components.smgw_han.smgw_client import SmgwClient
 
 
@@ -92,3 +94,42 @@ async def test_list_meter_options_multi(fixture_text):
         ("mid-aaa-0001", "1lgz0072999211"),
         ("mid-bbb-0002", "1lgz0088888888"),
     ]
+
+
+def _login_client(pages: list[str]) -> SmgwClient:
+    """Client whose gateway answers each login with the next page."""
+    answers = iter(pages)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=next(answers))
+
+    client = SmgwClient("https://smgw.local/cgi-bin/hanservice.cgi", "u", "p")
+    client._client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    return client
+
+
+_LOGIN = '<input name="tkn" value="t1"/>{footer}'
+
+
+async def test_login_remembers_the_firmware():
+    client = _login_client([
+        _LOGIN.format(footer='<p id="div_fwversion">00950-34900</p>'),
+        _LOGIN.format(footer='<p id="div_fwversion">00951-35000</p>'),
+    ])
+    assert client.firmware_version is None  # no login yet
+    await client._login()
+    assert client.firmware_version == "00950-34900"
+    await client._login()  # the gateway was updated in between
+    assert client.firmware_version == "00951-35000"
+    await client.close()
+
+
+async def test_login_without_footer_keeps_the_last_firmware():
+    client = _login_client([
+        _LOGIN.format(footer='<p id="div_fwversion">00950-34900</p>'),
+        _LOGIN.format(footer=""),
+    ])
+    await client._login()
+    await client._login()
+    assert client.firmware_version == "00950-34900"
+    await client.close()

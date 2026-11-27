@@ -37,5 +37,6 @@ async def async_get_config_entry_diagnostics(
 
     return {
         "config_entry_data": config_entry_data,
+        "firmware_version": coordinator.firmware_version,
         "coordinator_data": coordinator.data,
     }

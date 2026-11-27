@@ -48,7 +48,7 @@ from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.util import dt as dt_util
 
 from .aggregation import DailySummary, build_daily_summary
-from .cms_parser import parse_cms_readings
+from .cms_parser import gateway_id_from_cms, parse_cms_readings
 from .const import (
     ATTR_DEVICE_ID,
     ATTR_DOWNLOAD_CMS,
@@ -349,6 +349,7 @@ class _Part:
     readings: list[MeterReading]
     content: bytes | None  # the signed file; dropped unless it is to be saved
     name: str | None  # the gateway's filename for it
+    gateway_id: str | None = None  # the gateway that signed it
 
 
 def _stamp(value: datetime) -> str:
@@ -653,7 +654,10 @@ async def _download_parts(
                 )
                 raise _gap_error(hass, ranges, index - 1)
         parts.append(
-            _Part(start, end, readings, content if keep_cms else None, name)
+            _Part(
+                start, end, readings, content if keep_cms else None, name,
+                gateway_id_from_cms(content),
+            )
         )
     return parts, skipped
 
@@ -742,6 +746,12 @@ async def run_export(
         )
         meta = {
             "meter_id": meter_id or "",
+            # Normally one gateway; listed in order if the parts disagree.
+            "gateway_id": ", ".join(
+                dict.fromkeys(part.gateway_id for part in parts if part.gateway_id)
+            ),
+            # As reported at this export's login, not when the data was taken.
+            "firmware": coordinator.firmware_version or "",
             "from": from_str,
             "to": to_str,
             "zones": [

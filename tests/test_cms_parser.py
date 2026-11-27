@@ -11,6 +11,7 @@ from custom_components.smgw_han.aggregation import build_daily_summary
 from custom_components.smgw_han.cms_parser import (
     CmsParseError,
     extract_embedded_xml,
+    gateway_id_from_cms,
     parse_cms_readings,
 )
 from custom_components.smgw_han.const import OBIS_EXPORT, OBIS_IMPORT
@@ -282,3 +283,26 @@ def test_default_namespace_document_parses_end_to_end():
     readings = parse_cms_readings(renamed.encode("utf-8") + _BIN_TRAILER)
     assert len(readings) == 5
     assert {r.obis_code for r in readings} == {OBIS_IMPORT, OBIS_EXPORT}
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    ["cms_dst_spring_2026-03-29.xml.cms", "cms_dst_autumn_2025-10-26.xml.cms"],
+)
+def test_gateway_id_comes_from_the_signing_certificate(fixture):
+    # Real exports of the owner's old gateway: the signature names it as
+    # "EPPC0215990320.SMGW"; lower case like the log export.
+    raw = (FIXTURE.parent / fixture).read_bytes()
+    assert gateway_id_from_cms(raw) == "eppc0215990320"
+
+
+def test_gateway_id_is_none_without_a_signature():
+    # The synthetic sample has no certificate, and plain text has none either.
+    assert gateway_id_from_cms(FIXTURE.read_bytes()) is None
+    assert gateway_id_from_cms(b"no signature in here") is None
+
+
+def test_gateway_id_stops_at_the_der_length_byte():
+    # In the certificate the name follows its length byte (0x13 = 19 chars).
+    raw = b"<?xml ...>UEPPC0206811718.SMGW10"
+    assert gateway_id_from_cms(raw) == "eppc0206811718"

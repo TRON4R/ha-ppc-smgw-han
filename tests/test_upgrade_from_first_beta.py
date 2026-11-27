@@ -56,6 +56,8 @@ WEEKEND = BETA1_ENTITY_IDS["en"][3]
 
 
 class _GatewayStub:
+    firmware_version = None  # the login page named none
+
     async def close(self):
         pass
 

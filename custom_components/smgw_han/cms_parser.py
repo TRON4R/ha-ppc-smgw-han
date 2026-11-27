@@ -23,6 +23,7 @@ executor thread — parsing a multi-MB XML is CPU-bound.
 
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from decimal import Decimal
@@ -61,6 +62,28 @@ _OBIS_HEX_TO_CODE = {
 
 class CmsParseError(Exception):
     """Raised when the embedded XML cannot be located or parsed."""
+
+
+# The gateway signs every export with its own certificate, whose common name
+# is "<gateway id>.SMGW" (e.g. "EPPC0206811718.SMGW"). It sits in the
+# signature behind the XML; measured on all exports of two gateways, meter
+# values and logs alike, it occurs exactly once.
+_SIGNER_SUFFIX = b".SMGW"
+_SIGNER_RE = re.compile(rb"([A-Za-z0-9]{4,40})\.SMGW")
+
+
+def gateway_id_from_cms(raw: bytes) -> str | None:
+    """Id of the gateway that signed ``raw``, lower case, or None.
+
+    Lower case like the log export, which takes the id from the logical name
+    ("eppc0206811718"). Searched from the end, where the signature is, so a
+    large file is not scanned through.
+    """
+    end = raw.rfind(_SIGNER_SUFFIX)
+    if end < 0:
+        return None
+    match = _SIGNER_RE.search(raw, max(0, end - 40), end + len(_SIGNER_SUFFIX))
+    return match.group(1).decode("ascii").lower() if match else None
 
 
 class _RootComplete(Exception):

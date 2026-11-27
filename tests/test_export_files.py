@@ -223,3 +223,41 @@ def test_write_xlsx_single_zone_has_no_switch_column(tmp_path):
         c.value for row in wb["Definition"].iter_rows() for c in row if c.value
     ]
     assert "Standard: 00:00-24:00" in definition_texts
+
+
+def _definition(tmp_path, **extra) -> list[str]:
+    path = tmp_path / "out.xlsx"
+    meta = {
+        "meter_id": "1lgz0072999211",
+        "from": "2026-05-15 00:00:00",
+        "to": "2026-05-16 00:15:00",
+        "zones": [("00:00", "Go"), ("05:00", "Standard")],
+        **extra,
+    }
+    summary = build_daily_summary(READINGS, _fixed(GO_ZONES))
+    write_xlsx(path, READINGS, summary, meta)
+    sheet = load_workbook(path)["Definition"]
+    return [str(c.value or "") for c in sheet["A"]]
+
+
+def test_definition_names_gateway_and_firmware(tmp_path):
+    lines = _definition(
+        tmp_path, gateway_id="eppc0206811718", firmware="00950-34900"
+    )
+    assert lines[3].startswith("Zähler: 1lgz0072999211")
+    assert lines[4] == (
+        "Gateway: eppc0206811718    Firmware beim Export: 00950-34900"
+    )
+    assert lines[5] == ""  # the blank line before the next block stays
+    assert lines[6] == "Tagesendwert"
+
+
+def test_definition_leaves_out_what_is_unknown(tmp_path):
+    assert "Gateway: eppc0206811718" in _definition(
+        tmp_path, gateway_id="eppc0206811718", firmware=""
+    )
+    lines = _definition(tmp_path)
+    # Neither known: the layout is the one from before 3.9.2.
+    assert lines[4] == ""
+    assert lines[5] == "Tagesendwert"
+    assert not any("Gateway" in line or "Firmware" in line for line in lines)
