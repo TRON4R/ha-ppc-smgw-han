@@ -3,7 +3,7 @@
 
 <img src="custom_components/smgw_han/brand/icon.png" alt="SMGW Icon" width="128" align="left" style="margin-right: 16px;">
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration) [![GitHub stars](https://img.shields.io/github/stars/TRON4R/ha-ppc-smgw-han?label=stars&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/stargazers) [![Downloads via GitHub releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=downloads%20since%2008%2F2026&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases) [![Downloads of the latest release](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/latest/total?label=downloads%20latest%20version&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases/latest)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration) [![GitHub stars](https://img.shields.io/github/stars/TRON4R/ha-ppc-smgw-han?label=stars&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/stargazers) [![Downloads via GitHub releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=downloads%20since%2008%2F2026&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases) [![Downloads of the latest release](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/latest/total?label=downloads%20latest%20version&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases/latest) [![Buy me a coffee](https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/tronar)
 
 <!--
 The analytics counter stays disabled for now: Home Assistant Analytics filters
@@ -349,6 +349,14 @@ If you are using a completely different tariff structure, please [open an issue]
 ## FAQ
 
 Answers to typical setup questions – network connection, error messages, missing feed-in values and more – are in the [FAQ](https://github.com/TRON4R/ha-ppc-smgw-han/blob/main/docs/faq.en.md). Please check it before opening an issue.
+
+## ☕ Support
+
+This integration is free and open source. If it helps you and you'd like to say thanks, I'd appreciate a coffee:
+
+<a href="https://buymeacoffee.com/tronar"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50"></a>
+
+A ⭐ for the repository helps too — it makes the integration easier for others to find.
 
 ## License
 
